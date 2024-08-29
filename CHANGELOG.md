@@ -2,6 +2,6 @@
 
 Please follow https://changelog.md/ conventions.
 
-## v1.0.0
+## v0.1.0
 
 - 🎉 first release!
