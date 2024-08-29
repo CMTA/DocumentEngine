@@ -20,7 +20,7 @@ contract DocumentEngine is IERC1643, DocumentEngineInvariant, AccessControl {
     //////////////////////////////////////////////////////////////*/
 
     /**
-     * @notice Admin-only function to set or update a document
+     * @notice Restricted function to set or update a document
      */
     function setDocument(
         address smartContract,
@@ -32,7 +32,7 @@ contract DocumentEngine is IERC1643, DocumentEngineInvariant, AccessControl {
     }
 
     /**
-     * @notice Admin-only function to remove a document for a given smart contract and name
+     * @notice Restricted function to remove a document for a given smart contract and name
      */
     function removeDocument(
         address smartContract,
@@ -83,7 +83,7 @@ contract DocumentEngine is IERC1643, DocumentEngineInvariant, AccessControl {
     }
 
     /**
-     * @notice Public function to get a document. Uses msg.sender if no address is provided
+     * @notice Public function to get a document from msg.sender
      */
     function getDocument(
         bytes32 name_
@@ -122,12 +122,28 @@ contract DocumentEngine is IERC1643, DocumentEngineInvariant, AccessControl {
         return _documentNames[smartContract];
     }
 
+
+    /* ============ ACCESS CONTROL ============ */
+    /*
+     * @dev Returns `true` if `account` has been granted `role`.
+     */
+    function hasRole(
+        bytes32 role,
+        address account
+    ) public view virtual override returns (bool) {
+        // The Default Admin has all roles
+        if (AccessControl.hasRole(DEFAULT_ADMIN_ROLE, account)) {
+            return true;
+        }
+        return AccessControl.hasRole(role, account);
+    }
+
     /*//////////////////////////////////////////////////////////////
                             INTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
     /**
-     * @dev Internal function to fetch a document and revert with an error if not found
+     * @dev Internal function to fetch a document
      */
     function _getDocument(
         address smartContract,
@@ -179,20 +195,5 @@ contract DocumentEngine is IERC1643, DocumentEngineInvariant, AccessControl {
         doc.documentHash = documentHash_;
         doc.lastModified = block.timestamp;
         emit DocumentUpdated(smartContract, name_, uri_, documentHash_);
-    }
-
-    /* ============ ACCESS CONTROL ============ */
-    /*
-     * @dev Returns `true` if `account` has been granted `role`.
-     */
-    function hasRole(
-        bytes32 role,
-        address account
-    ) public view virtual override returns (bool) {
-        // The Default Admin has all roles
-        if (AccessControl.hasRole(DEFAULT_ADMIN_ROLE, account)) {
-            return true;
-        }
-        return AccessControl.hasRole(role, account);
     }
 }
