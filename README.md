@@ -1,5 +1,9 @@
 # DocumentEngine  (ERC-1643)
 
+> This project is not audited !
+>
+> If you want to use this project, perform your own verification or send an email to [admin@cmta.ch](mailto:admin@cmta.ch).
+
 The `DocumentEngine` is an external contract to manage documents through [*ERC-1643*](https://github.com/ethereum/EIPs/issues/1643), a standard proposition to manage document on-chain. This standard is notably used by [ERC-1400](https://github.com/ethereum/eips/issues/1411) from Polymath. 
 
 The documentEngine is planned to be used by other smart contract,e.g CMTAT token, to store documents on their behalf.
