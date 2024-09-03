@@ -5,7 +5,16 @@ import "OZ/access/AccessControl.sol";
 import "CMTAT/interfaces/engine/draft-IERC1643.sol";
 import "./DocumentEngineInvariant.sol";
 
+/**
+ * @title DocumentEngine
+ * @notice contract to manage documents on-chain through ERC-1643
+ */
 contract DocumentEngine is IERC1643, DocumentEngineInvariant, AccessControl {
+    /**
+     * @notice
+     * Get the current version of the smart contract
+     */
+    string public constant VERSION = "0.2.0";
     // Mapping from contract addresses to document names to their corresponding Document structs
     mapping(address => mapping(bytes32 => Document)) private _documents;
     mapping(address => bytes32[]) private _documentNames;
@@ -64,6 +73,27 @@ contract DocumentEngine is IERC1643, DocumentEngineInvariant, AccessControl {
     }
 
     /**
+     * @notice Batch version of setDocument to handle multiple documents at once
+     */
+    function batchSetDocuments(
+        address smartContract,
+        bytes32[] calldata names,
+        string[] calldata uris,
+        bytes32[] calldata hashes
+    ) external onlyRole(DOCUMENT_MANAGER_ROLE) {
+        if (
+            names.length == 0 ||
+            names.length != uris.length ||
+            uris.length != hashes.length
+        ) {
+            revert InvalidInputLength();
+        }
+        for (uint256 i = 0; i < names.length; ++i) {
+            _setDocument(smartContract, names[i], uris[i], hashes[i]);
+        }
+    }
+
+    /**
      * @notice Batch version of removeDocument to handle multiple documents at once
      */
     function batchRemoveDocuments(
@@ -79,6 +109,22 @@ contract DocumentEngine is IERC1643, DocumentEngineInvariant, AccessControl {
 
         for (uint256 i = 0; i < smartContracts.length; ++i) {
             _removeDocument(smartContracts[i], names[i]);
+        }
+    }
+
+    /**
+     * @notice Batch version of removeDocument to handle multiple documents at once
+     */
+    function batchRemoveDocuments(
+        address smartContract,
+        bytes32[] calldata names
+    ) external onlyRole(DOCUMENT_MANAGER_ROLE) {
+        if (names.length == 0) {
+            revert InvalidInputLength();
+        }
+
+        for (uint256 i = 0; i < names.length; ++i) {
+            _removeDocument(smartContract, names[i]);
         }
     }
 
@@ -121,7 +167,6 @@ contract DocumentEngine is IERC1643, DocumentEngineInvariant, AccessControl {
     ) external view returns (bytes32[] memory) {
         return _documentNames[smartContract];
     }
-
 
     /* ============ ACCESS CONTROL ============ */
     /*

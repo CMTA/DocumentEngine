@@ -58,6 +58,145 @@ contract DocumentEngineTest is Test, DocumentEngineInvariant, AccessControl {
         );
     }
 
+    /*//////////////////////////////////////////////////////////////
+              Access control
+    ///////////////////////////////////////*/
+
+    function testCannotNonAdminSetDocument() public {
+        vm.prank(attacker);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                AccessControlUnauthorizedAccount.selector,
+                attacker,
+                DOCUMENT_MANAGER_ROLE
+            )
+        );
+        documentEngine.setDocument(
+            testContract,
+            documentName,
+            documentURI,
+            documentHash
+        );
+    }
+
+    function testCannotNonAdminRemoveDocument() public {
+        vm.prank(attacker);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                AccessControlUnauthorizedAccount.selector,
+                attacker,
+                DOCUMENT_MANAGER_ROLE
+            )
+        );
+        documentEngine.removeDocument(testContract, documentName);
+    }
+
+    function testNonAdminCannotBatchSetDocuments() public {
+        address[] memory smartContracts = new address[](2);
+        smartContracts[0] = testContract;
+        smartContracts[1] = anotherSmartContract;
+
+        bytes32[] memory names = new bytes32[](2);
+        names[0] = documentName;
+        names[1] = keccak256("doc2");
+
+        string[] memory uris = new string[](2);
+        uris[0] = documentURI;
+        uris[1] = "https://example.com/doc2";
+
+        bytes32[] memory hashes = new bytes32[](2);
+        hashes[0] = documentHash;
+        hashes[1] = keccak256("doc2Hash");
+
+        vm.prank(attacker);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                AccessControlUnauthorizedAccount.selector,
+                attacker,
+                DOCUMENT_MANAGER_ROLE
+            )
+        );
+        documentEngine.batchSetDocuments(smartContracts, names, uris, hashes);
+
+        vm.prank(attacker);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                AccessControlUnauthorizedAccount.selector,
+                attacker,
+                DOCUMENT_MANAGER_ROLE
+            )
+        );
+        documentEngine.batchSetDocuments(testContract, names, uris, hashes);
+    }
+
+    function testNonAdminCannotBatchRemoveDocuments() public {
+        address[] memory smartContracts = new address[](2);
+        smartContracts[0] = testContract;
+        smartContracts[1] = anotherSmartContract;
+
+        bytes32[] memory names = new bytes32[](2);
+        names[0] = documentName;
+        names[1] = keccak256("doc2");
+
+        vm.prank(attacker);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                AccessControlUnauthorizedAccount.selector,
+                attacker,
+                DOCUMENT_MANAGER_ROLE
+            )
+        );
+        documentEngine.batchRemoveDocuments(smartContracts, names);
+
+        vm.prank(attacker);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                AccessControlUnauthorizedAccount.selector,
+                attacker,
+                DOCUMENT_MANAGER_ROLE
+            )
+        );
+        documentEngine.batchRemoveDocuments(testContract, names);
+    }
+
+    /*//////////////////////////////////////////////////////////////
+                  Get 
+    //////////////////////////////////////////////////////////////*/
+
+    function testGetAllDocuments() public view {
+        bytes32[] memory docs = documentEngine.getAllDocuments(testContract);
+        assertEq(docs.length, 1);
+        assertEq(docs[0], documentName);
+    }
+
+    function testCanReturnCMTATDocument() public {
+        // Arrange
+        uint256 lastModif = block.timestamp;
+        vm.prank(admin);
+        documentEngine.setDocument(
+            address(cmtat),
+            documentName,
+            documentURI,
+            documentHash
+        );
+        vm.prank(admin);
+        cmtat.setDocumentEngine(documentEngine);
+
+        // Call from CMTAT, return document
+        bytes32[] memory docs = cmtat.getAllDocuments();
+        assertEq(docs.length, 1);
+        assertEq(docs[0], documentName);
+
+        (string memory uri, bytes32 hash, uint256 lastModified) = cmtat
+            .getDocument(documentName);
+        assertEq(uri, documentURI);
+        assertEq(hash, documentHash);
+        assertEq(lastModif, lastModified);
+    }
+
+    /*//////////////////////////////////////////////////////////////
+                        Set documents
+    //////////////////////////////////////////////////////////////*/
     function testAdminCanSetDocument() public {
         uint256 lastModif = block.timestamp;
         vm.prank(admin);
@@ -108,66 +247,6 @@ contract DocumentEngineTest is Test, DocumentEngineInvariant, AccessControl {
         docs = documentEngine.getAllDocuments(testContract);
         assertEq(docs.length, 1);
         assertEq(docs[0], documentName);
-    }
-
-    function testCannotNonAdminSetDocument() public {
-        vm.prank(attacker);
-        vm.expectRevert(
-            abi.encodeWithSelector(
-                AccessControlUnauthorizedAccount.selector,
-                attacker,
-                DOCUMENT_MANAGER_ROLE
-            )
-        );
-        documentEngine.setDocument(
-            testContract,
-            documentName,
-            documentURI,
-            documentHash
-        );
-    }
-
-    function testCannotNonAdminRemoveDocument() public {
-        vm.prank(attacker);
-        vm.expectRevert(
-            abi.encodeWithSelector(
-                AccessControlUnauthorizedAccount.selector,
-                attacker,
-                DOCUMENT_MANAGER_ROLE
-            )
-        );
-        documentEngine.removeDocument(testContract, documentName);
-    }
-
-    function testGetAllDocuments() public view {
-        bytes32[] memory docs = documentEngine.getAllDocuments(testContract);
-        assertEq(docs.length, 1);
-        assertEq(docs[0], documentName);
-    }
-
-    function testCanReturnCMTATDocument() public {
-        // Arrange
-        uint256 lastModif = block.timestamp;
-        vm.prank(admin);
-        documentEngine.setDocument(
-            address(cmtat),
-            documentName,
-            documentURI,
-            documentHash
-        );
-        vm.prank(admin);
-        cmtat.setDocumentEngine(documentEngine);
-
-        // Call from CMTAT, return document
-        bytes32[] memory docs = cmtat.getAllDocuments();
-        assertEq(docs.length, 1);
-        assertEq(docs[0], documentName);
-
-        (string memory uri, bytes32 hash, uint256 lastModified) = cmtat
-            .getDocument(documentName);
-        assertEq(uri, documentURI);
-        assertEq(hash, documentHash);
-        assertEq(lastModif, lastModified);
     }
 
     function testAdminCanBatchSetDocuments() public {
@@ -252,26 +331,6 @@ contract DocumentEngineTest is Test, DocumentEngineInvariant, AccessControl {
         assertEq(lastModified2, block.timestamp);
     }
 
-    function testCannotRemoveBatchDocumentIfLengthMismatch() public {
-        address[] memory smartContracts = new address[](2);
-
-        bytes32[] memory names = new bytes32[](1);
-
-        vm.expectRevert(abi.encodeWithSelector(InvalidInputLength.selector));
-        vm.prank(admin);
-        documentEngine.batchRemoveDocuments(smartContracts, names);
-    }
-
-    function testCannotRemoveBatchDocumentIfEmptyLength() public {
-        address[] memory smartContracts = new address[](0);
-
-        bytes32[] memory names = new bytes32[](0);
-
-        vm.expectRevert(abi.encodeWithSelector(InvalidInputLength.selector));
-        vm.prank(admin);
-        documentEngine.batchRemoveDocuments(smartContracts, names);
-    }
-
     function testCannotAddBatchDocumentIfLengthMismatch_A() public {
         address[] memory smartContracts = new address[](2);
         bytes32[] memory names = new bytes32[](1);
@@ -300,6 +359,30 @@ contract DocumentEngineTest is Test, DocumentEngineInvariant, AccessControl {
         vm.expectRevert(abi.encodeWithSelector(InvalidInputLength.selector));
         vm.prank(admin);
         documentEngine.batchSetDocuments(smartContracts, names, uris, hashes);
+    }
+
+    /*//////////////////////////////////////////////////////////////
+                          REMOVE documents
+    //////////////////////////////////////////////////////////////*/
+
+    function testCannotRemoveBatchDocumentIfLengthMismatch() public {
+        address[] memory smartContracts = new address[](2);
+
+        bytes32[] memory names = new bytes32[](1);
+
+        vm.expectRevert(abi.encodeWithSelector(InvalidInputLength.selector));
+        vm.prank(admin);
+        documentEngine.batchRemoveDocuments(smartContracts, names);
+    }
+
+    function testCannotRemoveBatchDocumentIfEmptyLength() public {
+        address[] memory smartContracts = new address[](0);
+
+        bytes32[] memory names = new bytes32[](0);
+
+        vm.expectRevert(abi.encodeWithSelector(InvalidInputLength.selector));
+        vm.prank(admin);
+        documentEngine.batchRemoveDocuments(smartContracts, names);
     }
 
     function testAdminCanRemoveDocuments() public {
@@ -359,11 +442,31 @@ contract DocumentEngineTest is Test, DocumentEngineInvariant, AccessControl {
         assertEq(docs.length, 0);
     }
 
-    function testNonAdminCannotBatchSetDocuments() public {
-        address[] memory smartContracts = new address[](2);
-        smartContracts[0] = testContract;
-        smartContracts[1] = anotherSmartContract;
+    /*//////////////////////////////////////////////////////////////
+                       Batch same contract
+    //////////////////////////////////////////////////////////////*/
 
+    function testCannotAddBatchDocumentIfLengthMismatch_C() public {
+        address smartContract = address(0x1);
+        bytes32[] memory names = new bytes32[](1);
+        string[] memory uris = new string[](2);
+        bytes32[] memory hashes = new bytes32[](2);
+        vm.expectRevert(abi.encodeWithSelector(InvalidInputLength.selector));
+        vm.prank(admin);
+        documentEngine.batchSetDocuments(smartContract, names, uris, hashes);
+    }
+
+    function testCannotAddBatchDocumentIfLengthMismatch_D() public {
+        address smartContract = address(0x1);
+        bytes32[] memory names = new bytes32[](0);
+        string[] memory uris = new string[](2);
+        bytes32[] memory hashes = new bytes32[](2);
+        vm.expectRevert(abi.encodeWithSelector(InvalidInputLength.selector));
+        vm.prank(admin);
+        documentEngine.batchSetDocuments(smartContract, names, uris, hashes);
+    }
+
+    function testAdminCanBatchSetDocumentsForOnlyOneContract() public {
         bytes32[] memory names = new bytes32[](2);
         names[0] = documentName;
         names[1] = keccak256("doc2");
@@ -376,14 +479,68 @@ contract DocumentEngineTest is Test, DocumentEngineInvariant, AccessControl {
         hashes[0] = documentHash;
         hashes[1] = keccak256("doc2Hash");
 
-        vm.prank(attacker);
-        vm.expectRevert(
-            abi.encodeWithSelector(
-                AccessControlUnauthorizedAccount.selector,
-                attacker,
-                DOCUMENT_MANAGER_ROLE
-            )
-        );
-        documentEngine.batchSetDocuments(smartContracts, names, uris, hashes);
+        vm.prank(admin);
+        documentEngine.batchSetDocuments(testContract, names, uris, hashes);
+
+        // Check the first document
+        (
+            string memory uri1,
+            bytes32 hash1,
+            uint256 lastModified1
+        ) = documentEngine.getDocument(testContract, documentName);
+        assertEq(uri1, documentURI);
+        assertEq(hash1, documentHash);
+        assertEq(lastModified1, block.timestamp);
+
+        // Check the second document
+        (
+            string memory uri2,
+            bytes32 hash2,
+            uint256 lastModified2
+        ) = documentEngine.getDocument(testContract, names[1]);
+        assertEq(uri2, uris[1]);
+        assertEq(hash2, hashes[1]);
+        assertEq(lastModified2, block.timestamp);
+    }
+
+    function testAdminCanBatchRemoveDocumentsForOnlyOneContract() public {
+        // Set up documents
+        testAdminCanBatchSetDocumentsForOnlyOneContract();
+
+        // Remove the documents
+        bytes32[] memory names = new bytes32[](2);
+        names[0] = documentName;
+        names[1] = keccak256("doc2");
+
+        vm.prank(admin);
+        documentEngine.batchRemoveDocuments(testContract, names);
+
+        // Check that both documents are removed
+        // Check the second document
+        (string memory uri, bytes32 hash, uint256 lastModified) = documentEngine
+            .getDocument(testContract, documentName);
+        assertEq(uri, "");
+        assertEq(hash, "");
+        assertEq(lastModified, 0);
+        bytes32[] memory docs = documentEngine.getAllDocuments(testContract);
+        assertEq(docs.length, 0);
+        (
+            string memory uri2,
+            bytes32 hash2,
+            uint256 lastModified2
+        ) = documentEngine.getDocument(testContract, names[1]);
+        assertEq(uri2, "");
+        assertEq(hash2, "");
+        assertEq(lastModified2, 0);
+    }
+
+    function testCannotRemoveBatchDocumentIfEmptyLengthForOnlyOneContract()
+        public
+    {
+        bytes32[] memory names = new bytes32[](0);
+
+        vm.expectRevert(abi.encodeWithSelector(InvalidInputLength.selector));
+        vm.prank(admin);
+        documentEngine.batchRemoveDocuments(testContract, names);
     }
 }

@@ -1,8 +1,7 @@
 # DocumentEngine  (ERC-1643)
 
-> This project is not audited !
+> This project has not been audited yet, please use at your own risk. For any questions, please contact [admin@cmta.ch](mailto:admin@cmta.ch).
 >
-> If you want to use this project, perform your own verification or send an email to [admin@cmta.ch](mailto:admin@cmta.ch).
 
 The `DocumentEngine` is an external contract to manage documents through [*ERC-1643*](https://github.com/ethereum/EIPs/issues/1643), a standard proposition to manage document on-chain. This standard is notably used by [ERC-1400](https://github.com/ethereum/eips/issues/1411) from Polymath. 
 
@@ -34,13 +33,13 @@ Since this engine allows to set documents for several different smart contracts,
 
 IERC1643
 
-```bash
+```solidity
 function setDocument(bytes32 _name, string _uri, bytes32 _documentHash) external;
 ```
 
 DocumentEngine
 
-```bash
+```solidity
 function setDocument(address smartContract,bytes32 name_,string memory uri_, bytes32 documentHash_)
 ```
 
@@ -64,9 +63,7 @@ function setDocument(address smartContract,bytes32 name_,string memory uri_, byt
 
 ## Surya Description Report
 
-
 ### Contracts Description Table
-
 
 |      Contract      |         Type         |                      Bases                       |                |               |
 | :----------------: | :------------------: | :----------------------------------------------: | :------------: | :-----------: |
@@ -77,16 +74,18 @@ function setDocument(address smartContract,bytes32 name_,string memory uri_, byt
 |         └          |     setDocument      |                     Public ❗️                     |       🛑        |   onlyRole    |
 |         └          |    removeDocument    |                    External ❗️                    |       🛑        |   onlyRole    |
 |         └          |  batchSetDocuments   |                    External ❗️                    |       🛑        |   onlyRole    |
+|         └          |  batchSetDocuments   |                    External ❗️                    |       🛑        |   onlyRole    |
+|         └          | batchRemoveDocuments |                    External ❗️                    |       🛑        |   onlyRole    |
 |         └          | batchRemoveDocuments |                    External ❗️                    |       🛑        |   onlyRole    |
 |         └          |     getDocument      |                    External ❗️                    |                |      NO❗️      |
 |         └          |     getDocument      |                    External ❗️                    |                |      NO❗️      |
 |         └          |   getAllDocuments    |                    External ❗️                    |                |      NO❗️      |
 |         └          |   getAllDocuments    |                    External ❗️                    |                |      NO❗️      |
+|         └          |       hasRole        |                     Public ❗️                     |                |      NO❗️      |
 |         └          |     _getDocument     |                    Internal 🔒                    |                |               |
 |         └          | _removeDocumentName  |                    Internal 🔒                    |       🛑        |               |
 |         └          |   _removeDocument    |                    Internal 🔒                    |       🛑        |               |
 |         └          |     _setDocument     |                    Internal 🔒                    |       🛑        |               |
-|         └          |       hasRole        |                     Public ❗️                     |                |      NO❗️      |
 
 
 ### Legend
@@ -109,21 +108,11 @@ The toolchain includes the following components, where the versions are the late
 
 ## Tools
 
-### Forge coverage
-
-```bash
-forge coverage --report lcov && genhtml lcov.info --branch-coverage --output-dir coverage
-```
-
-
-
 ### Prettier
 
 ```bash
 npx prettier --write --plugin=prettier-plugin-solidity 'src/**/*.sol'
 ```
-
-
 
 ### Slither
 
@@ -134,8 +123,6 @@ slither .  --checklist --filter-paths "openzeppelin-contracts|test|CMTAT|forge-s
 ### Surya
 
 See [./doc/script](./doc/script)
-
-
 
 ### Foundry
 
@@ -148,58 +135,74 @@ Foundry consists of:
 -   **Anvil**: Local Ethereum node, akin to Ganache, Hardhat Network.
 -   **Chisel**: Fast, utilitarian, and verbose solidity REPL.
 
-### Documentation
+#### Documentation
 
 https://book.getfoundry.sh/
 
-### Usage
+#### Usage
 
-#### Build
+##### Coverage
+
+```bash
+$ forge coverage --report lcov && genhtml lcov.info --branch-coverage --output-dir coverage
+```
+
+##### Gas report
+
+```bash
+$ forge test --gas-report
+```
+
+##### Build
 
 ```shell
 $ forge build
 ```
 
-#### Test
+##### Test
 
 ```shell
 $ forge test
 ```
 
-#### Format
+##### Format
 
 ```shell
 $ forge fmt
 ```
 
-### Gas Snapshots
+##### Gas Snapshots
 
 ```shell
 $ forge snapshot
 ```
 
-#### Anvil
+##### Anvil
 
 ```shell
 $ anvil
 ```
 
-#### Deploy
+##### Deploy
 
 ```shell
 $ forge script script/Counter.s.sol:CounterScript --rpc-url <your_rpc_url> --private-key <your_private_key>
 ```
 
-#### Cast
+##### Cast
 
 ```shell
 $ cast <subcommand>
 ```
 
-#### Help
+##### Help
 
 ```shell
 $ forge --help
 $ anvil --help
 $ cast --help
 ```
+
+## Intellectual property
+
+The code is copyright (c) Capital Market and Technology Association, 2018-2024, and is released under [Mozilla Public License 2.0](https://github.com/CMTA/CMTAT/blob/master/LICENSE.md).

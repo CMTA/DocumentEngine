@@ -20,16 +20,18 @@
 | └ | setDocument | Public ❗️ | 🛑  | onlyRole |
 | └ | removeDocument | External ❗️ | 🛑  | onlyRole |
 | └ | batchSetDocuments | External ❗️ | 🛑  | onlyRole |
+| └ | batchSetDocuments | External ❗️ | 🛑  | onlyRole |
+| └ | batchRemoveDocuments | External ❗️ | 🛑  | onlyRole |
 | └ | batchRemoveDocuments | External ❗️ | 🛑  | onlyRole |
 | └ | getDocument | External ❗️ |   |NO❗️ |
 | └ | getDocument | External ❗️ |   |NO❗️ |
 | └ | getAllDocuments | External ❗️ |   |NO❗️ |
 | └ | getAllDocuments | External ❗️ |   |NO❗️ |
+| └ | hasRole | Public ❗️ |   |NO❗️ |
 | └ | _getDocument | Internal 🔒 |   | |
 | └ | _removeDocumentName | Internal 🔒 | 🛑  | |
 | └ | _removeDocument | Internal 🔒 | 🛑  | |
 | └ | _setDocument | Internal 🔒 | 🛑  | |
-| └ | hasRole | Public ❗️ |   |NO❗️ |
 
 
 ### Legend
