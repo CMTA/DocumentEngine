@@ -20,7 +20,7 @@ contract DocumentEngineTest is Test, DocumentEngineInvariant, AccessControl {
     address AddressZero = address(0);
     CMTAT_STANDALONE cmtat;
     function setUp() public {
-        documentEngine = new DocumentEngine(admin);
+        documentEngine = new DocumentEngine(admin, AddressZero);
         vm.prank(admin);
         documentEngine.setDocument(
             testContract,
@@ -56,6 +56,25 @@ contract DocumentEngineTest is Test, DocumentEngineInvariant, AccessControl {
             baseModuleAttributes,
             engines
         );
+    }
+
+    /*//////////////////////////////////////////////////////////////
+            DEPLOYMENT
+    ///////////////////////////////////////*/
+
+    function testDeploy() public {
+        address forwarder = address(0x1);
+        documentEngine = new DocumentEngine(admin, forwarder);
+
+        // Forwarder
+        assertEq(documentEngine.isTrustedForwarder(forwarder), true);
+        // admin
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                AdminWithAddressZeroNotAllowed.selector
+            )
+        );
+        documentEngine = new DocumentEngine(AddressZero, forwarder);
     }
 
     /*//////////////////////////////////////////////////////////////

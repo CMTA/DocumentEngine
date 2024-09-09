@@ -2,6 +2,7 @@
 pragma solidity ^0.8.20;
 
 import "OZ/access/AccessControl.sol";
+import "OZ/metatx/ERC2771Context.sol";
 import "CMTAT/interfaces/engine/draft-IERC1643.sol";
 import "./DocumentEngineInvariant.sol";
 
@@ -9,18 +10,21 @@ import "./DocumentEngineInvariant.sol";
  * @title DocumentEngine
  * @notice contract to manage documents on-chain through ERC-1643
  */
-contract DocumentEngine is IERC1643, DocumentEngineInvariant, AccessControl {
+contract DocumentEngine is IERC1643, DocumentEngineInvariant, AccessControl, ERC2771Context {
     /**
      * @notice
      * Get the current version of the smart contract
      */
-    string public constant VERSION = "0.2.0";
+    string public constant VERSION = "0.3.0";
     // Mapping from contract addresses to document names to their corresponding Document structs
     mapping(address => mapping(bytes32 => Document)) private _documents;
     mapping(address => bytes32[]) private _documentNames;
 
     // Constructor to initialize the admin role
-    constructor(address admin) {
+    constructor(address admin, address forwarderIrrevocable) ERC2771Context(forwarderIrrevocable){
+        if (admin == address(0)) {
+            revert AdminWithAddressZeroNotAllowed();
+        }
         _grantRole(DEFAULT_ADMIN_ROLE, admin);
     }
 
@@ -240,5 +244,42 @@ contract DocumentEngine is IERC1643, DocumentEngineInvariant, AccessControl {
         doc.documentHash = documentHash_;
         doc.lastModified = block.timestamp;
         emit DocumentUpdated(smartContract, name_, uri_, documentHash_);
+    }
+
+
+    /**
+     * @dev This surcharge is not necessary if you do not use the MetaTxModule
+     */
+    function _msgSender()
+        internal
+        view
+        override(ERC2771Context, Context)
+        returns (address sender)
+    {
+        return ERC2771Context._msgSender();
+    }
+
+    /**
+     * @dev This surcharge is not necessary if you do not use the MetaTxModule
+     */
+    function _msgData()
+        internal
+        view
+        override(ERC2771Context, Context)
+        returns (bytes calldata)
+    {
+        return ERC2771Context._msgData();
+    }
+
+    /**
+     * @dev This surcharge is not necessary if you do not use the MetaTxModule
+     */
+    function _contextSuffixLength()
+        internal
+        view
+        override(ERC2771Context, Context)
+        returns (uint256)
+    {
+        return ERC2771Context._contextSuffixLength();
     }
 }

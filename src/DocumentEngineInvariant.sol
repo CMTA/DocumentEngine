@@ -4,6 +4,7 @@ pragma solidity ^0.8.20;
 contract DocumentEngineInvariant {
     error DocumentNotFound(address smartContract, bytes32 name);
     error InvalidInputLength();
+    error AdminWithAddressZeroNotAllowed();
 
     event DocumentUpdated(
         address smartContract,

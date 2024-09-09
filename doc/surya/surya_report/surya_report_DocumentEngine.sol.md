@@ -15,8 +15,8 @@
 |:----------:|:-------------------:|:----------------:|:----------------:|:---------------:|
 |     └      |  **Function Name**  |  **Visibility**  |  **Mutability**  |  **Modifiers**  |
 ||||||
-| **DocumentEngine** | Implementation | IERC1643, DocumentEngineInvariant, AccessControl |||
-| └ | <Constructor> | Public ❗️ | 🛑  |NO❗️ |
+| **DocumentEngine** | Implementation | IERC1643, DocumentEngineInvariant, AccessControl, ERC2771Context |||
+| └ | <Constructor> | Public ❗️ | 🛑  | ERC2771Context |
 | └ | setDocument | Public ❗️ | 🛑  | onlyRole |
 | └ | removeDocument | External ❗️ | 🛑  | onlyRole |
 | └ | batchSetDocuments | External ❗️ | 🛑  | onlyRole |
@@ -32,6 +32,9 @@
 | └ | _removeDocumentName | Internal 🔒 | 🛑  | |
 | └ | _removeDocument | Internal 🔒 | 🛑  | |
 | └ | _setDocument | Internal 🔒 | 🛑  | |
+| └ | _msgSender | Internal 🔒 |   | |
+| └ | _msgData | Internal 🔒 |   | |
+| └ | _contextSuffixLength | Internal 🔒 |   | |
 
 
 ### Legend
