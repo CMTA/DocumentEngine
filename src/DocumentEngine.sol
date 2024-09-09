@@ -246,9 +246,12 @@ contract DocumentEngine is IERC1643, DocumentEngineInvariant, AccessControl, ERC
         emit DocumentUpdated(smartContract, name_, uri_, documentHash_);
     }
 
+    /*//////////////////////////////////////////////////////////////
+                           ERC2771
+    //////////////////////////////////////////////////////////////*/
 
     /**
-     * @dev This surcharge is not necessary if you do not use the MetaTxModule
+     * @dev This surcharge is not necessary if you do not use ERC2771
      */
     function _msgSender()
         internal
@@ -260,7 +263,7 @@ contract DocumentEngine is IERC1643, DocumentEngineInvariant, AccessControl, ERC
     }
 
     /**
-     * @dev This surcharge is not necessary if you do not use the MetaTxModule
+     * @dev This surcharge is not necessary if you do not use ERC2771
      */
     function _msgData()
         internal
