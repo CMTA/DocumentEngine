@@ -10,7 +10,12 @@ import "./DocumentEngineInvariant.sol";
  * @title DocumentEngine
  * @notice contract to manage documents on-chain through ERC-1643
  */
-contract DocumentEngine is IERC1643, DocumentEngineInvariant, AccessControl, ERC2771Context {
+contract DocumentEngine is
+    IERC1643,
+    DocumentEngineInvariant,
+    AccessControl,
+    ERC2771Context
+{
     /**
      * @notice
      * Get the current version of the smart contract
@@ -21,7 +26,10 @@ contract DocumentEngine is IERC1643, DocumentEngineInvariant, AccessControl, ERC
     mapping(address => bytes32[]) private _documentNames;
 
     // Constructor to initialize the admin role
-    constructor(address admin, address forwarderIrrevocable) ERC2771Context(forwarderIrrevocable){
+    constructor(
+        address admin,
+        address forwarderIrrevocable
+    ) ERC2771Context(forwarderIrrevocable) {
         if (admin == address(0)) {
             revert AdminWithAddressZeroNotAllowed();
         }

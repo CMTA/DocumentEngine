@@ -70,9 +70,7 @@ contract DocumentEngineTest is Test, DocumentEngineInvariant, AccessControl {
         assertEq(documentEngine.isTrustedForwarder(forwarder), true);
         // admin
         vm.expectRevert(
-            abi.encodeWithSelector(
-                AdminWithAddressZeroNotAllowed.selector
-            )
+            abi.encodeWithSelector(AdminWithAddressZeroNotAllowed.selector)
         );
         documentEngine = new DocumentEngine(AddressZero, forwarder);
     }

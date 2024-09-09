@@ -95,6 +95,18 @@ function setDocument(address smartContract,bytes32 name_,string memory uri_, byt
 |   🛑    | Function can modify state |
 |   💵    | Function is payable       |
 
+
+
+## Gasless support (ERC-2771)
+
+The DocumentEngine supports client-side gasless transactions using the [Gas Station Network](https://docs.opengsn.org/#the-problem) (GSN) pattern, the main open standard for transfering fee payment to another account than that of the transaction issuer. The contract uses the OpenZeppelin contract `ERC2771ContextUpgradeable`, which allows a contract to get the original client with `_msgSender()` instead of the fee payer given by `msg.sender` while allowing upgrades on the main contract (see *Deployment via a proxy* above).
+
+At deployment, the parameter  `forwarder` inside the constructor has to be set  with the defined address of the forwarder. Please note that the forwarder can not be changed after deployment.
+
+Please see the OpenGSN [documentation](https://docs.opengsn.org/contracts/#receiving-a-relayed-call) for more details on what is done to support GSN in the contract.
+
+
+
 ## Dependencies
 
 The toolchain includes the following components, where the versions are the latest ones that we tested:
