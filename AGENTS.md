@@ -92,10 +92,12 @@ script/
 └── DeployDocumentEngineOwnable.s.sol # Deploy Ownable variant (env: DOCUMENT_ENGINE_OWNER, _FORWARDER)
 
 test/
-├── DocumentEngine.t.sol          # Foundry tests: deploy, access control, admin path,
-│                                 #   bound-token path, batch ops, ERC-8303, CMTAT integration
-│                                 #   (CMTATDocumentEngineMock built on DocumentEngineModule),
-│                                 #   flexible-authorization override (OpenDocumentEngine)
+├── DocumentEngine.t.sol          # Foundry tests: deploy, access control, admin + bound-token
+│                                 #   paths, batch ops (incl. name==0 / missing-doc guards),
+│                                 #   ERC-8303 + interface discovery, event emission (asserts the
+│                                 #   base events are NOT emitted), msg.sender-scoped reads,
+│                                 #   enumeration, fuzz round-trip/isolation, CMTAT integration
+│                                 #   (CMTATDocumentEngineMock), flexible-auth override (OpenDocumentEngine)
 ├── DocumentEngineOwnable.t.sol   # Tests for the Ownable2Step deployment (owner path,
 │                                 #   token binding, two-step ownership, ERC-8303)
 └── Deploy.t.sol                  # Tests for the deployment scripts (deploy() state + run() env)

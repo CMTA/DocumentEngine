@@ -55,6 +55,13 @@ contract DocumentEngineTest is Test, DocumentEngineInvariant, AccessControl {
     bytes32 public constant DOCUMENT_MANAGER_ROLE = keccak256("DOCUMENT_MANAGER_ROLE");
     address AddressZero = address(0);
 
+    // Local copies of the extension events, so `vm.expectEmit` can emit and match them.
+    event DocumentUpdatedForSubject(address indexed subject, bytes32 indexed name, string uri, bytes32 documentHash);
+    event DocumentRemovedForSubject(address indexed subject, bytes32 indexed name, string uri, bytes32 documentHash);
+    // Base ERC-1643 event signatures (this shared engine must NOT emit them).
+    bytes32 internal constant BASE_UPDATED_SIG = keccak256("DocumentUpdated(bytes32,string,bytes32)");
+    bytes32 internal constant BASE_REMOVED_SIG = keccak256("DocumentRemoved(bytes32,string,bytes32)");
+
     function setUp() public {
         documentEngine = new DocumentEngine(admin, AddressZero);
         vm.prank(admin);
@@ -617,5 +624,175 @@ contract DocumentEngineTest is Test, DocumentEngineInvariant, AccessControl {
         vm.expectRevert(abi.encodeWithSelector(InvalidInputLength.selector));
         vm.prank(admin);
         documentEngine.batchRemoveDocuments(testContract, names);
+    }
+
+    /*//////////////////////////////////////////////////////////////
+                        Events (emission responsibility)
+    //////////////////////////////////////////////////////////////*/
+
+    function testSetDocumentEmitsForSubjectEvent() public {
+        bytes32 name = keccak256("evt-doc");
+        vm.expectEmit(true, true, false, true, address(documentEngine));
+        emit DocumentUpdatedForSubject(testContract, name, documentURI, documentHash);
+        vm.prank(admin);
+        documentEngine.setDocument(testContract, name, documentURI, documentHash);
+    }
+
+    function testRemoveDocumentEmitsForSubjectEvent() public {
+        // `documentName` for `testContract` was registered in setUp
+        vm.expectEmit(true, true, false, true, address(documentEngine));
+        emit DocumentRemovedForSubject(testContract, documentName, documentURI, documentHash);
+        vm.prank(admin);
+        documentEngine.removeDocument(testContract, documentName);
+    }
+
+    function testSetDocumentDoesNotEmitBaseEvent() public {
+        vm.recordLogs();
+        vm.prank(admin);
+        documentEngine.setDocument(testContract, keccak256("evt-doc"), documentURI, documentHash);
+        _assertBaseEventNotEmitted(BASE_UPDATED_SIG);
+    }
+
+    function testRemoveDocumentDoesNotEmitBaseEvent() public {
+        vm.recordLogs();
+        vm.prank(admin);
+        documentEngine.removeDocument(testContract, documentName);
+        _assertBaseEventNotEmitted(BASE_REMOVED_SIG);
+    }
+
+    /// @dev Asserts no recorded log emitted by the engine carries the base ERC-1643 signature.
+    function _assertBaseEventNotEmitted(bytes32 baseSig) internal {
+        Vm.Log[] memory logs = vm.getRecordedLogs();
+        for (uint256 i = 0; i < logs.length; ++i) {
+            if (logs[i].emitter == address(documentEngine)) {
+                assertTrue(logs[i].topics[0] != baseSig, "base ERC-1643 event must not be emitted");
+            }
+        }
+    }
+
+    /*//////////////////////////////////////////////////////////////
+                    msg.sender-scoped reads (base ERC-1643)
+    //////////////////////////////////////////////////////////////*/
+
+    function testMsgSenderScopedReads() public {
+        // setUp registered `documentName` for `testContract`; read it as that caller
+        vm.prank(testContract);
+        IERC1643.Document memory doc = documentEngine.getDocument(documentName);
+        assertEq(doc.uri, documentURI);
+        assertEq(doc.documentHash, documentHash);
+
+        vm.prank(testContract);
+        bytes32[] memory names = documentEngine.getAllDocuments();
+        assertEq(names.length, 1);
+        assertEq(names[0], documentName);
+    }
+
+    function testMsgSenderScopedReadReturnsEmptyForOther() public {
+        // `attacker` has no documents of its own
+        vm.prank(attacker);
+        IERC1643.Document memory doc = documentEngine.getDocument(documentName);
+        assertEq(doc.uri, "");
+        assertEq(doc.documentHash, "");
+        assertEq(doc.lastModified, 0);
+
+        vm.prank(attacker);
+        assertEq(documentEngine.getAllDocuments().length, 0);
+    }
+
+    /*//////////////////////////////////////////////////////////////
+                    Batch edge cases (name==0 / missing doc)
+    //////////////////////////////////////////////////////////////*/
+
+    function testBatchSetRevertsOnZeroName() public {
+        address[] memory subjects = new address[](1);
+        subjects[0] = testContract;
+        bytes32[] memory names = new bytes32[](1);
+        names[0] = bytes32(0);
+        string[] memory uris = new string[](1);
+        uris[0] = documentURI;
+        bytes32[] memory hashes = new bytes32[](1);
+        hashes[0] = documentHash;
+
+        vm.prank(admin);
+        vm.expectRevert(abi.encodeWithSelector(ERC1643InvalidName.selector));
+        documentEngine.batchSetDocuments(subjects, names, uris, hashes);
+    }
+
+    function testBatchRemoveRevertsOnMissingDocument() public {
+        address[] memory subjects = new address[](1);
+        subjects[0] = testContract;
+        bytes32[] memory names = new bytes32[](1);
+        names[0] = keccak256("never-set");
+
+        vm.prank(admin);
+        vm.expectRevert(abi.encodeWithSelector(ERC1643MissingDocument.selector));
+        documentEngine.batchRemoveDocuments(subjects, names);
+    }
+
+    /*//////////////////////////////////////////////////////////////
+                        Enumeration & fuzz
+    //////////////////////////////////////////////////////////////*/
+
+    function testEnumerationAfterMixedOps() public {
+        address subj = address(0xBEEF);
+        bytes32 n1 = keccak256("n1");
+        bytes32 n2 = keccak256("n2");
+        bytes32 n3 = keccak256("n3");
+
+        vm.startPrank(admin);
+        documentEngine.setDocument(subj, n1, "u1", bytes32(0));
+        documentEngine.setDocument(subj, n2, "u2", bytes32(0));
+        documentEngine.setDocument(subj, n3, "u3", bytes32(0));
+        assertEq(documentEngine.getAllDocuments(subj).length, 3);
+
+        // overwrite does not add a new entry
+        documentEngine.setDocument(subj, n2, "u2-updated", bytes32(0));
+        assertEq(documentEngine.getAllDocuments(subj).length, 3);
+
+        // removal shrinks the set (swap-and-pop)
+        documentEngine.removeDocument(subj, n2);
+        vm.stopPrank();
+
+        bytes32[] memory names = documentEngine.getAllDocuments(subj);
+        assertEq(names.length, 2);
+        assertTrue(
+            (names[0] == n1 && names[1] == n3) || (names[0] == n3 && names[1] == n1),
+            "remaining names must be n1 and n3"
+        );
+    }
+
+    function testFuzzSetGetRemoveRoundTrip(address subject, bytes32 name, string calldata uri, bytes32 hash) public {
+        vm.assume(name != bytes32(0)); // the null name reverts by design
+
+        vm.prank(admin);
+        documentEngine.setDocument(subject, name, uri, hash);
+
+        IERC1643.Document memory doc = documentEngine.getDocument(subject, name);
+        assertEq(doc.uri, uri);
+        assertEq(doc.documentHash, hash);
+        assertEq(doc.lastModified, block.timestamp);
+
+        vm.prank(admin);
+        documentEngine.removeDocument(subject, name);
+
+        doc = documentEngine.getDocument(subject, name);
+        assertEq(doc.uri, "");
+        assertEq(doc.documentHash, "");
+        assertEq(doc.lastModified, 0);
+    }
+
+    function testFuzzDocumentsAreIsolatedPerSubject(address subjectA, address subjectB, bytes32 name) public {
+        vm.assume(name != bytes32(0));
+        vm.assume(subjectA != subjectB);
+        // `testContract` is pre-populated in setUp; exclude it from the "untouched" subject
+        vm.assume(subjectB != testContract);
+
+        vm.prank(admin);
+        documentEngine.setDocument(subjectA, name, documentURI, documentHash);
+
+        // subjectB is unaffected
+        IERC1643.Document memory docB = documentEngine.getDocument(subjectB, name);
+        assertEq(docB.lastModified, 0);
+        assertEq(documentEngine.getAllDocuments(subjectB).length, 0);
     }
 }
