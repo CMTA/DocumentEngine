@@ -5,6 +5,7 @@ import "OZ/access/extensions/AccessControlEnumerable.sol";
 import {IAccessControl} from "OZ/access/IAccessControl.sol";
 import {IERC1643} from "CMTAT/interfaces/tokenization/draft-IERC1643.sol";
 import {IERC1643MultiDocument} from "./interfaces/IERC1643MultiDocument.sol";
+import {ITokenBinding} from "./interfaces/ITokenBinding.sol";
 import "OZ/metatx/ERC2771Context.sol";
 import "./DocumentEngineBase.sol";
 import "./modules/VersionModule.sol";
@@ -24,7 +25,8 @@ contract DocumentEngine is
     DocumentEngineBase,
     VersionModule,
     AccessControlEnumerable,
-    ERC2771Context
+    ERC2771Context,
+    ITokenBinding
 {
     // Role allowed to manage documents on behalf of any smart contract (admin path)
     bytes32 public constant DOCUMENT_MANAGER_ROLE =
@@ -73,6 +75,39 @@ contract DocumentEngine is
         _checkRole(TOKEN_CONTRACT_ROLE);
     }
 
+    /* ============ Token binding (ITokenBinding) ============ */
+
+    /**
+     * @inheritdoc ITokenBinding
+     * @dev Binding a token is granting it `TOKEN_CONTRACT_ROLE`. Authorization is
+     * that of {AccessControl-grantRole} (the role admin of `TOKEN_CONTRACT_ROLE`,
+     * i.e. `DEFAULT_ADMIN_ROLE` by default).
+     */
+    function bindToken(address token) external override {
+        grantRole(TOKEN_CONTRACT_ROLE, token);
+        emit TokenBindingSet(token, true);
+    }
+
+    /**
+     * @inheritdoc ITokenBinding
+     * @dev Unbinding a token is revoking its `TOKEN_CONTRACT_ROLE`.
+     */
+    function unbindToken(address token) external override {
+        revokeRole(TOKEN_CONTRACT_ROLE, token);
+        emit TokenBindingSet(token, false);
+    }
+
+    /**
+     * @inheritdoc ITokenBinding
+     * @dev Note: because the default admin holds every role (see {hasRole}), this
+     * returns `true` for a `DEFAULT_ADMIN_ROLE` holder as well.
+     */
+    function isTokenBound(
+        address token
+    ) external view override returns (bool) {
+        return hasRole(TOKEN_CONTRACT_ROLE, token);
+    }
+
     /*
      * @dev Returns `true` if `account` has been granted `role`.
      */
@@ -107,6 +142,7 @@ contract DocumentEngine is
         return
             interfaceId == type(IERC1643).interfaceId ||
             interfaceId == type(IERC1643MultiDocument).interfaceId ||
+            interfaceId == type(ITokenBinding).interfaceId ||
             super.supportsInterface(interfaceId);
     }
 

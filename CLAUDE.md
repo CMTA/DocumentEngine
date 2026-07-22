@@ -23,10 +23,12 @@ addressed by a `bytes32` name.
   - **Admin path** — `DOCUMENT_MANAGER_ROLE`. Address-scoped overloads
     (`setDocument(address,...)`, `removeDocument(address,...)`, batch variants)
     manage documents for any contract.
-  - **Bound-token path** — `TOKEN_CONTRACT_ROLE` (the CMTA RuleEngine binding
-    pattern). The standard single-arg `IERC1643` functions (`setDocument(name,uri,hash)`,
-    `removeDocument(name)`) let a bound token manage its **own** namespace
-    (`_msgSender()`). Bind a token with `grantRole(TOKEN_CONTRACT_ROLE, token)`.
+  - **Bound-token path** — the standard single-arg `IERC1643` functions
+    (`setDocument(name,uri,hash)`, `removeDocument(name)`) let a bound token manage
+    its **own** namespace (`_msgSender()`). Bind via the shared `ITokenBinding`
+    surface: `bindToken(token)` / `unbindToken(token)` / `isTokenBound(token)`
+    (uniform across both deployments). Role deployment binds over
+    `TOKEN_CONTRACT_ROLE` (CMTA RuleEngine pattern); Ownable over an owner allowlist.
     NOTE: RuleEngine's `ERC3643ComplianceExtendedModule` is intentionally **not**
     reused for binding — it is an `IERC3643Compliance`, which would drag in
     transfer-compliance callbacks (`canTransfer`/`transferred`/`created`/`destroyed`)
@@ -67,13 +69,15 @@ src/
 │                                 #   DOCUMENT_MANAGER_ROLE / TOKEN_CONTRACT_ROLE, _authorize*
 │                                 #   impls, hasRole), ERC-2771, supportsInterface, constructor
 ├── DocumentEngineOwnable.sol     # Deployment #2: Ownable2Step (single owner) instead of
-│                                 #   roles; owner-managed token binding (setTokenBinding)
+│                                 #   roles; owner-managed token binding (ITokenBinding)
 ├── DocumentEngineInvariant.sol   # Shared errors only (incl. ERC1643InvalidName /
 │                                 #   ERC1643MissingDocument); NO access-control specifics
 ├── interfaces/
 │   ├── IERC8303.sol              # ERC-8303 "Contract Version" interface (id 0x54fd4d50)
-│   └── IERC1643MultiDocument.sol # Multi-token ERC-1643 extension (address-scoped fns +
-│                                 #   DocumentUpdatedForSubject / DocumentRemovedForSubject)
+│   ├── IERC1643MultiDocument.sol # Multi-token ERC-1643 extension (address-scoped fns +
+│   │                             #   DocumentUpdatedForSubject / DocumentRemovedForSubject)
+│   └── ITokenBinding.sol         # Shared binding surface: bindToken / unbindToken /
+│                                 #   isTokenBound + TokenBindingSet (both deployments)
 └── modules/
     └── VersionModule.sol         # Version module: implements ERC-8303 version() + ERC-165,
                                   #   holds the VERSION constant (currently "0.4.0")

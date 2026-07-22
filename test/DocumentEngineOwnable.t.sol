@@ -7,6 +7,9 @@ import {Ownable} from "OZ/access/Ownable.sol";
 import {IAccessControl} from "OZ/access/IAccessControl.sol";
 import {IERC165} from "OZ/utils/introspection/IERC165.sol";
 import {IERC8303} from "../src/interfaces/IERC8303.sol";
+import {IERC1643} from "CMTAT/interfaces/tokenization/draft-IERC1643.sol";
+import {IERC1643MultiDocument} from "../src/interfaces/IERC1643MultiDocument.sol";
+import {ITokenBinding} from "../src/interfaces/ITokenBinding.sol";
 
 contract DocumentEngineOwnableTest is Test {
     DocumentEngineOwnable public engine;
@@ -71,8 +74,8 @@ contract DocumentEngineOwnableTest is Test {
 
     function testOwnerCanBindToken() public {
         vm.prank(owner);
-        engine.setTokenBinding(testContract, true);
-        assertTrue(engine.isBoundToken(testContract));
+        engine.bindToken(testContract);
+        assertTrue(engine.isTokenBound(testContract));
     }
 
     function testNonOwnerCannotBindToken() public {
@@ -83,12 +86,12 @@ contract DocumentEngineOwnableTest is Test {
                 attacker
             )
         );
-        engine.setTokenBinding(testContract, true);
+        engine.bindToken(testContract);
     }
 
     function testBoundTokenCanManageOwnDocument() public {
         vm.prank(owner);
-        engine.setTokenBinding(testContract, true);
+        engine.bindToken(testContract);
 
         vm.prank(testContract);
         engine.setDocument(documentName, documentURI, documentHash);
@@ -103,6 +106,26 @@ contract DocumentEngineOwnableTest is Test {
         engine.removeDocument(documentName);
         doc = engine.getDocument(testContract, documentName);
         assertEq(doc.lastModified, 0);
+    }
+
+    function testUnbindTokenRevokesSelfManagement() public {
+        vm.prank(owner);
+        engine.bindToken(testContract);
+        assertTrue(engine.isTokenBound(testContract));
+
+        vm.prank(owner);
+        engine.unbindToken(testContract);
+        assertFalse(engine.isTokenBound(testContract));
+
+        // once unbound, the token can no longer self-manage
+        vm.prank(testContract);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                DocumentEngineOwnable.NotBoundToken.selector,
+                testContract
+            )
+        );
+        engine.setDocument(documentName, documentURI, documentHash);
     }
 
     function testUnboundTokenCannotSelfManage() public {
@@ -137,6 +160,11 @@ contract DocumentEngineOwnableTest is Test {
         assertEq(engine.version(), "0.4.0");
         assertTrue(engine.supportsInterface(type(IERC8303).interfaceId));
         assertTrue(engine.supportsInterface(type(IERC165).interfaceId));
+        assertTrue(engine.supportsInterface(type(IERC1643).interfaceId));
+        assertTrue(
+            engine.supportsInterface(type(IERC1643MultiDocument).interfaceId)
+        );
+        assertTrue(engine.supportsInterface(type(ITokenBinding).interfaceId));
         // no role-based access control here
         assertFalse(engine.supportsInterface(type(IAccessControl).interfaceId));
         assertFalse(engine.supportsInterface(bytes4(0xffffffff)));

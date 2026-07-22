@@ -78,6 +78,10 @@ Aligned the implementation with the updated [ERC-1643](./doc/ERCSpecification/er
 - **Input validation.** `setDocument` now reverts `ERC1643InvalidName()` when `name == bytes32(0)`; `removeDocument` now reverts `ERC1643MissingDocument()` for a non-existent document (previously it silently emitted a spurious removal event).
 - **ERC-165 discovery.** `supportsInterface` now returns `true` for `type(IERC1643).interfaceId` and `type(IERC1643MultiDocument).interfaceId` (both deployments).
 
+### Added (token binding)
+
+- **Shared `ITokenBinding` interface** (`src/interfaces/ITokenBinding.sol`): `bindToken(token)` / `unbindToken(token)` / `isTokenBound(token)` + `TokenBindingSet` event. Both deployments now implement it (and advertise `type(ITokenBinding).interfaceId` via ERC-165), so integrators bind/query a token the same way regardless of the access-control model. `DocumentEngine` implements it over `TOKEN_CONTRACT_ROLE` (grant/revoke/hasRole); `DocumentEngineOwnable` over its owner-managed allowlist (replacing the previous `setTokenBinding` / `isBoundToken`). The revert on an unbound write still differs per deployment (`AccessControlUnauthorizedAccount` vs `NotBoundToken`).
+
 ### Notes / bottlenecks
 
 - CMTAT v3 no longer ships a *standalone* token that consumes an external document engine through its constructor; the standard token stores documents on-chain (`DocumentERC1643Module`). External-engine integration now goes through CMTAT's `DocumentEngineModule` (`setDocumentEngine`). The test suite was updated to exercise this real integration path via a minimal token built on `DocumentEngineModule`.

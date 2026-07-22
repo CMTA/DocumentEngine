@@ -49,14 +49,22 @@ function setDocument(address smartContract, bytes32 name_, string memory uri_, b
 function removeDocument(address smartContract, bytes32 name_) external;
 ```
 
-**2. Bound-token path (`TOKEN_CONTRACT_ROLE`).** This implements the standard,
-single-argument ERC-1643 functions. A token is *bound* to the engine by being
-granted `TOKEN_CONTRACT_ROLE` (the same binding pattern as the CMTA
-[RuleEngine](https://github.com/CMTA/RuleEngine)):
+**2. Bound-token path.** This implements the standard, single-argument ERC-1643
+functions. A token is *bound* to the engine through the shared **`ITokenBinding`**
+surface — identical across both deployments, so integrators bind/query a token the
+same way regardless of the access-control model:
 
 ```solidity
-documentEngine.grantRole(TOKEN_CONTRACT_ROLE, address(token));
+documentEngine.bindToken(address(token));    // also: unbindToken(token), isTokenBound(token)
 ```
+
+Under the hood the role-based `DocumentEngine` binds by granting
+`TOKEN_CONTRACT_ROLE` (the CMTA [RuleEngine](https://github.com/CMTA/RuleEngine)
+pattern) and the `DocumentEngineOwnable` uses an owner-managed allowlist; both
+expose the same `bindToken` / `unbindToken` / `isTokenBound` functions and the
+`TokenBindingSet` event. (The revert raised when a *non-bound* caller attempts a
+write differs — `AccessControlUnauthorizedAccount` vs `NotBoundToken` — since it
+comes from each deployment's access-control model.)
 
 Once bound, the token manages its **own** documents (`msg.sender` is the token);
 it can never affect another contract's documents:
@@ -164,8 +172,12 @@ The engine is split into two contracts (CMTAT module/deployment pattern):
   the members of each role on-chain.
 - **`DocumentEngineOwnable`** (alternative deployment) — same base logic, but
   access control is a single **owner** via `Ownable2Step` (two-step ownership
-  transfer) instead of roles. Admin management is `owner`-only; the bound-token
-  path uses an owner-managed allowlist (`setTokenBinding` / `isBoundToken`).
+  transfer) instead of roles. Admin management is `owner`-only; token binding uses
+  an owner-managed allowlist behind the shared `ITokenBinding` surface.
+
+Both deployments implement the shared **`ITokenBinding`** interface
+(`bindToken` / `unbindToken` / `isTokenBound` + `TokenBindingSet`), so the binding
+surface is uniform and ERC-165-discoverable regardless of the access-control model.
 
 `DocumentEngineInvariant` provides the errors and the optional multi-token events
 shared by every deployment. Access-control specifics are **not** defined there:

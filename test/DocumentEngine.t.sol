@@ -8,6 +8,7 @@ import "OZ/access/AccessControl.sol";
 import {IERC165} from "OZ/utils/introspection/IERC165.sol";
 import {IERC8303} from "../src/interfaces/IERC8303.sol";
 import {IERC1643MultiDocument} from "../src/interfaces/IERC1643MultiDocument.sol";
+import {ITokenBinding} from "../src/interfaces/ITokenBinding.sol";
 import {DocumentEngineModule} from "CMTAT/modules/wrapper/options/DocumentEngineModule.sol";
 
 /**
@@ -232,9 +233,10 @@ contract DocumentEngineTest is Test, DocumentEngineInvariant, AccessControl {
     //////////////////////////////////////////////////////////////*/
 
     function testBoundTokenCanManageOwnDocument() public {
-        // Bind the token to the engine
+        // Bind the token to the engine (shared ITokenBinding surface)
         vm.prank(admin);
-        documentEngine.grantRole(TOKEN_CONTRACT_ROLE, testContract);
+        documentEngine.bindToken(testContract);
+        assertTrue(documentEngine.isTokenBound(testContract));
 
         // The bound token manages its own document namespace (msg.sender)
         bytes32 selfName = keccak256("self-doc");
@@ -259,6 +261,28 @@ contract DocumentEngineTest is Test, DocumentEngineInvariant, AccessControl {
         assertEq(doc.uri, "");
         assertEq(doc.documentHash, "");
         assertEq(doc.lastModified, 0);
+    }
+
+    function testNonAdminCannotBindToken() public {
+        vm.prank(attacker);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                AccessControlUnauthorizedAccount.selector,
+                attacker,
+                DEFAULT_ADMIN_ROLE
+            )
+        );
+        documentEngine.bindToken(testContract);
+    }
+
+    function testAdminCanUnbindToken() public {
+        vm.prank(admin);
+        documentEngine.bindToken(testContract);
+        assertTrue(documentEngine.isTokenBound(testContract));
+
+        vm.prank(admin);
+        documentEngine.unbindToken(testContract);
+        assertFalse(documentEngine.isTokenBound(testContract));
     }
 
     function testUnboundContractCannotSetOwnDocument() public {
@@ -344,6 +368,10 @@ contract DocumentEngineTest is Test, DocumentEngineInvariant, AccessControl {
                 type(IERC1643MultiDocument).interfaceId
             )
         );
+        // ...and the shared token-binding surface
+        assertTrue(
+            documentEngine.supportsInterface(type(ITokenBinding).interfaceId)
+        );
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -373,7 +401,7 @@ contract DocumentEngineTest is Test, DocumentEngineInvariant, AccessControl {
 
     function testBoundTokenCannotSetZeroName() public {
         vm.prank(admin);
-        documentEngine.grantRole(TOKEN_CONTRACT_ROLE, testContract);
+        documentEngine.bindToken(testContract);
         vm.prank(testContract);
         vm.expectRevert(
             abi.encodeWithSelector(ERC1643InvalidName.selector)

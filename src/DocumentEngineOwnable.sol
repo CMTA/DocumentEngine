@@ -5,6 +5,7 @@ import {Ownable} from "OZ/access/Ownable.sol";
 import {Ownable2Step} from "OZ/access/Ownable2Step.sol";
 import {IERC1643} from "CMTAT/interfaces/tokenization/draft-IERC1643.sol";
 import {IERC1643MultiDocument} from "./interfaces/IERC1643MultiDocument.sol";
+import {ITokenBinding} from "./interfaces/ITokenBinding.sol";
 import "OZ/metatx/ERC2771Context.sol";
 import "./DocumentEngineBase.sol";
 import "./modules/VersionModule.sol";
@@ -27,13 +28,11 @@ contract DocumentEngineOwnable is
     DocumentEngineBase,
     VersionModule,
     Ownable2Step,
-    ERC2771Context
+    ERC2771Context,
+    ITokenBinding
 {
     /// @dev Tokens bound to the engine, allowed to manage their own documents.
     mapping(address => bool) private _boundTokens;
-
-    /// @notice Emitted when a token binding is set or removed by the owner.
-    event TokenBindingSet(address indexed token, bool bound);
 
     /// @notice Thrown when a non-bound caller uses the bound-token path.
     error NotBoundToken(address caller);
@@ -48,20 +47,29 @@ contract DocumentEngineOwnable is
     ) Ownable(owner_) ERC2771Context(forwarderIrrevocable) {}
 
     /*//////////////////////////////////////////////////////////////
-                            TOKEN BINDING
+                        TOKEN BINDING (ITokenBinding)
     //////////////////////////////////////////////////////////////*/
 
     /**
-     * @notice Bind or unbind a token, allowing it to manage its own documents.
-     * @dev Owner-managed analog of granting/revoking `TOKEN_CONTRACT_ROLE`.
+     * @inheritdoc ITokenBinding
+     * @dev Owner-managed analog of granting `TOKEN_CONTRACT_ROLE`.
      */
-    function setTokenBinding(address token, bool bound) external onlyOwner {
-        _boundTokens[token] = bound;
-        emit TokenBindingSet(token, bound);
+    function bindToken(address token) external override onlyOwner {
+        _boundTokens[token] = true;
+        emit TokenBindingSet(token, true);
     }
 
-    /// @notice Returns whether `token` is bound to the engine.
-    function isBoundToken(address token) external view returns (bool) {
+    /**
+     * @inheritdoc ITokenBinding
+     * @dev Owner-managed analog of revoking `TOKEN_CONTRACT_ROLE`.
+     */
+    function unbindToken(address token) external override onlyOwner {
+        _boundTokens[token] = false;
+        emit TokenBindingSet(token, false);
+    }
+
+    /// @inheritdoc ITokenBinding
+    function isTokenBound(address token) external view override returns (bool) {
         return _boundTokens[token];
     }
 
@@ -101,6 +109,7 @@ contract DocumentEngineOwnable is
         return
             interfaceId == type(IERC1643).interfaceId ||
             interfaceId == type(IERC1643MultiDocument).interfaceId ||
+            interfaceId == type(ITokenBinding).interfaceId ||
             super.supportsInterface(interfaceId);
     }
 
