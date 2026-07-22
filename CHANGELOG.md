@@ -67,6 +67,7 @@ Reference: [keepachangelog.com/en/1.1.0/](https://keepachangelog.com/en/1.1.0/)
 ### Changed (access control)
 
 - `DocumentEngine` now inherits **`AccessControlEnumerable`** instead of `AccessControl`, adding on-chain enumeration of role members (`getRoleMember`, `getRoleMemberCount`) and advertising `IAccessControlEnumerable` via ERC-165. Default authorization behavior is unchanged.
+- Moved the role constants `DOCUMENT_MANAGER_ROLE` / `TOKEN_CONTRACT_ROLE` out of the shared `DocumentEngineInvariant` and into the role-based `DocumentEngine`, so `DocumentEngineInvariant` (and the `DocumentEngineOwnable` deployment) no longer carry access-control-specific constants. The invariant now holds only the shared errors and multi-token events.
 
 ### Notes / bottlenecks
 

@@ -126,8 +126,10 @@ The engine is split into two contracts (CMTAT module/deployment pattern):
   transfer) instead of roles. Admin management is `owner`-only; the bound-token
   path uses an owner-managed allowlist (`setTokenBinding` / `isBoundToken`).
 
-`DocumentEngineInvariant` provides the shared errors, roles
-(`DOCUMENT_MANAGER_ROLE`, `TOKEN_CONTRACT_ROLE`) and the optional multi-token events.
+`DocumentEngineInvariant` provides the errors and the optional multi-token events
+shared by every deployment. Access-control specifics are **not** defined there:
+the role constants (`DOCUMENT_MANAGER_ROLE`, `TOKEN_CONTRACT_ROLE`) live in the
+role-based `DocumentEngine`, and the owner/binding logic in `DocumentEngineOwnable`.
 
 `VersionModule` (`src/modules/VersionModule.sol`) isolates the version concern
 and implements [ERC-8303](https://ethereum-magicians.org/t/erc-8303-contract-version/28795)

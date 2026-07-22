@@ -24,6 +24,16 @@ contract DocumentEngine is
     AccessControlEnumerable,
     ERC2771Context
 {
+    // Role allowed to manage documents on behalf of any smart contract (admin path)
+    bytes32 public constant DOCUMENT_MANAGER_ROLE =
+        keccak256("DOCUMENT_MANAGER_ROLE");
+
+    // Role granted to a token bound to the engine, allowing it to manage its own
+    // documents through the standard ERC-1643 functions (msg.sender is the token).
+    // Mirrors the RuleEngine binding pattern (CMTA/RuleEngine `TOKEN_CONTRACT_ROLE`).
+    bytes32 public constant TOKEN_CONTRACT_ROLE =
+        keccak256("TOKEN_CONTRACT_ROLE");
+
     // Constructor to initialize the admin role
     constructor(
         address admin,

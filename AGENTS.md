@@ -53,12 +53,14 @@ src/
 │                                 #   both management paths, batch functions, modifiers,
 │                                 #   and the ABSTRACT _authorize* hooks (no access control)
 ├── DocumentEngine.sol            # Deployment #1: role-based access control
-│                                 #   (AccessControlEnumerable, _authorize* impls, hasRole),
-│                                 #   ERC-2771, combined supportsInterface, constructor
+│                                 #   (AccessControlEnumerable, the role constants
+│                                 #   DOCUMENT_MANAGER_ROLE / TOKEN_CONTRACT_ROLE, _authorize*
+│                                 #   impls, hasRole), ERC-2771, supportsInterface, constructor
 ├── DocumentEngineOwnable.sol     # Deployment #2: Ownable2Step (single owner) instead of
 │                                 #   roles; owner-managed token binding (setTokenBinding)
-├── DocumentEngineInvariant.sol   # Errors, roles (DOCUMENT_MANAGER_ROLE,
-│                                 #   TOKEN_CONTRACT_ROLE) and the optional multi-token events
+├── DocumentEngineInvariant.sol   # Shared errors + optional multi-token events only
+│                                 #   (NO access-control specifics — roles live in the
+│                                 #   role-based deployment)
 ├── interfaces/
 │   └── IERC8303.sol              # ERC-8303 "Contract Version" interface (id 0x54fd4d50)
 └── modules/

@@ -50,6 +50,12 @@ contract DocumentEngineTest is Test, DocumentEngineInvariant, AccessControl {
     string public documentURI = "https://example.com/doc1";
     bytes32 public documentHash = keccak256("doc1Hash");
     bytes32 public constant DOCUMENT_ROLE = keccak256("DOCUMENT_ROLE");
+    // Roles are defined on the role-based deployment (DocumentEngine), not on the
+    // shared DocumentEngineInvariant; mirrored here for the assertions.
+    bytes32 public constant DOCUMENT_MANAGER_ROLE =
+        keccak256("DOCUMENT_MANAGER_ROLE");
+    bytes32 public constant TOKEN_CONTRACT_ROLE =
+        keccak256("TOKEN_CONTRACT_ROLE");
     address AddressZero = address(0);
 
     function setUp() public {
