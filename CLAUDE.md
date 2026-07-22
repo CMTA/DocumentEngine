@@ -52,9 +52,11 @@ src/
 ├── DocumentEngineBase.sol        # Abstract base: ERC-1643 document logic + storage,
 │                                 #   both management paths, batch functions, modifiers,
 │                                 #   and the ABSTRACT _authorize* hooks (no access control)
-├── DocumentEngine.sol            # Deployment contract: defines the ACCESS CONTROL
-│                                 #   (AccessControl, _authorize* impls, hasRole), ERC-2771,
-│                                 #   combined supportsInterface, constructor
+├── DocumentEngine.sol            # Deployment #1: role-based access control
+│                                 #   (AccessControlEnumerable, _authorize* impls, hasRole),
+│                                 #   ERC-2771, combined supportsInterface, constructor
+├── DocumentEngineOwnable.sol     # Deployment #2: Ownable2Step (single owner) instead of
+│                                 #   roles; owner-managed token binding (setTokenBinding)
 ├── DocumentEngineInvariant.sol   # Errors, roles (DOCUMENT_MANAGER_ROLE,
 │                                 #   TOKEN_CONTRACT_ROLE) and the optional multi-token events
 ├── interfaces/
@@ -64,16 +66,20 @@ src/
                                   #   holds the VERSION constant (currently "0.4.0")
 
 test/
-└── DocumentEngine.t.sol          # Foundry tests: deploy, access control, admin path,
-                                  #   bound-token path, batch ops, CMTAT integration
-                                  #   (CMTATDocumentEngineMock built on DocumentEngineModule),
-                                  #   flexible-authorization override (OpenDocumentEngine)
+├── DocumentEngine.t.sol          # Foundry tests: deploy, access control, admin path,
+│                                 #   bound-token path, batch ops, ERC-8303, CMTAT integration
+│                                 #   (CMTATDocumentEngineMock built on DocumentEngineModule),
+│                                 #   flexible-authorization override (OpenDocumentEngine)
+└── DocumentEngineOwnable.t.sol   # Tests for the Ownable2Step deployment (owner path,
+                                  #   token binding, two-step ownership, ERC-8303)
 ```
 
 **Contract split (CMTAT module/deployment pattern):** `DocumentEngineBase` holds
-the document logic and abstract `_authorize*` hooks; `DocumentEngine` is the
-deployable contract that supplies the concrete access control. Add new
-management logic in the base; change *who* is authorized in the deployment.
+the document logic and abstract `_authorize*` hooks; each deployment contract
+supplies the concrete access control. There are two deployments —
+`DocumentEngine` (role-based, `AccessControlEnumerable`) and
+`DocumentEngineOwnable` (`Ownable2Step`). Add new management logic in the base;
+change *who* is authorized in a deployment (implement the `_authorize*` hooks).
 
 Other important files:
 

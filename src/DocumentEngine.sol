@@ -1,7 +1,8 @@
 //SPDX-License-Identifier: MPL-2.0
 pragma solidity ^0.8.20;
 
-import "OZ/access/AccessControl.sol";
+import "OZ/access/extensions/AccessControlEnumerable.sol";
+import {IAccessControl} from "OZ/access/IAccessControl.sol";
 import "OZ/metatx/ERC2771Context.sol";
 import "./DocumentEngineBase.sol";
 import "./modules/VersionModule.sol";
@@ -11,15 +12,16 @@ import "./modules/VersionModule.sol";
  * @notice Deployment contract to manage documents on-chain through ERC-1643.
  * @dev Wires the document-management logic ({DocumentEngineBase}) with a
  * concrete access-control implementation. The authorization hooks are defined
- * here (role-based `AccessControl`), keeping the access control separate from
- * the document-management logic (CMTAT / CMTA-RuleEngine pattern). The contract
+ * here (role-based `AccessControlEnumerable`, which additionally allows
+ * enumerating role members), keeping the access control separate from the
+ * document-management logic (CMTAT / CMTA-RuleEngine pattern). The contract
  * version is exposed through the {VersionModule} (ERC-8303), and it also wires
  * the ERC-2771 (gasless) meta-transaction support.
  */
 contract DocumentEngine is
     DocumentEngineBase,
     VersionModule,
-    AccessControl,
+    AccessControlEnumerable,
     ERC2771Context
 {
     // Constructor to initialize the admin role
@@ -65,21 +67,27 @@ contract DocumentEngine is
     function hasRole(
         bytes32 role,
         address account
-    ) public view virtual override returns (bool) {
+    ) public view virtual override(AccessControl, IAccessControl) returns (bool) {
         // The Default Admin has all roles
-        if (AccessControl.hasRole(DEFAULT_ADMIN_ROLE, account)) {
+        if (super.hasRole(DEFAULT_ADMIN_ROLE, account)) {
             return true;
         }
-        return AccessControl.hasRole(role, account);
+        return super.hasRole(role, account);
     }
 
     /**
      * @dev Combines the ERC-165 interface discovery of the version module
-     * (ERC-8303) with `AccessControl`. See {IERC165-supportsInterface}.
+     * (ERC-8303) with `AccessControlEnumerable`. See {IERC165-supportsInterface}.
      */
     function supportsInterface(
         bytes4 interfaceId
-    ) public view virtual override(VersionModule, AccessControl) returns (bool) {
+    )
+        public
+        view
+        virtual
+        override(VersionModule, AccessControlEnumerable)
+        returns (bool)
+    {
         return super.supportsInterface(interfaceId);
     }
 

@@ -117,9 +117,14 @@ The engine is split into two contracts (CMTAT module/deployment pattern):
   `onlyBoundToken` modifiers and the **abstract** `_authorize*` hooks. It is
   agnostic to the access-control implementation.
 - **`DocumentEngine`** (deployment) — the concrete, deployable contract. It
-  defines the **access control** (`AccessControl`, the `_authorize*` hook
-  implementations and the `hasRole` override) and wires the ERC-2771 (gasless)
-  support.
+  defines the **access control** (`AccessControlEnumerable`, the `_authorize*`
+  hook implementations and the `hasRole` override) and wires the ERC-2771
+  (gasless) support. `AccessControlEnumerable` additionally allows enumerating
+  the members of each role on-chain.
+- **`DocumentEngineOwnable`** (alternative deployment) — same base logic, but
+  access control is a single **owner** via `Ownable2Step` (two-step ownership
+  transfer) instead of roles. Admin management is `owner`-only; the bound-token
+  path uses an owner-managed allowlist (`setTokenBinding` / `isBoundToken`).
 
 `DocumentEngineInvariant` provides the shared errors, roles
 (`DOCUMENT_MANAGER_ROLE`, `TOKEN_CONTRACT_ROLE`) and the optional multi-token events.
@@ -171,7 +176,7 @@ interface IERC8303 {
 | :----------------: | :------------------: | :----------------------------------------------: | :------------: | :-----------: |
 |         └          |  **Function Name**   |                  **Visibility**                  | **Mutability** | **Modifiers** |
 |                    |                      |                                                  |                |               |
-| **DocumentEngine** |    Implementation    | DocumentEngineBase, VersionModule, AccessControl, ERC2771Context |                |               |
+| **DocumentEngine** |    Implementation    | DocumentEngineBase, VersionModule, AccessControlEnumerable, ERC2771Context |                |               |
 |         └          |    <Constructor>     |                     Public ❗️                     |       🛑        |      NO❗️      |
 |         └          |     setDocument      |                     Public ❗️                     |       🛑        |   onlyDocumentManager    |
 |         └          |    removeDocument    |                    External ❗️                    |       🛑        |   onlyDocumentManager    |
