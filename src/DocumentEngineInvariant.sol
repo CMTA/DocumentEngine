@@ -10,7 +10,7 @@ pragma solidity ^0.8.20;
  * live in {DocumentEngine}, the owner logic in {DocumentEngineOwnable}).
  */
 contract DocumentEngineInvariant {
-    error DocumentNotFound(address smartContract, bytes32 name);
+    error DocumentNotFound(address subject, bytes32 name);
     error InvalidInputLength();
     error AdminWithAddressZeroNotAllowed();
 

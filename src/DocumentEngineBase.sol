@@ -123,21 +123,21 @@ abstract contract DocumentEngineBase is
      * @notice Batch version of setDocument to handle multiple documents at once
      */
     function batchSetDocuments(
-        address[] calldata smartContracts,
+        address[] calldata subjects,
         bytes32[] calldata names,
         string[] calldata uris,
         bytes32[] calldata hashes
     ) external onlyDocumentManager {
         if (
-            smartContracts.length == 0 ||
-            smartContracts.length != names.length ||
+            subjects.length == 0 ||
+            subjects.length != names.length ||
             names.length != uris.length ||
             uris.length != hashes.length
         ) {
             revert InvalidInputLength();
         }
-        for (uint256 i = 0; i < smartContracts.length; i++) {
-            _setDocument(smartContracts[i], names[i], uris[i], hashes[i]);
+        for (uint256 i = 0; i < subjects.length; i++) {
+            _setDocument(subjects[i], names[i], uris[i], hashes[i]);
         }
     }
 
@@ -145,7 +145,7 @@ abstract contract DocumentEngineBase is
      * @notice Batch version of setDocument to handle multiple documents at once
      */
     function batchSetDocuments(
-        address smartContract,
+        address subject,
         bytes32[] calldata names,
         string[] calldata uris,
         bytes32[] calldata hashes
@@ -158,7 +158,7 @@ abstract contract DocumentEngineBase is
             revert InvalidInputLength();
         }
         for (uint256 i = 0; i < names.length; ++i) {
-            _setDocument(smartContract, names[i], uris[i], hashes[i]);
+            _setDocument(subject, names[i], uris[i], hashes[i]);
         }
     }
 
@@ -166,18 +166,18 @@ abstract contract DocumentEngineBase is
      * @notice Batch version of removeDocument to handle multiple documents at once
      */
     function batchRemoveDocuments(
-        address[] calldata smartContracts,
+        address[] calldata subjects,
         bytes32[] calldata names
     ) external onlyDocumentManager {
         if (
-            smartContracts.length == 0 ||
-            (smartContracts.length != names.length)
+            subjects.length == 0 ||
+            (subjects.length != names.length)
         ) {
             revert InvalidInputLength();
         }
 
-        for (uint256 i = 0; i < smartContracts.length; ++i) {
-            _removeDocument(smartContracts[i], names[i]);
+        for (uint256 i = 0; i < subjects.length; ++i) {
+            _removeDocument(subjects[i], names[i]);
         }
     }
 
@@ -185,7 +185,7 @@ abstract contract DocumentEngineBase is
      * @notice Batch version of removeDocument to handle multiple documents at once
      */
     function batchRemoveDocuments(
-        address smartContract,
+        address subject,
         bytes32[] calldata names
     ) external onlyDocumentManager {
         if (names.length == 0) {
@@ -193,7 +193,7 @@ abstract contract DocumentEngineBase is
         }
 
         for (uint256 i = 0; i < names.length; ++i) {
-            _removeDocument(smartContract, names[i]);
+            _removeDocument(subject, names[i]);
         }
     }
 
@@ -245,26 +245,26 @@ abstract contract DocumentEngineBase is
      * @dev Internal function to fetch a document
      */
     function _getDocument(
-        address smartContract,
+        address subject,
         bytes32 name_
     ) internal view returns (Document memory) {
-        return _documents[smartContract][name_];
+        return _documents[subject][name_];
     }
 
     /**
      * @dev Internal helper to remove the document name from the list of document names
      */
     function _removeDocumentName(
-        address smartContract,
+        address subject,
         bytes32 name_
     ) internal {
-        uint256 length = _documentNames[smartContract].length;
+        uint256 length = _documentNames[subject].length;
         for (uint256 i = 0; i < length; ++i) {
-            if (_documentNames[smartContract][i] == name_) {
-                _documentNames[smartContract][i] = _documentNames[
-                    smartContract
+            if (_documentNames[subject][i] == name_) {
+                _documentNames[subject][i] = _documentNames[
+                    subject
                 ][length - 1];
-                _documentNames[smartContract].pop();
+                _documentNames[subject].pop();
                 break;
             }
         }
