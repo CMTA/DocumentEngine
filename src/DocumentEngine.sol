@@ -3,6 +3,8 @@ pragma solidity ^0.8.20;
 
 import "OZ/access/extensions/AccessControlEnumerable.sol";
 import {IAccessControl} from "OZ/access/IAccessControl.sol";
+import {IERC1643} from "CMTAT/interfaces/tokenization/draft-IERC1643.sol";
+import {IERC1643MultiDocument} from "./interfaces/IERC1643MultiDocument.sol";
 import "OZ/metatx/ERC2771Context.sol";
 import "./DocumentEngineBase.sol";
 import "./modules/VersionModule.sol";
@@ -86,8 +88,12 @@ contract DocumentEngine is
     }
 
     /**
-     * @dev Combines the ERC-165 interface discovery of the version module
-     * (ERC-8303) with `AccessControlEnumerable`. See {IERC165-supportsInterface}.
+     * @dev ERC-165 discovery: advertises ERC-1643 and its multi-token extension,
+     * plus the version module (ERC-8303) and `AccessControlEnumerable`.
+     * The engine implements the base single-argument functions, so it advertises
+     * `type(IERC1643).interfaceId`; it also implements the address-scoped
+     * extension, so it advertises `type(IERC1643MultiDocument).interfaceId`.
+     * See {IERC165-supportsInterface}.
      */
     function supportsInterface(
         bytes4 interfaceId
@@ -98,7 +104,10 @@ contract DocumentEngine is
         override(VersionModule, AccessControlEnumerable)
         returns (bool)
     {
-        return super.supportsInterface(interfaceId);
+        return
+            interfaceId == type(IERC1643).interfaceId ||
+            interfaceId == type(IERC1643MultiDocument).interfaceId ||
+            super.supportsInterface(interfaceId);
     }
 
     /*//////////////////////////////////////////////////////////////

@@ -3,6 +3,8 @@ pragma solidity ^0.8.20;
 
 import {Ownable} from "OZ/access/Ownable.sol";
 import {Ownable2Step} from "OZ/access/Ownable2Step.sol";
+import {IERC1643} from "CMTAT/interfaces/tokenization/draft-IERC1643.sol";
+import {IERC1643MultiDocument} from "./interfaces/IERC1643MultiDocument.sol";
 import "OZ/metatx/ERC2771Context.sol";
 import "./DocumentEngineBase.sol";
 import "./modules/VersionModule.sol";
@@ -87,6 +89,19 @@ contract DocumentEngineOwnable is
         if (!_boundTokens[_msgSender()]) {
             revert NotBoundToken(_msgSender());
         }
+    }
+
+    /**
+     * @dev ERC-165 discovery: advertises ERC-1643 and its multi-token extension,
+     * plus the version module (ERC-8303). See {IERC165-supportsInterface}.
+     */
+    function supportsInterface(
+        bytes4 interfaceId
+    ) public view virtual override(VersionModule) returns (bool) {
+        return
+            interfaceId == type(IERC1643).interfaceId ||
+            interfaceId == type(IERC1643MultiDocument).interfaceId ||
+            super.supportsInterface(interfaceId);
     }
 
     /*//////////////////////////////////////////////////////////////

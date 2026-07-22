@@ -3,6 +3,7 @@ pragma solidity ^0.8.20;
 
 import "OZ/utils/Context.sol";
 import "CMTAT/interfaces/tokenization/draft-IERC1643.sol";
+import {IERC1643MultiDocument} from "./interfaces/IERC1643MultiDocument.sol";
 import "./DocumentEngineInvariant.sol";
 
 /**
@@ -20,6 +21,7 @@ import "./DocumentEngineInvariant.sol";
  */
 abstract contract DocumentEngineBase is
     IERC1643,
+    IERC1643MultiDocument,
     DocumentEngineInvariant,
     Context
 {
@@ -72,22 +74,22 @@ abstract contract DocumentEngineBase is
      * @notice Restricted function to set or update a document
      */
     function setDocument(
-        address smartContract,
+        address subject,
         bytes32 name_,
         string memory uri_,
         bytes32 documentHash_
-    ) public onlyDocumentManager {
-        _setDocument(smartContract, name_, uri_, documentHash_);
+    ) public override onlyDocumentManager {
+        _setDocument(subject, name_, uri_, documentHash_);
     }
 
     /**
      * @notice Restricted function to remove a document for a given smart contract and name
      */
     function removeDocument(
-        address smartContract,
+        address subject,
         bytes32 name_
-    ) external onlyDocumentManager {
-        _removeDocument(smartContract, name_);
+    ) external override onlyDocumentManager {
+        _removeDocument(subject, name_);
     }
 
     /* ============ ERC-1643 (bound token) ============ */
@@ -208,10 +210,10 @@ abstract contract DocumentEngineBase is
      * @notice Public function to get a document for a specific contract address
      */
     function getDocument(
-        address smartContract,
+        address subject,
         bytes32 name_
-    ) external view returns (Document memory) {
-        return _getDocument(smartContract, name_);
+    ) external view override returns (Document memory) {
+        return _getDocument(subject, name_);
     }
 
     /**
@@ -230,9 +232,9 @@ abstract contract DocumentEngineBase is
      * @notice Get all document names for a specific smart contract
      */
     function getAllDocuments(
-        address smartContract
-    ) external view returns (bytes32[] memory) {
-        return _documentNames[smartContract];
+        address subject
+    ) external view override returns (bytes32[] memory) {
+        return _documentNames[subject];
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -268,44 +270,50 @@ abstract contract DocumentEngineBase is
         }
     }
 
-    function _removeDocument(address smartContract, bytes32 name_) internal {
-        Document memory doc = _documents[smartContract][name_];
-        // Standard ERC-1643 event
-        emit DocumentRemoved(name_, doc.uri, doc.documentHash);
-        // Optional multi-token event (see ERC-1643-proposition.md)
-        emit DocumentRemovedForContract(
-            smartContract,
+    function _removeDocument(address subject, bytes32 name_) internal {
+        Document memory doc = _documents[subject][name_];
+        // ERC-1643: reverts when the named document does not exist
+        if (doc.lastModified == 0) {
+            revert ERC1643MissingDocument();
+        }
+
+        // This engine is a shared, multi-subject manager: per the ERC-1643
+        // "Emission Responsibility" rules it emits only the address-carrying
+        // extension event (the base `DocumentRemoved` is the token contract's
+        // responsibility). See doc/ERCSpecification.
+        emit DocumentRemovedForSubject(
+            subject,
             name_,
             doc.uri,
             doc.documentHash
         );
 
-        delete _documents[smartContract][name_];
-        _removeDocumentName(smartContract, name_);
+        delete _documents[subject][name_];
+        _removeDocumentName(subject, name_);
     }
 
     function _setDocument(
-        address smartContract,
+        address subject,
         bytes32 name_,
         string memory uri_,
         bytes32 documentHash_
     ) internal {
-        Document storage doc = _documents[smartContract][name_];
+        // ERC-1643: reject the null name (ambiguous / default key)
+        if (name_ == bytes32(0)) {
+            revert ERC1643InvalidName();
+        }
+
+        Document storage doc = _documents[subject][name_];
         if (doc.lastModified == 0) {
             // new document
-            _documentNames[smartContract].push(name_);
+            _documentNames[subject].push(name_);
         }
         doc.uri = uri_;
         doc.documentHash = documentHash_;
         doc.lastModified = block.timestamp;
-        // Standard ERC-1643 event
-        emit DocumentUpdated(name_, uri_, documentHash_);
-        // Optional multi-token event (see ERC-1643-proposition.md)
-        emit DocumentUpdatedForContract(
-            smartContract,
-            name_,
-            uri_,
-            documentHash_
-        );
+
+        // Shared, multi-subject manager: emit only the address-carrying extension
+        // event (see {_removeDocument} note and doc/ERCSpecification).
+        emit DocumentUpdatedForSubject(subject, name_, uri_, documentHash_);
     }
 }

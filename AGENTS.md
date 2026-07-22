@@ -31,9 +31,15 @@ addressed by a `bytes32` name.
     reused for binding — it is an `IERC3643Compliance`, which would drag in
     transfer-compliance callbacks (`canTransfer`/`transferred`/`created`/`destroyed`)
     irrelevant to a document engine. See the README rationale section.
-- **Events:** every write emits the standard `IERC1643` events **and** the optional
-  `DocumentUpdatedForContract` / `DocumentRemovedForContract` events (which add the
-  `smartContract` address). See `ERC-1643-proposition.md`.
+- **Events (ERC-1643 emission responsibility):** this engine is a *shared,
+  multi-token* manager, so it emits **only** the address-carrying extension events
+  `DocumentUpdatedForSubject` / `DocumentRemovedForSubject` (param `subject`) and
+  **not** the base `DocumentUpdated` / `DocumentRemoved` (those carry no address and
+  are the token contract's responsibility). Extension declared in
+  `src/interfaces/IERC1643MultiDocument.sol`; rationale in `ERC-1643-proposition.md`.
+- **ERC-1643 conformance:** `setDocument` reverts `ERC1643InvalidName()` on
+  `name == 0`; `removeDocument` reverts `ERC1643MissingDocument()` on a missing doc;
+  `supportsInterface` advertises `IERC1643` + `IERC1643MultiDocument` (both deployments).
 - **ERC-2771:** meta-transaction (gasless) support; `_msgSender()` is used everywhere.
 - **Access control:** `DEFAULT_ADMIN_ROLE` implicitly has every role (see the
   `hasRole` override).
@@ -62,11 +68,12 @@ src/
 │                                 #   impls, hasRole), ERC-2771, supportsInterface, constructor
 ├── DocumentEngineOwnable.sol     # Deployment #2: Ownable2Step (single owner) instead of
 │                                 #   roles; owner-managed token binding (setTokenBinding)
-├── DocumentEngineInvariant.sol   # Shared errors + optional multi-token events only
-│                                 #   (NO access-control specifics — roles live in the
-│                                 #   role-based deployment)
+├── DocumentEngineInvariant.sol   # Shared errors only (incl. ERC1643InvalidName /
+│                                 #   ERC1643MissingDocument); NO access-control specifics
 ├── interfaces/
-│   └── IERC8303.sol              # ERC-8303 "Contract Version" interface (id 0x54fd4d50)
+│   ├── IERC8303.sol              # ERC-8303 "Contract Version" interface (id 0x54fd4d50)
+│   └── IERC1643MultiDocument.sol # Multi-token ERC-1643 extension (address-scoped fns +
+│                                 #   DocumentUpdatedForSubject / DocumentRemovedForSubject)
 └── modules/
     └── VersionModule.sol         # Version module: implements ERC-8303 version() + ERC-165,
                                   #   holds the VERSION constant (currently "0.4.0")

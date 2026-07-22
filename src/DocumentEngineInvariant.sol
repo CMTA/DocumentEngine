@@ -14,25 +14,11 @@ contract DocumentEngineInvariant {
     error InvalidInputLength();
     error AdminWithAddressZeroNotAllowed();
 
-    /**
-     * @notice Optional multi-token events emitted in addition to the standard
-     * `IERC1643.DocumentUpdated` / `IERC1643.DocumentRemoved` events.
-     * @dev Because this engine manages documents on behalf of several smart
-     * contracts (tokens), the standard events - which only carry the document
-     * `name` - are not sufficient to identify which contract a document belongs
-     * to. These events add the `smartContract` address for off-chain indexers.
-     * See `ERC-1643-proposition.md` for the proposed optional standard extension.
-     */
-    event DocumentUpdatedForContract(
-        address indexed smartContract,
-        bytes32 indexed name,
-        string uri,
-        bytes32 documentHash
-    );
-    event DocumentRemovedForContract(
-        address indexed smartContract,
-        bytes32 indexed name,
-        string uri,
-        bytes32 documentHash
-    );
+    /// @notice Reverts when `setDocument` is called with `name == bytes32(0)`.
+    /// @dev ERC-1643-recommended error name.
+    error ERC1643InvalidName();
+
+    /// @notice Reverts when `removeDocument` targets a document that does not exist.
+    /// @dev ERC-1643-recommended error name.
+    error ERC1643MissingDocument();
 }

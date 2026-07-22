@@ -127,12 +127,17 @@ as a reference for that pattern.
 
 ### Events
 
-On every write, the engine emits the standard `IERC1643` events **and** the
-optional `DocumentUpdatedForContract` / `DocumentRemovedForContract` events,
-which additionally carry the `smartContract` (token) address so off-chain
-indexers can tell which contract a document belongs to during multi-contract
-operations. See [ERC-1643-proposition.md](./ERC-1643-proposition.md) for the
-proposed optional standard extension.
+This engine is a **shared, multi-token** document manager, so — per the ERC-1643
+["Emission Responsibility"](./doc/ERCSpecification/erc-1643.md) rules — it emits
+**only** the address-carrying extension events
+`DocumentUpdatedForSubject(address indexed subject, …)` /
+`DocumentRemovedForSubject(…)`, and **not** the base `DocumentUpdated` /
+`DocumentRemoved` events. The base events carry no address and so cannot identify
+which token contract a change belongs to; they are the responsibility of the
+token contract that exposes ERC-1643 to consumers (it re-emits them when
+delegating). See
+[ERC-1643-proposition.md](./doc/ERCSpecification/ERC-1643-proposition.md) and the
+`IERC1643MultiDocument` extension.
 
 ### Integration with CMTAT
 

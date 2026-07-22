@@ -7,6 +7,7 @@ import "../src/DocumentEngineInvariant.sol";
 import "OZ/access/AccessControl.sol";
 import {IERC165} from "OZ/utils/introspection/IERC165.sol";
 import {IERC8303} from "../src/interfaces/IERC8303.sol";
+import {IERC1643MultiDocument} from "../src/interfaces/IERC1643MultiDocument.sol";
 import {DocumentEngineModule} from "CMTAT/modules/wrapper/options/DocumentEngineModule.sol";
 
 /**
@@ -332,6 +333,52 @@ contract DocumentEngineTest is Test, DocumentEngineInvariant, AccessControl {
         assertTrue(
             documentEngine.supportsInterface(type(IERC8303).interfaceId)
         );
+    }
+
+    function testSupportsERC1643Interfaces() public {
+        // implements the base single-argument functions...
+        assertTrue(documentEngine.supportsInterface(type(IERC1643).interfaceId));
+        // ...and the address-scoped multi-token extension
+        assertTrue(
+            documentEngine.supportsInterface(
+                type(IERC1643MultiDocument).interfaceId
+            )
+        );
+    }
+
+    /*//////////////////////////////////////////////////////////////
+                    ERC-1643 input validation
+    //////////////////////////////////////////////////////////////*/
+
+    function testCannotSetDocumentWithZeroName() public {
+        vm.prank(admin);
+        vm.expectRevert(
+            abi.encodeWithSelector(ERC1643InvalidName.selector)
+        );
+        documentEngine.setDocument(
+            testContract,
+            bytes32(0),
+            documentURI,
+            documentHash
+        );
+    }
+
+    function testCannotRemoveMissingDocument() public {
+        vm.prank(admin);
+        vm.expectRevert(
+            abi.encodeWithSelector(ERC1643MissingDocument.selector)
+        );
+        documentEngine.removeDocument(testContract, keccak256("does-not-exist"));
+    }
+
+    function testBoundTokenCannotSetZeroName() public {
+        vm.prank(admin);
+        documentEngine.grantRole(TOKEN_CONTRACT_ROLE, testContract);
+        vm.prank(testContract);
+        vm.expectRevert(
+            abi.encodeWithSelector(ERC1643InvalidName.selector)
+        );
+        documentEngine.setDocument(bytes32(0), documentURI, documentHash);
     }
 
     function testSupportsInterfaceERC165AndAccessControl() public {

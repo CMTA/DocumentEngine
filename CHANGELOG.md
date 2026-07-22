@@ -69,6 +69,15 @@ Reference: [keepachangelog.com/en/1.1.0/](https://keepachangelog.com/en/1.1.0/)
 - `DocumentEngine` now inherits **`AccessControlEnumerable`** instead of `AccessControl`, adding on-chain enumeration of role members (`getRoleMember`, `getRoleMemberCount`) and advertising `IAccessControlEnumerable` via ERC-165. Default authorization behavior is unchanged.
 - Moved the role constants (`DOCUMENT_MANAGER_ROLE`, `TOKEN_CONTRACT_ROLE`) out of the shared `DocumentEngineInvariant` and into the role-based `DocumentEngine`, so `DocumentEngineInvariant` (and the `DocumentEngineOwnable` deployment) no longer carry access-control-specific constants. The invariant now holds only the shared errors and multi-token events.
 
+### Fixed (ERC-1643 conformance)
+
+Aligned the implementation with the updated [ERC-1643](./doc/ERCSpecification/erc-1643.md) (which now folds in the multi-token extension and the emission-responsibility rules):
+
+- **Emission responsibility.** As a shared, multi-token manager the engine now emits **only** the address-carrying extension events and **no longer** emits the base `DocumentUpdated` / `DocumentRemoved` events (the spec's `MUST NOT` for a shared manager — those events carry no `subject` and belong on the token contract).
+- **Extension events/interface.** Renamed the multi-token events to the standard `DocumentUpdatedForSubject` / `DocumentRemovedForSubject` (parameter `subject`), and introduced the `IERC1643MultiDocument` interface (`src/interfaces/IERC1643MultiDocument.sol`) that the base now implements — the address-scoped `getDocument` / `getAllDocuments` / `setDocument` / `removeDocument`.
+- **Input validation.** `setDocument` now reverts `ERC1643InvalidName()` when `name == bytes32(0)`; `removeDocument` now reverts `ERC1643MissingDocument()` for a non-existent document (previously it silently emitted a spurious removal event).
+- **ERC-165 discovery.** `supportsInterface` now returns `true` for `type(IERC1643).interfaceId` and `type(IERC1643MultiDocument).interfaceId` (both deployments).
+
 ### Notes / bottlenecks
 
 - CMTAT v3 no longer ships a *standalone* token that consumes an external document engine through its constructor; the standard token stores documents on-chain (`DocumentERC1643Module`). External-engine integration now goes through CMTAT's `DocumentEngineModule` (`setDocumentEngine`). The test suite was updated to exercise this real integration path via a minimal token built on `DocumentEngineModule`.
