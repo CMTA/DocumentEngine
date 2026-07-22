@@ -53,10 +53,15 @@ src/
 │                                 #   both management paths, batch functions, modifiers,
 │                                 #   and the ABSTRACT _authorize* hooks (no access control)
 ├── DocumentEngine.sol            # Deployment contract: defines the ACCESS CONTROL
-│                                 #   (AccessControl, _authorize* impls, hasRole) + ERC-2771,
-│                                 #   VERSION, constructor
-└── DocumentEngineInvariant.sol   # Errors, roles (DOCUMENT_MANAGER_ROLE,
-                                  #   TOKEN_CONTRACT_ROLE) and the optional multi-token events
+│                                 #   (AccessControl, _authorize* impls, hasRole), ERC-2771,
+│                                 #   combined supportsInterface, constructor
+├── DocumentEngineInvariant.sol   # Errors, roles (DOCUMENT_MANAGER_ROLE,
+│                                 #   TOKEN_CONTRACT_ROLE) and the optional multi-token events
+├── interfaces/
+│   └── IERC8303.sol              # ERC-8303 "Contract Version" interface (id 0x54fd4d50)
+└── modules/
+    └── VersionModule.sol         # Version module: implements ERC-8303 version() + ERC-165,
+                                  #   holds the VERSION constant (currently "0.4.0")
 
 test/
 └── DocumentEngine.t.sol          # Foundry tests: deploy, access control, admin path,
@@ -97,8 +102,8 @@ forge test --gas-report
 
 ## Conventions
 
-- The contract `VERSION` constant (in `src/DocumentEngine.sol`) must match the
-  latest `CHANGELOG.md` entry on release.
+- The `VERSION` constant (in `src/modules/VersionModule.sol`, exposed via
+  ERC-8303 `version()`) must match the latest `CHANGELOG.md` entry on release.
 - Bump `MAJOR` on incompatible proxy-storage / external-library or API changes,
   `MINOR` for backward-compatible features, `PATCH` for backward-compatible fixes.
 - A bound token can only ever affect its **own** document namespace — never break

@@ -4,6 +4,7 @@ pragma solidity ^0.8.20;
 import "OZ/access/AccessControl.sol";
 import "OZ/metatx/ERC2771Context.sol";
 import "./DocumentEngineBase.sol";
+import "./modules/VersionModule.sol";
 
 /**
  * @title DocumentEngine
@@ -11,16 +12,16 @@ import "./DocumentEngineBase.sol";
  * @dev Wires the document-management logic ({DocumentEngineBase}) with a
  * concrete access-control implementation. The authorization hooks are defined
  * here (role-based `AccessControl`), keeping the access control separate from
- * the document-management logic (CMTAT / CMTA-RuleEngine pattern). It also wires
+ * the document-management logic (CMTAT / CMTA-RuleEngine pattern). The contract
+ * version is exposed through the {VersionModule} (ERC-8303), and it also wires
  * the ERC-2771 (gasless) meta-transaction support.
  */
-contract DocumentEngine is DocumentEngineBase, AccessControl, ERC2771Context {
-    /**
-     * @notice
-     * Get the current version of the smart contract
-     */
-    string public constant VERSION = "0.4.0";
-
+contract DocumentEngine is
+    DocumentEngineBase,
+    VersionModule,
+    AccessControl,
+    ERC2771Context
+{
     // Constructor to initialize the admin role
     constructor(
         address admin,
@@ -70,6 +71,16 @@ contract DocumentEngine is DocumentEngineBase, AccessControl, ERC2771Context {
             return true;
         }
         return AccessControl.hasRole(role, account);
+    }
+
+    /**
+     * @dev Combines the ERC-165 interface discovery of the version module
+     * (ERC-8303) with `AccessControl`. See {IERC165-supportsInterface}.
+     */
+    function supportsInterface(
+        bytes4 interfaceId
+    ) public view virtual override(VersionModule, AccessControl) returns (bool) {
+        return super.supportsInterface(interfaceId);
     }
 
     /*//////////////////////////////////////////////////////////////

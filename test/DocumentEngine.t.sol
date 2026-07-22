@@ -5,6 +5,8 @@ import "forge-std/Test.sol";
 import "../src/DocumentEngine.sol";
 import "../src/DocumentEngineInvariant.sol";
 import "OZ/access/AccessControl.sol";
+import {IERC165} from "OZ/utils/introspection/IERC165.sol";
+import {IERC8303} from "../src/interfaces/IERC8303.sol";
 import {DocumentEngineModule} from "CMTAT/modules/wrapper/options/DocumentEngineModule.sol";
 
 /**
@@ -304,6 +306,39 @@ contract DocumentEngineTest is Test, DocumentEngineInvariant, AccessControl {
         );
         assertEq(doc.uri, documentURI);
         assertEq(doc.documentHash, documentHash);
+    }
+
+    /*//////////////////////////////////////////////////////////////
+                        Version (ERC-8303)
+    //////////////////////////////////////////////////////////////*/
+
+    function testVersionReturnsNonEmptyString() public {
+        string memory v = documentEngine.version();
+        assertGt(bytes(v).length, 0);
+        assertEq(v, "0.4.0");
+        // the public VERSION constant matches version()
+        assertEq(documentEngine.VERSION(), v);
+    }
+
+    function testSupportsInterfaceERC8303() public {
+        // interface id declared by ERC-8303
+        assertEq(type(IERC8303).interfaceId, bytes4(0x54fd4d50));
+        assertTrue(
+            documentEngine.supportsInterface(type(IERC8303).interfaceId)
+        );
+    }
+
+    function testSupportsInterfaceERC165AndAccessControl() public {
+        assertTrue(
+            documentEngine.supportsInterface(type(IERC165).interfaceId)
+        );
+        assertTrue(
+            documentEngine.supportsInterface(type(IAccessControl).interfaceId)
+        );
+    }
+
+    function testDoesNotSupportInvalidInterface() public {
+        assertFalse(documentEngine.supportsInterface(bytes4(0xffffffff)));
     }
 
     /*//////////////////////////////////////////////////////////////

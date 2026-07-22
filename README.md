@@ -124,6 +124,29 @@ The engine is split into two contracts (CMTAT module/deployment pattern):
 `DocumentEngineInvariant` provides the shared errors, roles
 (`DOCUMENT_MANAGER_ROLE`, `TOKEN_CONTRACT_ROLE`) and the optional multi-token events.
 
+`VersionModule` (`src/modules/VersionModule.sol`) isolates the version concern
+and implements [ERC-8303](https://ethereum-magicians.org/t/erc-8303-contract-version/28795)
+(see below).
+
+## Version (ERC-8303)
+
+The contract version is exposed through the `VersionModule`, which implements
+the [ERC-8303](https://ethereum-magicians.org/t/erc-8303-contract-version/28795)
+`IERC8303` interface:
+
+```solidity
+interface IERC8303 {
+    function version() external view returns (string memory);
+}
+```
+
+- `version()` returns the current version string (e.g. `"0.4.0"`), following
+  Semantic Versioning 2.0.0.
+- The public `VERSION` constant is kept for backward compatibility and returns
+  the same value.
+- ERC-165 discovery is supported: `supportsInterface(0x54fd4d50)` (the ERC-8303
+  interface id) returns `true`.
+
 ## Schema
 
 ### Inheritance
@@ -148,7 +171,7 @@ The engine is split into two contracts (CMTAT module/deployment pattern):
 | :----------------: | :------------------: | :----------------------------------------------: | :------------: | :-----------: |
 |         └          |  **Function Name**   |                  **Visibility**                  | **Mutability** | **Modifiers** |
 |                    |                      |                                                  |                |               |
-| **DocumentEngine** |    Implementation    | DocumentEngineBase, AccessControl, ERC2771Context |                |               |
+| **DocumentEngine** |    Implementation    | DocumentEngineBase, VersionModule, AccessControl, ERC2771Context |                |               |
 |         └          |    <Constructor>     |                     Public ❗️                     |       🛑        |      NO❗️      |
 |         └          |     setDocument      |                     Public ❗️                     |       🛑        |   onlyDocumentManager    |
 |         └          |    removeDocument    |                    External ❗️                    |       🛑        |   onlyDocumentManager    |
