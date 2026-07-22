@@ -27,6 +27,10 @@ addressed by a `bytes32` name.
     pattern). The standard single-arg `IERC1643` functions (`setDocument(name,uri,hash)`,
     `removeDocument(name)`) let a bound token manage its **own** namespace
     (`_msgSender()`). Bind a token with `grantRole(TOKEN_CONTRACT_ROLE, token)`.
+    NOTE: RuleEngine's `ERC3643ComplianceExtendedModule` is intentionally **not**
+    reused for binding — it is an `IERC3643Compliance`, which would drag in
+    transfer-compliance callbacks (`canTransfer`/`transferred`/`created`/`destroyed`)
+    irrelevant to a document engine. See the README rationale section.
 - **Events:** every write emits the standard `IERC1643` events **and** the optional
   `DocumentUpdatedForContract` / `DocumentRemovedForContract` events (which add the
   `smartContract` address). See `ERC-1643-proposition.md`.
@@ -95,7 +99,7 @@ Other important files:
 
 ## Dependencies (tested versions)
 
-- CMTAT `v3.3.0-rc1`, RuleEngine `v2.1.0`
+- CMTAT `v3.3.0-rc1`, RuleEngine `v3.0.0-rc4` (binding-pattern reference only; compliance module not reused)
 - OpenZeppelin Contracts / Contracts Upgradeable `v5.6.1`
 - Solidity `0.8.34`, Foundry
 

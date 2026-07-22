@@ -48,7 +48,7 @@ Reference: [keepachangelog.com/en/1.1.0/](https://keepachangelog.com/en/1.1.0/)
 - **Dependencies**
   - Upgrade CMTAT `v2.5.0-rc0` → `v3.3.0-rc1`
   - Upgrade OpenZeppelin Contracts (and Contracts Upgradeable) `v5.0.2` → `v5.6.1`
-  - Add [CMTA/RuleEngine](https://github.com/CMTA/RuleEngine) `v2.1.0` as a submodule (binding-role reference)
+  - Add [CMTA/RuleEngine](https://github.com/CMTA/RuleEngine) `v3.0.0-rc4` as a submodule (binding-pattern reference; see [Why not reuse RuleEngine's compliance module?](./README.md#why-not-reuse-ruleengines-erc-3643-compliance-module) — its `ERC3643ComplianceExtendedModule` is not reused)
 - **Toolchain**: bump Solidity `0.8.26` → `0.8.34` and `evm_version` `cancun` → `prague` to match CMTAT v3 (CMTAT uses `require(cond, CustomError())`, which needs solc ≥ 0.8.27)
 - **`IERC1643` (CMTAT v3) breaking changes**
   - `getDocument(bytes32)` now returns a `Document` struct instead of the `(string, bytes32, uint256)` tuple. Both `getDocument` overloads updated accordingly.
@@ -57,7 +57,7 @@ Reference: [keepachangelog.com/en/1.1.0/](https://keepachangelog.com/en/1.1.0/)
 
 ### Added
 
-- **Bound-token document management (RuleEngine binding pattern)**: implement the now-mandatory `IERC1643.setDocument(name, uri, hash)` and `removeDocument(name)`. They are gated by a new `TOKEN_CONTRACT_ROLE` and scoped to the caller (`_msgSender()`) own namespace. A token bound with `grantRole(TOKEN_CONTRACT_ROLE, token)` manages its own documents and can never affect another contract's documents. The existing admin overloads (explicit `address`, `DOCUMENT_MANAGER_ROLE`) are unchanged, so both systems work side by side.
+- **Bound-token document management (RuleEngine binding pattern)**: implement the now-mandatory `IERC1643.setDocument(name, uri, hash)` and `removeDocument(name)`. They are gated by a new `TOKEN_CONTRACT_ROLE` and scoped to the caller (`_msgSender()`) own namespace. A token bound with `grantRole(TOKEN_CONTRACT_ROLE, token)` manages its own documents and can never affect another contract's documents. The existing admin overloads (explicit `address`, `DOCUMENT_MANAGER_ROLE`) are unchanged, so both systems work side by side. (RuleEngine's `ERC3643ComplianceExtendedModule` was evaluated for this but intentionally not reused — see the README.)
 - **Optional multi-token events**: alongside the standard `IERC1643` events, the engine now also emits `DocumentUpdatedForContract` / `DocumentRemovedForContract`, which carry the `smartContract` (token) address so off-chain indexers can tell which contract a document belongs to during multi-contract operations. See [`ERC-1643-proposition.md`](./ERC-1643-proposition.md) for the proposed optional standard extension.
 - **Flexible access control (CMTAT / RuleEngine pattern)**: the restricted functions now use the `onlyDocumentManager` / `onlyBoundToken` modifiers, which delegate to overridable `internal virtual` authorization hooks `_authorizeDocumentManagement()` / `_authorizeBoundTokenDocumentManagement()` (default: `DOCUMENT_MANAGER_ROLE` / `TOKEN_CONTRACT_ROLE`). This separates the document-management implementation from the authorization logic, so a subclass can change *who* is authorized without touching the management functions. Default behavior is unchanged.
 - **Split into a base contract and a deployment contract** (CMTAT module/deployment pattern): the document-management logic and storage now live in the new abstract `DocumentEngineBase` (with abstract `_authorize*` hooks), while `DocumentEngine` is the deployment contract that defines the access control (`AccessControl`, the concrete hooks and `hasRole`) and the ERC-2771 wiring. The deployable `DocumentEngine` API and behavior are unchanged.
@@ -67,7 +67,7 @@ Reference: [keepachangelog.com/en/1.1.0/](https://keepachangelog.com/en/1.1.0/)
 ### Changed (access control)
 
 - `DocumentEngine` now inherits **`AccessControlEnumerable`** instead of `AccessControl`, adding on-chain enumeration of role members (`getRoleMember`, `getRoleMemberCount`) and advertising `IAccessControlEnumerable` via ERC-165. Default authorization behavior is unchanged.
-- Moved the role constants `DOCUMENT_MANAGER_ROLE` / `TOKEN_CONTRACT_ROLE` out of the shared `DocumentEngineInvariant` and into the role-based `DocumentEngine`, so `DocumentEngineInvariant` (and the `DocumentEngineOwnable` deployment) no longer carry access-control-specific constants. The invariant now holds only the shared errors and multi-token events.
+- Moved the role constants (`DOCUMENT_MANAGER_ROLE`, `TOKEN_CONTRACT_ROLE`) out of the shared `DocumentEngineInvariant` and into the role-based `DocumentEngine`, so `DocumentEngineInvariant` (and the `DocumentEngineOwnable` deployment) no longer carry access-control-specific constants. The invariant now holds only the shared errors and multi-token events.
 
 ### Notes / bottlenecks
 

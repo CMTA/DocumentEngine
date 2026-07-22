@@ -67,6 +67,10 @@ function setDocument(bytes32 name_, string calldata uri_, bytes32 documentHash_)
 function removeDocument(bytes32 name_) external;
 ```
 
+> This mirrors the RuleEngine *binding* pattern without reusing its
+> `ERC3643ComplianceExtendedModule` — see
+> [Why not reuse RuleEngine's ERC-3643 compliance module?](#why-not-reuse-ruleengines-erc-3643-compliance-module) below.
+
 ### Flexible access control
 
 Following the CMTAT / [RuleEngine](https://github.com/CMTA/RuleEngine) pattern,
@@ -88,6 +92,38 @@ This separates the document-management implementation from the authorization
 logic: a subclass can override a hook to change *who* is authorized (e.g. a
 different role, an allowlist, or open access) without touching the management
 functions. The default behavior is the role checks shown above.
+
+### Why not reuse RuleEngine's ERC-3643 compliance module?
+
+CMTA's [RuleEngine](https://github.com/CMTA/RuleEngine) (v3) ships an
+`ERC3643ComplianceExtendedModule` that offers a ready-made token-binding registry
+(`bindToken` / `unbindToken` / `isTokenBound` / `getTokenBounds`). It is tempting
+to reuse it for the bound-token path, but we deliberately do **not**, because that
+module is an **`IERC3643Compliance`** — a *transfer-compliance* contract.
+
+Inheriting it would force the DocumentEngine to also implement the ERC-3643
+transfer-compliance callbacks that come with that interface:
+
+```solidity
+function canTransfer(address, address, uint256) external view returns (bool);
+function transferred(address, address, uint256) external;
+function created(address, uint256) external;
+function destroyed(address, uint256) external;
+```
+
+A document engine has **nothing to do with token transfers**, so these would have
+to be stubbed as no-ops (`canTransfer` always returning `true`). That is
+misleading: the contract would advertise a transfer-compliance surface it does
+not honor, enlarging the ABI and inviting integrators to wire it where a real
+compliance contract is expected.
+
+The binding concept we actually need is tiny — "is this caller a token allowed to
+manage its own documents?" — so we implement just that: a `TOKEN_CONTRACT_ROLE`
+in the role-based `DocumentEngine` (exactly the RuleEngine *binding* mechanism,
+which is role-based, not the compliance module) and an owner-managed allowlist in
+`DocumentEngineOwnable`. This keeps the engine's surface honest and minimal while
+still mirroring the RuleEngine binding pattern. The RuleEngine submodule is kept
+as a reference for that pattern.
 
 ### Events
 
@@ -227,7 +263,7 @@ The toolchain includes the following components, where the versions are the late
 - OpenZeppelin Contracts (submodule) [v5.6.1](https://github.com/OpenZeppelin/openzeppelin-contracts/releases/tag/v5.6.1)
 - Tests
   - [CMTAT v3.3.0-rc1](https://github.com/CMTA/CMTAT/releases/tag/v3.3.0-rc1)
-  - [RuleEngine v2.1.0](https://github.com/CMTA/RuleEngine/releases/tag/v2.1.0) (binding-role reference)
+  - [RuleEngine v3.0.0-rc4](https://github.com/CMTA/RuleEngine/releases/tag/v3.0.0-rc4) (binding-pattern reference only — its compliance module is [not reused](#why-not-reuse-ruleengines-erc-3643-compliance-module))
   - OpenZeppelin Contracts Upgradeable (submodule) [v5.6.1](https://github.com/OpenZeppelin/openzeppelin-contracts-upgradeable/releases/tag/v5.6.1)
 
 ## Tools
