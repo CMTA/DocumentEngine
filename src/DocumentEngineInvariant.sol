@@ -6,26 +6,35 @@ contract DocumentEngineInvariant {
     error InvalidInputLength();
     error AdminWithAddressZeroNotAllowed();
 
-    event DocumentUpdated(
-        address smartContract,
-        bytes32 name,
+    /**
+     * @notice Optional multi-token events emitted in addition to the standard
+     * `IERC1643.DocumentUpdated` / `IERC1643.DocumentRemoved` events.
+     * @dev Because this engine manages documents on behalf of several smart
+     * contracts (tokens), the standard events - which only carry the document
+     * `name` - are not sufficient to identify which contract a document belongs
+     * to. These events add the `smartContract` address for off-chain indexers.
+     * See `ERC-1643-proposition.md` for the proposed optional standard extension.
+     */
+    event DocumentUpdatedForContract(
+        address indexed smartContract,
+        bytes32 indexed name,
         string uri,
         bytes32 documentHash
     );
-    event DocumentRemoved(
-        address smartContract,
-        bytes32 name,
+    event DocumentRemovedForContract(
+        address indexed smartContract,
+        bytes32 indexed name,
         string uri,
         bytes32 documentHash
     );
 
-    // Document structure
-    struct Document {
-        string uri;
-        bytes32 documentHash;
-        uint256 lastModified;
-    }
-
+    // Role allowed to manage documents on behalf of any smart contract (admin path)
     bytes32 public constant DOCUMENT_MANAGER_ROLE =
         keccak256("DOCUMENT_MANAGER_ROLE");
+
+    // Role granted to a token bound to the engine, allowing it to manage its own
+    // documents through the standard ERC-1643 functions (msg.sender is the token).
+    // Mirrors the RuleEngine binding pattern (CMTA/RuleEngine `TOKEN_CONTRACT_ROLE`).
+    bytes32 public constant TOKEN_CONTRACT_ROLE =
+        keccak256("TOKEN_CONTRACT_ROLE");
 }

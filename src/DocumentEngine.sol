@@ -3,7 +3,7 @@ pragma solidity ^0.8.20;
 
 import "OZ/access/AccessControl.sol";
 import "OZ/metatx/ERC2771Context.sol";
-import "CMTAT/interfaces/engine/draft-IERC1643.sol";
+import "CMTAT/interfaces/tokenization/draft-IERC1643.sol";
 import "./DocumentEngineInvariant.sol";
 
 /**
@@ -20,7 +20,7 @@ contract DocumentEngine is
      * @notice
      * Get the current version of the smart contract
      */
-    string public constant VERSION = "0.3.0";
+    string public constant VERSION = "0.4.0";
     // Mapping from contract addresses to document names to their corresponding Document structs
     mapping(address => mapping(bytes32 => Document)) private _documents;
     mapping(address => bytes32[]) private _documentNames;
@@ -60,6 +60,33 @@ contract DocumentEngine is
         bytes32 name_
     ) external onlyRole(DOCUMENT_MANAGER_ROLE) {
         _removeDocument(smartContract, name_);
+    }
+
+    /* ============ ERC-1643 (bound token) ============ */
+
+    /**
+     * @notice ERC-1643 function to set or update a document for the caller.
+     * @dev The document is stored under the caller (`_msgSender()`) namespace.
+     * The caller must be a token bound to this engine (`TOKEN_CONTRACT_ROLE`),
+     * following the RuleEngine binding pattern. A bound token can only manage
+     * its own documents; it can never affect another contract's documents.
+     */
+    function setDocument(
+        bytes32 name_,
+        string calldata uri_,
+        bytes32 documentHash_
+    ) external override onlyRole(TOKEN_CONTRACT_ROLE) {
+        _setDocument(_msgSender(), name_, uri_, documentHash_);
+    }
+
+    /**
+     * @notice ERC-1643 function to remove a document for the caller.
+     * @dev See {setDocument}. Scoped to the caller (`_msgSender()`) namespace.
+     */
+    function removeDocument(
+        bytes32 name_
+    ) external override onlyRole(TOKEN_CONTRACT_ROLE) {
+        _removeDocument(_msgSender(), name_);
     }
 
     /**
@@ -141,12 +168,12 @@ contract DocumentEngine is
     }
 
     /**
-     * @notice Public function to get a document from msg.sender
+     * @notice ERC-1643 function to get a document for the caller (`_msgSender()`)
      */
     function getDocument(
         bytes32 name_
-    ) external view override returns (string memory, bytes32, uint256) {
-        return _getDocument(msg.sender, name_);
+    ) external view override returns (Document memory) {
+        return _getDocument(_msgSender(), name_);
     }
 
     /**
@@ -155,7 +182,7 @@ contract DocumentEngine is
     function getDocument(
         address smartContract,
         bytes32 name_
-    ) external view returns (string memory, bytes32, uint256) {
+    ) external view returns (Document memory) {
         return _getDocument(smartContract, name_);
     }
 
@@ -168,7 +195,7 @@ contract DocumentEngine is
         override
         returns (bytes32[] memory)
     {
-        return _documentNames[msg.sender];
+        return _documentNames[_msgSender()];
     }
 
     /**
@@ -205,9 +232,8 @@ contract DocumentEngine is
     function _getDocument(
         address smartContract,
         bytes32 name_
-    ) internal view returns (string memory, bytes32, uint256) {
-        Document memory doc = _documents[smartContract][name_];
-        return (doc.uri, doc.documentHash, doc.lastModified);
+    ) internal view returns (Document memory) {
+        return _documents[smartContract][name_];
     }
 
     /**
@@ -231,7 +257,15 @@ contract DocumentEngine is
 
     function _removeDocument(address smartContract, bytes32 name_) internal {
         Document memory doc = _documents[smartContract][name_];
-        emit DocumentRemoved(smartContract, name_, doc.uri, doc.documentHash);
+        // Standard ERC-1643 event
+        emit DocumentRemoved(name_, doc.uri, doc.documentHash);
+        // Optional multi-token event (see ERC-1643-proposition.md)
+        emit DocumentRemovedForContract(
+            smartContract,
+            name_,
+            doc.uri,
+            doc.documentHash
+        );
 
         delete _documents[smartContract][name_];
         _removeDocumentName(smartContract, name_);
@@ -251,7 +285,15 @@ contract DocumentEngine is
         doc.uri = uri_;
         doc.documentHash = documentHash_;
         doc.lastModified = block.timestamp;
-        emit DocumentUpdated(smartContract, name_, uri_, documentHash_);
+        // Standard ERC-1643 event
+        emit DocumentUpdated(name_, uri_, documentHash_);
+        // Optional multi-token event (see ERC-1643-proposition.md)
+        emit DocumentUpdatedForContract(
+            smartContract,
+            name_,
+            uri_,
+            documentHash_
+        );
     }
 
     /*//////////////////////////////////////////////////////////////

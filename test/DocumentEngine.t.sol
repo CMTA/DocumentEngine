@@ -5,7 +5,22 @@ import "forge-std/Test.sol";
 import "../src/DocumentEngine.sol";
 import "../src/DocumentEngineInvariant.sol";
 import "OZ/access/AccessControl.sol";
-import "CMTAT/CMTAT_STANDALONE.sol";
+import {DocumentEngineModule} from "CMTAT/modules/wrapper/options/DocumentEngineModule.sol";
+
+/**
+ * @dev Minimal token wired to CMTAT's official `DocumentEngineModule`.
+ *
+ * Since CMTAT v3, the shipped standalone tokens store documents on-chain
+ * (`DocumentERC1643Module`) and no longer consume an external document engine
+ * through their constructor. Integration with an external `DocumentEngine` now
+ * goes through `DocumentEngineModule`, which this mock exercises with real
+ * CMTAT code: reads/writes are forwarded to the engine keyed by `msg.sender`.
+ */
+contract CMTATDocumentEngineMock is DocumentEngineModule {
+    // No access restriction for the mock: document management is authorized for anyone.
+    function _authorizeDocumentManagement() internal override {}
+}
+
 contract DocumentEngineTest is Test, DocumentEngineInvariant, AccessControl {
     DocumentEngine public documentEngine;
     address public admin = address(0x1);
@@ -18,7 +33,7 @@ contract DocumentEngineTest is Test, DocumentEngineInvariant, AccessControl {
     bytes32 public documentHash = keccak256("doc1Hash");
     bytes32 public constant DOCUMENT_ROLE = keccak256("DOCUMENT_ROLE");
     address AddressZero = address(0);
-    CMTAT_STANDALONE cmtat;
+
     function setUp() public {
         documentEngine = new DocumentEngine(admin, AddressZero);
         vm.prank(admin);
@@ -27,34 +42,6 @@ contract DocumentEngineTest is Test, DocumentEngineInvariant, AccessControl {
             documentName,
             documentURI,
             documentHash
-        );
-
-        // CMTAT
-        ICMTATConstructor.ERC20Attributes
-            memory erc20Attributes = ICMTATConstructor.ERC20Attributes(
-                "CMTA Token",
-                "CMTAT",
-                0
-            );
-        ICMTATConstructor.BaseModuleAttributes
-            memory baseModuleAttributes = ICMTATConstructor
-                .BaseModuleAttributes(
-                    "CMTAT_ISIN",
-                    "https://cmta.ch",
-                    "CMTAT_info"
-                );
-        ICMTATConstructor.Engine memory engines = ICMTATConstructor.Engine(
-            IRuleEngine(AddressZero),
-            IDebtEngine(AddressZero),
-            IAuthorizationEngine(AddressZero),
-            IERC1643(AddressZero)
-        );
-        cmtat = new CMTAT_STANDALONE(
-            AddressZero,
-            admin,
-            erc20Attributes,
-            baseModuleAttributes,
-            engines
         );
     }
 
@@ -177,17 +164,24 @@ contract DocumentEngineTest is Test, DocumentEngineInvariant, AccessControl {
     }
 
     /*//////////////////////////////////////////////////////////////
-                  Get 
+                  Get
     //////////////////////////////////////////////////////////////*/
 
-    function testGetAllDocuments() public view {
+    function testGetAllDocuments() public {
         bytes32[] memory docs = documentEngine.getAllDocuments(testContract);
         assertEq(docs.length, 1);
         assertEq(docs[0], documentName);
     }
 
+    /*//////////////////////////////////////////////////////////////
+            CMTAT integration (external engine via DocumentEngineModule)
+    //////////////////////////////////////////////////////////////*/
+
     function testCanReturnCMTATDocument() public {
-        // Arrange
+        // Arrange: a CMTAT-style token bound to the engine
+        CMTATDocumentEngineMock cmtat = new CMTATDocumentEngineMock();
+        cmtat.setDocumentEngine(documentEngine);
+
         uint256 lastModif = block.timestamp;
         vm.prank(admin);
         documentEngine.setDocument(
@@ -196,19 +190,76 @@ contract DocumentEngineTest is Test, DocumentEngineInvariant, AccessControl {
             documentURI,
             documentHash
         );
-        vm.prank(admin);
-        cmtat.setDocumentEngine(documentEngine);
 
-        // Call from CMTAT, return document
+        // Call from CMTAT, forwarded to the engine
         bytes32[] memory docs = cmtat.getAllDocuments();
         assertEq(docs.length, 1);
         assertEq(docs[0], documentName);
 
-        (string memory uri, bytes32 hash, uint256 lastModified) = cmtat
-            .getDocument(documentName);
-        assertEq(uri, documentURI);
-        assertEq(hash, documentHash);
-        assertEq(lastModif, lastModified);
+        IERC1643.Document memory doc = cmtat.getDocument(documentName);
+        assertEq(doc.uri, documentURI);
+        assertEq(doc.documentHash, documentHash);
+        assertEq(doc.lastModified, lastModif);
+    }
+
+    /*//////////////////////////////////////////////////////////////
+            Bound token (RuleEngine binding pattern, TOKEN_CONTRACT_ROLE)
+    //////////////////////////////////////////////////////////////*/
+
+    function testBoundTokenCanManageOwnDocument() public {
+        // Bind the token to the engine
+        vm.prank(admin);
+        documentEngine.grantRole(TOKEN_CONTRACT_ROLE, testContract);
+
+        // The bound token manages its own document namespace (msg.sender)
+        bytes32 selfName = keccak256("self-doc");
+        string memory selfURI = "https://example.com/self";
+        bytes32 selfHash = keccak256("selfHash");
+
+        vm.prank(testContract);
+        documentEngine.setDocument(selfName, selfURI, selfHash);
+
+        IERC1643.Document memory doc = documentEngine.getDocument(
+            testContract,
+            selfName
+        );
+        assertEq(doc.uri, selfURI);
+        assertEq(doc.documentHash, selfHash);
+        assertEq(doc.lastModified, block.timestamp);
+
+        // and can remove it
+        vm.prank(testContract);
+        documentEngine.removeDocument(selfName);
+        doc = documentEngine.getDocument(testContract, selfName);
+        assertEq(doc.uri, "");
+        assertEq(doc.documentHash, "");
+        assertEq(doc.lastModified, 0);
+    }
+
+    function testUnboundContractCannotSetOwnDocument() public {
+        bytes32 selfName = keccak256("self-doc");
+        vm.prank(attacker);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                AccessControlUnauthorizedAccount.selector,
+                attacker,
+                TOKEN_CONTRACT_ROLE
+            )
+        );
+        documentEngine.setDocument(selfName, documentURI, documentHash);
+    }
+
+    function testUnboundContractCannotRemoveOwnDocument() public {
+        bytes32 selfName = keccak256("self-doc");
+        vm.prank(attacker);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                AccessControlUnauthorizedAccount.selector,
+                attacker,
+                TOKEN_CONTRACT_ROLE
+            )
+        );
+        documentEngine.removeDocument(selfName);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -224,11 +275,13 @@ contract DocumentEngineTest is Test, DocumentEngineInvariant, AccessControl {
             documentHash
         );
 
-        (string memory uri, bytes32 hash, uint256 lastModified) = documentEngine
-            .getDocument(testContract, documentName);
-        assertEq(uri, documentURI);
-        assertEq(hash, documentHash);
-        assertEq(lastModif, lastModified);
+        IERC1643.Document memory doc = documentEngine.getDocument(
+            testContract,
+            documentName
+        );
+        assertEq(doc.uri, documentURI);
+        assertEq(doc.documentHash, documentHash);
+        assertEq(doc.lastModified, lastModif);
     }
 
     function testAdminCanSetDocumentAgain() public {
@@ -256,11 +309,13 @@ contract DocumentEngineTest is Test, DocumentEngineInvariant, AccessControl {
         );
 
         // Assert
-        (string memory uri, bytes32 hash, uint256 lastModified) = documentEngine
-            .getDocument(testContract, documentName);
-        assertEq(uri, documentURIV2);
-        assertEq(hash, documentHashV2);
-        assertEq(lastModif, lastModified);
+        IERC1643.Document memory doc = documentEngine.getDocument(
+            testContract,
+            documentName
+        );
+        assertEq(doc.uri, documentURIV2);
+        assertEq(doc.documentHash, documentHashV2);
+        assertEq(doc.lastModified, lastModif);
         docs = documentEngine.getAllDocuments(testContract);
         assertEq(docs.length, 1);
         assertEq(docs[0], documentName);
@@ -287,24 +342,22 @@ contract DocumentEngineTest is Test, DocumentEngineInvariant, AccessControl {
         documentEngine.batchSetDocuments(smartContracts, names, uris, hashes);
 
         // Check the first document
-        (
-            string memory uri1,
-            bytes32 hash1,
-            uint256 lastModified1
-        ) = documentEngine.getDocument(testContract, documentName);
-        assertEq(uri1, documentURI);
-        assertEq(hash1, documentHash);
-        assertEq(lastModified1, block.timestamp);
+        IERC1643.Document memory doc1 = documentEngine.getDocument(
+            testContract,
+            documentName
+        );
+        assertEq(doc1.uri, documentURI);
+        assertEq(doc1.documentHash, documentHash);
+        assertEq(doc1.lastModified, block.timestamp);
 
         // Check the second document
-        (
-            string memory uri2,
-            bytes32 hash2,
-            uint256 lastModified2
-        ) = documentEngine.getDocument(anotherSmartContract, names[1]);
-        assertEq(uri2, uris[1]);
-        assertEq(hash2, hashes[1]);
-        assertEq(lastModified2, block.timestamp);
+        IERC1643.Document memory doc2 = documentEngine.getDocument(
+            anotherSmartContract,
+            names[1]
+        );
+        assertEq(doc2.uri, uris[1]);
+        assertEq(doc2.documentHash, hashes[1]);
+        assertEq(doc2.lastModified, block.timestamp);
     }
 
     function testAdminCanBatchSetDocumentsForTheSameContract() public {
@@ -328,24 +381,22 @@ contract DocumentEngineTest is Test, DocumentEngineInvariant, AccessControl {
         documentEngine.batchSetDocuments(smartContracts, names, uris, hashes);
 
         // Check the first document
-        (
-            string memory uri1,
-            bytes32 hash1,
-            uint256 lastModified1
-        ) = documentEngine.getDocument(testContract, documentName);
-        assertEq(uri1, documentURI);
-        assertEq(hash1, documentHash);
-        assertEq(lastModified1, block.timestamp);
+        IERC1643.Document memory doc1 = documentEngine.getDocument(
+            testContract,
+            documentName
+        );
+        assertEq(doc1.uri, documentURI);
+        assertEq(doc1.documentHash, documentHash);
+        assertEq(doc1.lastModified, block.timestamp);
 
         // Check the second document
-        (
-            string memory uri2,
-            bytes32 hash2,
-            uint256 lastModified2
-        ) = documentEngine.getDocument(testContract, names[1]);
-        assertEq(uri2, uris[1]);
-        assertEq(hash2, hashes[1]);
-        assertEq(lastModified2, block.timestamp);
+        IERC1643.Document memory doc2 = documentEngine.getDocument(
+            testContract,
+            names[1]
+        );
+        assertEq(doc2.uri, uris[1]);
+        assertEq(doc2.documentHash, hashes[1]);
+        assertEq(doc2.lastModified, block.timestamp);
     }
 
     function testCannotAddBatchDocumentIfLengthMismatch_A() public {
@@ -412,11 +463,13 @@ contract DocumentEngineTest is Test, DocumentEngineInvariant, AccessControl {
 
         // Check that both documents are removed
         // Check the second document
-        (string memory uri, bytes32 hash, uint256 lastModified) = documentEngine
-            .getDocument(testContract, documentName);
-        assertEq(uri, "");
-        assertEq(hash, "");
-        assertEq(lastModified, 0);
+        IERC1643.Document memory doc = documentEngine.getDocument(
+            testContract,
+            documentName
+        );
+        assertEq(doc.uri, "");
+        assertEq(doc.documentHash, "");
+        assertEq(doc.lastModified, 0);
         bytes32[] memory docs = documentEngine.getAllDocuments(testContract);
         assertEq(docs.length, 0);
     }
@@ -439,22 +492,23 @@ contract DocumentEngineTest is Test, DocumentEngineInvariant, AccessControl {
 
         // Check that both documents are removed
         // Check the second document
-        (string memory uri, bytes32 hash, uint256 lastModified) = documentEngine
-            .getDocument(testContract, documentName);
-        assertEq(uri, "");
-        assertEq(hash, "");
-        assertEq(lastModified, 0);
+        IERC1643.Document memory doc = documentEngine.getDocument(
+            testContract,
+            documentName
+        );
+        assertEq(doc.uri, "");
+        assertEq(doc.documentHash, "");
+        assertEq(doc.lastModified, 0);
         bytes32[] memory docs = documentEngine.getAllDocuments(testContract);
         assertEq(docs.length, 0);
 
-        (
-            string memory uri2,
-            bytes32 hash2,
-            uint256 lastModified2
-        ) = documentEngine.getDocument(anotherSmartContract, names[1]);
-        assertEq(uri2, "");
-        assertEq(hash2, "");
-        assertEq(lastModified2, 0);
+        IERC1643.Document memory doc2 = documentEngine.getDocument(
+            anotherSmartContract,
+            names[1]
+        );
+        assertEq(doc2.uri, "");
+        assertEq(doc2.documentHash, "");
+        assertEq(doc2.lastModified, 0);
         docs = documentEngine.getAllDocuments(anotherSmartContract);
         assertEq(docs.length, 0);
     }
@@ -500,24 +554,22 @@ contract DocumentEngineTest is Test, DocumentEngineInvariant, AccessControl {
         documentEngine.batchSetDocuments(testContract, names, uris, hashes);
 
         // Check the first document
-        (
-            string memory uri1,
-            bytes32 hash1,
-            uint256 lastModified1
-        ) = documentEngine.getDocument(testContract, documentName);
-        assertEq(uri1, documentURI);
-        assertEq(hash1, documentHash);
-        assertEq(lastModified1, block.timestamp);
+        IERC1643.Document memory doc1 = documentEngine.getDocument(
+            testContract,
+            documentName
+        );
+        assertEq(doc1.uri, documentURI);
+        assertEq(doc1.documentHash, documentHash);
+        assertEq(doc1.lastModified, block.timestamp);
 
         // Check the second document
-        (
-            string memory uri2,
-            bytes32 hash2,
-            uint256 lastModified2
-        ) = documentEngine.getDocument(testContract, names[1]);
-        assertEq(uri2, uris[1]);
-        assertEq(hash2, hashes[1]);
-        assertEq(lastModified2, block.timestamp);
+        IERC1643.Document memory doc2 = documentEngine.getDocument(
+            testContract,
+            names[1]
+        );
+        assertEq(doc2.uri, uris[1]);
+        assertEq(doc2.documentHash, hashes[1]);
+        assertEq(doc2.lastModified, block.timestamp);
     }
 
     function testAdminCanBatchRemoveDocumentsForOnlyOneContract() public {
@@ -534,21 +586,22 @@ contract DocumentEngineTest is Test, DocumentEngineInvariant, AccessControl {
 
         // Check that both documents are removed
         // Check the second document
-        (string memory uri, bytes32 hash, uint256 lastModified) = documentEngine
-            .getDocument(testContract, documentName);
-        assertEq(uri, "");
-        assertEq(hash, "");
-        assertEq(lastModified, 0);
+        IERC1643.Document memory doc = documentEngine.getDocument(
+            testContract,
+            documentName
+        );
+        assertEq(doc.uri, "");
+        assertEq(doc.documentHash, "");
+        assertEq(doc.lastModified, 0);
         bytes32[] memory docs = documentEngine.getAllDocuments(testContract);
         assertEq(docs.length, 0);
-        (
-            string memory uri2,
-            bytes32 hash2,
-            uint256 lastModified2
-        ) = documentEngine.getDocument(testContract, names[1]);
-        assertEq(uri2, "");
-        assertEq(hash2, "");
-        assertEq(lastModified2, 0);
+        IERC1643.Document memory doc2 = documentEngine.getDocument(
+            testContract,
+            names[1]
+        );
+        assertEq(doc2.uri, "");
+        assertEq(doc2.documentHash, "");
+        assertEq(doc2.lastModified, 0);
     }
 
     function testCannotRemoveBatchDocumentIfEmptyLengthForOnlyOneContract()

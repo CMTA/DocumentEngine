@@ -13,35 +13,76 @@ The ERC-1643 defines a document with three attributes:
 - A generic URI (represented as a `string`) that could point to a website or other document portal.
 - The hash of the document contents associated with it on-chain.
 
-A smart contract needs only to implement two functions from this standard, available in the interface [IERC1643](./contracts/interfaces/engined/draft-IERC1643.sol) to get the documents from the documentEngine.
+A smart contract needs only to read documents from this standard through the interface [IERC1643](./lib/CMTAT/contracts/interfaces/tokenization/draft-IERC1643.sol) to get the documents from the documentEngine. Since CMTAT v3, `getDocument` returns a `Document` struct:
 
 ```solidity
 interface IERC1643 {
-function getDocument(bytes32 _name) external view returns (string memory , bytes32, uint256);
-function getAllDocuments() external view returns (bytes32[] memory);
+    struct Document {
+        string uri;
+        bytes32 documentHash;
+        uint256 lastModified;
+    }
+
+    function getDocument(bytes32 name) external view returns (Document memory document);
+    function getAllDocuments() external view returns (bytes32[] memory documentNames_);
+    function setDocument(bytes32 name, string calldata uri, bytes32 documentHash) external;
+    function removeDocument(bytes32 name) external;
 }
 ```
 
-Use an external contract for your smart contract provides two advantages: 
+Using an external contract for your smart contract provides two advantages:
 
 - Reduce code size of your smart contract
 - Allow to manage documents for several different smart contracts
 
-Warning:
+### Two ways to manage documents
 
-Since this engine allows to set documents for several different smart contracts, the functions to set documents take one supplementary arguments than defined in the ERC-1643.
+The engine supports **two management paths** at the same time:
 
-IERC1643
-
-```solidity
-function setDocument(bytes32 _name, string _uri, bytes32 _documentHash) external;
-```
-
-DocumentEngine
+**1. Admin path (`DOCUMENT_MANAGER_ROLE`).** Since the engine manages documents
+for several different smart contracts, the admin functions take one supplementary
+`address smartContract` argument compared to the ERC-1643:
 
 ```solidity
-function setDocument(address smartContract,bytes32 name_,string memory uri_, bytes32 documentHash_)
+// DocumentEngine (admin overloads)
+function setDocument(address smartContract, bytes32 name_, string memory uri_, bytes32 documentHash_) external;
+function removeDocument(address smartContract, bytes32 name_) external;
 ```
+
+**2. Bound-token path (`TOKEN_CONTRACT_ROLE`).** This implements the standard,
+single-argument ERC-1643 functions. A token is *bound* to the engine by being
+granted `TOKEN_CONTRACT_ROLE` (the same binding pattern as the CMTA
+[RuleEngine](https://github.com/CMTA/RuleEngine)):
+
+```solidity
+documentEngine.grantRole(TOKEN_CONTRACT_ROLE, address(token));
+```
+
+Once bound, the token manages its **own** documents (`msg.sender` is the token);
+it can never affect another contract's documents:
+
+```solidity
+// DocumentEngine (standard ERC-1643, scoped to msg.sender)
+function setDocument(bytes32 name_, string calldata uri_, bytes32 documentHash_) external;
+function removeDocument(bytes32 name_) external;
+```
+
+### Events
+
+On every write, the engine emits the standard `IERC1643` events **and** the
+optional `DocumentUpdatedForContract` / `DocumentRemovedForContract` events,
+which additionally carry the `smartContract` (token) address so off-chain
+indexers can tell which contract a document belongs to during multi-contract
+operations. See [ERC-1643-proposition.md](./ERC-1643-proposition.md) for the
+proposed optional standard extension.
+
+### Integration with CMTAT
+
+Since CMTAT v3, the shipped standalone tokens store documents on-chain
+(`DocumentERC1643Module`) and do not consume an external engine through their
+constructor. To use this engine, a CMTAT token relies on the
+`DocumentEngineModule` and is wired at runtime with `setDocumentEngine(engine)`;
+reads/writes are then forwarded to the engine keyed by the token address.
 
 
 
@@ -69,10 +110,12 @@ function setDocument(address smartContract,bytes32 name_,string memory uri_, byt
 | :----------------: | :------------------: | :----------------------------------------------: | :------------: | :-----------: |
 |         └          |  **Function Name**   |                  **Visibility**                  | **Mutability** | **Modifiers** |
 |                    |                      |                                                  |                |               |
-| **DocumentEngine** |    Implementation    | IERC1643, DocumentEngineInvariant, AccessControl |                |               |
+| **DocumentEngine** |    Implementation    | IERC1643, DocumentEngineInvariant, AccessControl, ERC2771Context |                |               |
 |         └          |    <Constructor>     |                     Public ❗️                     |       🛑        |      NO❗️      |
-|         └          |     setDocument      |                     Public ❗️                     |       🛑        |   onlyRole    |
-|         └          |    removeDocument    |                    External ❗️                    |       🛑        |   onlyRole    |
+|         └          |     setDocument      |                     Public ❗️                     |       🛑        |   onlyRole (DOCUMENT_MANAGER_ROLE)    |
+|         └          |    removeDocument    |                    External ❗️                    |       🛑        |   onlyRole (DOCUMENT_MANAGER_ROLE)    |
+|         └          |     setDocument      |                    External ❗️                    |       🛑        |   onlyRole (TOKEN_CONTRACT_ROLE)    |
+|         └          |    removeDocument    |                    External ❗️                    |       🛑        |   onlyRole (TOKEN_CONTRACT_ROLE)    |
 |         └          |  batchSetDocuments   |                    External ❗️                    |       🛑        |   onlyRole    |
 |         └          |  batchSetDocuments   |                    External ❗️                    |       🛑        |   onlyRole    |
 |         └          | batchRemoveDocuments |                    External ❗️                    |       🛑        |   onlyRole    |
@@ -112,11 +155,12 @@ Please see the OpenGSN [documentation](https://docs.opengsn.org/contracts/#recei
 The toolchain includes the following components, where the versions are the latest ones that we tested:
 
 - Foundry
-- Solidity 0.8.26 (via solc-js)
-- OpenZeppelin Contracts (submodule) [v5.0.2](https://github.com/OpenZeppelin/openzeppelin-contracts/releases/tag/v5.0.2)
+- Solidity 0.8.34 (via solc-js), `evm_version = prague`
+- OpenZeppelin Contracts (submodule) [v5.6.1](https://github.com/OpenZeppelin/openzeppelin-contracts/releases/tag/v5.6.1)
 - Tests
-  - [CMTAT v2.5.0-rc0](https://github.com/CMTA/CMTAT/releases/tag/v2.5.0-rc0)
-  - OpenZeppelin Contracts Upgradeable(submodule) [v5.0.2](https://github.com/OpenZeppelin/openzeppelin-contracts-upgradeable/releases/tag/v5.0.2)
+  - [CMTAT v3.3.0-rc1](https://github.com/CMTA/CMTAT/releases/tag/v3.3.0-rc1)
+  - [RuleEngine v2.1.0](https://github.com/CMTA/RuleEngine/releases/tag/v2.1.0) (binding-role reference)
+  - OpenZeppelin Contracts Upgradeable (submodule) [v5.6.1](https://github.com/OpenZeppelin/openzeppelin-contracts-upgradeable/releases/tag/v5.6.1)
 
 ## Tools
 
