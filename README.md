@@ -296,10 +296,14 @@ The toolchain includes the following components, where the versions are the late
 
 ## Tools
 
-### Prettier
+### Formatting (forge fmt)
+
+`forge fmt` is the canonical formatter for this project (configured under `[fmt]`
+in `foundry.toml`):
 
 ```bash
-npx prettier --write --plugin=prettier-plugin-solidity 'src/**/*.sol'
+forge fmt          # format src/, test/, script/
+forge fmt --check  # verify formatting (CI)
 ```
 
 ### Slither

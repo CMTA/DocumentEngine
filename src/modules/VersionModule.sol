@@ -23,13 +23,7 @@ abstract contract VersionModule is IERC8303, ERC165 {
     /**
      * @inheritdoc IERC8303
      */
-    function version()
-        public
-        view
-        virtual
-        override(IERC8303)
-        returns (string memory version_)
-    {
+    function version() public view virtual override(IERC8303) returns (string memory version_) {
         return VERSION;
     }
 
@@ -37,11 +31,7 @@ abstract contract VersionModule is IERC8303, ERC165 {
      * @dev Advertises ERC-8303 support (interface id `0x54fd4d50`).
      * See {IERC165-supportsInterface}.
      */
-    function supportsInterface(
-        bytes4 interfaceId
-    ) public view virtual override returns (bool) {
-        return
-            interfaceId == type(IERC8303).interfaceId ||
-            super.supportsInterface(interfaceId);
+    function supportsInterface(bytes4 interfaceId) public view virtual override returns (bool) {
+        return interfaceId == type(IERC8303).interfaceId || super.supportsInterface(interfaceId);
     }
 }

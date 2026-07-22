@@ -34,10 +34,7 @@ contract DeployDocumentEngine is Script {
     }
 
     /// @dev Broadcasted deployment, isolated from env parsing so it can be reused/tested.
-    function deploy(
-        address admin,
-        address forwarder
-    ) public returns (DocumentEngine documentEngine) {
+    function deploy(address admin, address forwarder) public returns (DocumentEngine documentEngine) {
         vm.startBroadcast();
         documentEngine = new DocumentEngine(admin, forwarder);
         vm.stopBroadcast();

@@ -47,9 +47,7 @@ abstract contract TokenBindingModule is DocumentEngineBase, ITokenBinding {
     }
 
     /// @inheritdoc ITokenBinding
-    function isTokenBound(
-        address token
-    ) public view virtual override returns (bool) {
+    function isTokenBound(address token) public view virtual override returns (bool) {
         return _boundTokens[token];
     }
 
@@ -57,12 +55,7 @@ abstract contract TokenBindingModule is DocumentEngineBase, ITokenBinding {
      * @dev Bound-token document-management authorization: the caller
      * (`_msgSender()`) must be a bound token.
      */
-    function _authorizeBoundTokenDocumentManagement()
-        internal
-        view
-        virtual
-        override
-    {
+    function _authorizeBoundTokenDocumentManagement() internal view virtual override {
         _checkTokenBound();
     }
 

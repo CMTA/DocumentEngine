@@ -34,9 +34,7 @@ contract DocumentEngineOwnableTest is Test {
     }
 
     function testDeployRevertsWithZeroOwner() public {
-        vm.expectRevert(
-            abi.encodeWithSelector(Ownable.OwnableInvalidOwner.selector, AddressZero)
-        );
+        vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableInvalidOwner.selector, AddressZero));
         new DocumentEngineOwnable(AddressZero, AddressZero);
     }
 
@@ -46,10 +44,7 @@ contract DocumentEngineOwnableTest is Test {
         vm.prank(owner);
         engine.setDocument(testContract, documentName, documentURI, documentHash);
 
-        IERC1643.Document memory doc = engine.getDocument(
-            testContract,
-            documentName
-        );
+        IERC1643.Document memory doc = engine.getDocument(testContract, documentName);
         assertEq(doc.uri, documentURI);
         assertEq(doc.documentHash, documentHash);
         assertEq(doc.lastModified, block.timestamp);
@@ -62,12 +57,7 @@ contract DocumentEngineOwnableTest is Test {
 
     function testNonOwnerCannotSetDocument() public {
         vm.prank(attacker);
-        vm.expectRevert(
-            abi.encodeWithSelector(
-                Ownable.OwnableUnauthorizedAccount.selector,
-                attacker
-            )
-        );
+        vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, attacker));
         engine.setDocument(testContract, documentName, documentURI, documentHash);
     }
 
@@ -81,12 +71,7 @@ contract DocumentEngineOwnableTest is Test {
 
     function testNonOwnerCannotBindToken() public {
         vm.prank(attacker);
-        vm.expectRevert(
-            abi.encodeWithSelector(
-                Ownable.OwnableUnauthorizedAccount.selector,
-                attacker
-            )
-        );
+        vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, attacker));
         engine.bindToken(testContract);
     }
 
@@ -97,10 +82,7 @@ contract DocumentEngineOwnableTest is Test {
         vm.prank(testContract);
         engine.setDocument(documentName, documentURI, documentHash);
 
-        IERC1643.Document memory doc = engine.getDocument(
-            testContract,
-            documentName
-        );
+        IERC1643.Document memory doc = engine.getDocument(testContract, documentName);
         assertEq(doc.uri, documentURI);
 
         vm.prank(testContract);
@@ -120,23 +102,13 @@ contract DocumentEngineOwnableTest is Test {
 
         // once unbound, the token can no longer self-manage
         vm.prank(testContract);
-        vm.expectRevert(
-            abi.encodeWithSelector(
-                TokenBindingModule.NotBoundToken.selector,
-                testContract
-            )
-        );
+        vm.expectRevert(abi.encodeWithSelector(TokenBindingModule.NotBoundToken.selector, testContract));
         engine.setDocument(documentName, documentURI, documentHash);
     }
 
     function testUnboundTokenCannotSelfManage() public {
         vm.prank(attacker);
-        vm.expectRevert(
-            abi.encodeWithSelector(
-                TokenBindingModule.NotBoundToken.selector,
-                attacker
-            )
-        );
+        vm.expectRevert(abi.encodeWithSelector(TokenBindingModule.NotBoundToken.selector, attacker));
         engine.setDocument(documentName, documentURI, documentHash);
     }
 
@@ -162,9 +134,7 @@ contract DocumentEngineOwnableTest is Test {
         assertTrue(engine.supportsInterface(type(IERC8303).interfaceId));
         assertTrue(engine.supportsInterface(type(IERC165).interfaceId));
         assertTrue(engine.supportsInterface(type(IERC1643).interfaceId));
-        assertTrue(
-            engine.supportsInterface(type(IERC1643MultiDocument).interfaceId)
-        );
+        assertTrue(engine.supportsInterface(type(IERC1643MultiDocument).interfaceId));
         assertTrue(engine.supportsInterface(type(ITokenBinding).interfaceId));
         // no role-based access control here
         assertFalse(engine.supportsInterface(type(IAccessControl).interfaceId));

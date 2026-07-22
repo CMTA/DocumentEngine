@@ -21,23 +21,14 @@ import "./modules/VersionModule.sol";
  * version is exposed through the {VersionModule} (ERC-8303), and it also wires
  * the ERC-2771 (gasless) meta-transaction support.
  */
-contract DocumentEngine is
-    TokenBindingModule,
-    VersionModule,
-    AccessControlEnumerable,
-    ERC2771Context
-{
+contract DocumentEngine is TokenBindingModule, VersionModule, AccessControlEnumerable, ERC2771Context {
     // Role allowed to manage documents on behalf of any smart contract, and to
     // bind/unbind tokens (admin path). Token binding uses the shared allowlist in
     // {TokenBindingModule}, not a dedicated role.
-    bytes32 public constant DOCUMENT_MANAGER_ROLE =
-        keccak256("DOCUMENT_MANAGER_ROLE");
+    bytes32 public constant DOCUMENT_MANAGER_ROLE = keccak256("DOCUMENT_MANAGER_ROLE");
 
     // Constructor to initialize the admin role
-    constructor(
-        address admin,
-        address forwarderIrrevocable
-    ) ERC2771Context(forwarderIrrevocable) {
+    constructor(address admin, address forwarderIrrevocable) ERC2771Context(forwarderIrrevocable) {
         if (admin == address(0)) {
             revert AdminWithAddressZeroNotAllowed();
         }
@@ -65,10 +56,13 @@ contract DocumentEngine is
      * report only explicit grants, so a `DEFAULT_ADMIN_ROLE` holder satisfies
      * `hasRole(anyRole, admin)` yet does not appear in `getRoleMember(anyRole, ...)`.
      */
-    function hasRole(
-        bytes32 role,
-        address account
-    ) public view virtual override(AccessControl, IAccessControl) returns (bool) {
+    function hasRole(bytes32 role, address account)
+        public
+        view
+        virtual
+        override(AccessControl, IAccessControl)
+        returns (bool)
+    {
         // The Default Admin has all roles
         if (super.hasRole(DEFAULT_ADMIN_ROLE, account)) {
             return true;
@@ -84,20 +78,15 @@ contract DocumentEngine is
      * extension, so it advertises `type(IERC1643MultiDocument).interfaceId`.
      * See {IERC165-supportsInterface}.
      */
-    function supportsInterface(
-        bytes4 interfaceId
-    )
+    function supportsInterface(bytes4 interfaceId)
         public
         view
         virtual
         override(VersionModule, AccessControlEnumerable)
         returns (bool)
     {
-        return
-            interfaceId == type(IERC1643).interfaceId ||
-            interfaceId == type(IERC1643MultiDocument).interfaceId ||
-            interfaceId == type(ITokenBinding).interfaceId ||
-            super.supportsInterface(interfaceId);
+        return interfaceId == type(IERC1643).interfaceId || interfaceId == type(IERC1643MultiDocument).interfaceId
+            || interfaceId == type(ITokenBinding).interfaceId || super.supportsInterface(interfaceId);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -107,36 +96,21 @@ contract DocumentEngine is
     /**
      * @dev This surcharge is not necessary if you do not use ERC2771
      */
-    function _msgSender()
-        internal
-        view
-        override(ERC2771Context, Context)
-        returns (address sender)
-    {
+    function _msgSender() internal view override(ERC2771Context, Context) returns (address sender) {
         return ERC2771Context._msgSender();
     }
 
     /**
      * @dev This surcharge is not necessary if you do not use ERC2771
      */
-    function _msgData()
-        internal
-        view
-        override(ERC2771Context, Context)
-        returns (bytes calldata)
-    {
+    function _msgData() internal view override(ERC2771Context, Context) returns (bytes calldata) {
         return ERC2771Context._msgData();
     }
 
     /**
      * @dev This surcharge is not necessary if you do not use the MetaTxModule
      */
-    function _contextSuffixLength()
-        internal
-        view
-        override(ERC2771Context, Context)
-        returns (uint256)
-    {
+    function _contextSuffixLength() internal view override(ERC2771Context, Context) returns (uint256) {
         return ERC2771Context._contextSuffixLength();
     }
 }

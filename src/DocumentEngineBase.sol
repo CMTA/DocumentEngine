@@ -19,12 +19,7 @@ import "./DocumentEngineInvariant.sol";
  * This separation (base logic + deployment-defined access control) follows the
  * CMTAT and CMTA/RuleEngine pattern.
  */
-abstract contract DocumentEngineBase is
-    IERC1643,
-    IERC1643MultiDocument,
-    DocumentEngineInvariant,
-    Context
-{
+abstract contract DocumentEngineBase is IERC1643, IERC1643MultiDocument, DocumentEngineInvariant, Context {
     // Mapping from contract addresses to document names to their corresponding Document structs
     mapping(address => mapping(bytes32 => Document)) private _documents;
     mapping(address => bytes32[]) private _documentNames;
@@ -73,22 +68,18 @@ abstract contract DocumentEngineBase is
     /**
      * @notice Restricted function to set or update a document
      */
-    function setDocument(
-        address subject,
-        bytes32 name_,
-        string memory uri_,
-        bytes32 documentHash_
-    ) public override onlyDocumentManager {
+    function setDocument(address subject, bytes32 name_, string memory uri_, bytes32 documentHash_)
+        public
+        override
+        onlyDocumentManager
+    {
         _setDocument(subject, name_, uri_, documentHash_);
     }
 
     /**
      * @notice Restricted function to remove a document for a given smart contract and name
      */
-    function removeDocument(
-        address subject,
-        bytes32 name_
-    ) external override onlyDocumentManager {
+    function removeDocument(address subject, bytes32 name_) external override onlyDocumentManager {
         _removeDocument(subject, name_);
     }
 
@@ -102,11 +93,7 @@ abstract contract DocumentEngineBase is
      * {_authorizeBoundTokenDocumentManagement} implementations). A bound token can
      * only manage its own documents; it can never affect another contract's documents.
      */
-    function setDocument(
-        bytes32 name_,
-        string calldata uri_,
-        bytes32 documentHash_
-    ) external override onlyBoundToken {
+    function setDocument(bytes32 name_, string calldata uri_, bytes32 documentHash_) external override onlyBoundToken {
         _setDocument(_msgSender(), name_, uri_, documentHash_);
     }
 
@@ -114,9 +101,7 @@ abstract contract DocumentEngineBase is
      * @notice ERC-1643 function to remove a document for the caller.
      * @dev See {setDocument}. Scoped to the caller (`_msgSender()`) namespace.
      */
-    function removeDocument(
-        bytes32 name_
-    ) external override onlyBoundToken {
+    function removeDocument(bytes32 name_) external override onlyBoundToken {
         _removeDocument(_msgSender(), name_);
     }
 
@@ -130,10 +115,8 @@ abstract contract DocumentEngineBase is
         bytes32[] calldata hashes
     ) external onlyDocumentManager {
         if (
-            subjects.length == 0 ||
-            subjects.length != names.length ||
-            names.length != uris.length ||
-            uris.length != hashes.length
+            subjects.length == 0 || subjects.length != names.length || names.length != uris.length
+                || uris.length != hashes.length
         ) {
             revert InvalidInputLength();
         }
@@ -151,11 +134,7 @@ abstract contract DocumentEngineBase is
         string[] calldata uris,
         bytes32[] calldata hashes
     ) external onlyDocumentManager {
-        if (
-            names.length == 0 ||
-            names.length != uris.length ||
-            uris.length != hashes.length
-        ) {
+        if (names.length == 0 || names.length != uris.length || uris.length != hashes.length) {
             revert InvalidInputLength();
         }
         for (uint256 i = 0; i < names.length; ++i) {
@@ -166,14 +145,8 @@ abstract contract DocumentEngineBase is
     /**
      * @notice Batch version of removeDocument to handle multiple documents at once
      */
-    function batchRemoveDocuments(
-        address[] calldata subjects,
-        bytes32[] calldata names
-    ) external onlyDocumentManager {
-        if (
-            subjects.length == 0 ||
-            (subjects.length != names.length)
-        ) {
+    function batchRemoveDocuments(address[] calldata subjects, bytes32[] calldata names) external onlyDocumentManager {
+        if (subjects.length == 0 || (subjects.length != names.length)) {
             revert InvalidInputLength();
         }
 
@@ -185,10 +158,7 @@ abstract contract DocumentEngineBase is
     /**
      * @notice Batch version of removeDocument to handle multiple documents at once
      */
-    function batchRemoveDocuments(
-        address subject,
-        bytes32[] calldata names
-    ) external onlyDocumentManager {
+    function batchRemoveDocuments(address subject, bytes32[] calldata names) external onlyDocumentManager {
         if (names.length == 0) {
             revert InvalidInputLength();
         }
@@ -201,40 +171,28 @@ abstract contract DocumentEngineBase is
     /**
      * @notice ERC-1643 function to get a document for the caller (`_msgSender()`)
      */
-    function getDocument(
-        bytes32 name_
-    ) external view override returns (Document memory) {
+    function getDocument(bytes32 name_) external view override returns (Document memory) {
         return _getDocument(_msgSender(), name_);
     }
 
     /**
      * @notice Public function to get a document for a specific contract address
      */
-    function getDocument(
-        address subject,
-        bytes32 name_
-    ) external view override returns (Document memory) {
+    function getDocument(address subject, bytes32 name_) external view override returns (Document memory) {
         return _getDocument(subject, name_);
     }
 
     /**
      * @notice Get all document names for msg.sender
      */
-    function getAllDocuments()
-        external
-        view
-        override
-        returns (bytes32[] memory)
-    {
+    function getAllDocuments() external view override returns (bytes32[] memory) {
         return _documentNames[_msgSender()];
     }
 
     /**
      * @notice Get all document names for a specific smart contract
      */
-    function getAllDocuments(
-        address subject
-    ) external view override returns (bytes32[] memory) {
+    function getAllDocuments(address subject) external view override returns (bytes32[] memory) {
         return _documentNames[subject];
     }
 
@@ -245,26 +203,18 @@ abstract contract DocumentEngineBase is
     /**
      * @dev Internal function to fetch a document
      */
-    function _getDocument(
-        address subject,
-        bytes32 name_
-    ) internal view returns (Document memory) {
+    function _getDocument(address subject, bytes32 name_) internal view returns (Document memory) {
         return _documents[subject][name_];
     }
 
     /**
      * @dev Internal helper to remove the document name from the list of document names
      */
-    function _removeDocumentName(
-        address subject,
-        bytes32 name_
-    ) internal {
+    function _removeDocumentName(address subject, bytes32 name_) internal {
         uint256 length = _documentNames[subject].length;
         for (uint256 i = 0; i < length; ++i) {
             if (_documentNames[subject][i] == name_) {
-                _documentNames[subject][i] = _documentNames[
-                    subject
-                ][length - 1];
+                _documentNames[subject][i] = _documentNames[subject][length - 1];
                 _documentNames[subject].pop();
                 break;
             }
@@ -282,23 +232,13 @@ abstract contract DocumentEngineBase is
         // "Emission Responsibility" rules it emits only the address-carrying
         // extension event (the base `DocumentRemoved` is the token contract's
         // responsibility). See doc/ERCSpecification.
-        emit DocumentRemovedForSubject(
-            subject,
-            name_,
-            doc.uri,
-            doc.documentHash
-        );
+        emit DocumentRemovedForSubject(subject, name_, doc.uri, doc.documentHash);
 
         delete _documents[subject][name_];
         _removeDocumentName(subject, name_);
     }
 
-    function _setDocument(
-        address subject,
-        bytes32 name_,
-        string memory uri_,
-        bytes32 documentHash_
-    ) internal {
+    function _setDocument(address subject, bytes32 name_, string memory uri_, bytes32 documentHash_) internal {
         // ERC-1643: reject the null name (ambiguous / default key)
         if (name_ == bytes32(0)) {
             revert ERC1643InvalidName();

@@ -32,10 +32,7 @@ contract CMTATDocumentEngineMock is DocumentEngineModule {
  * document-management implementation.
  */
 contract OpenDocumentEngine is DocumentEngine {
-    constructor(
-        address admin,
-        address forwarder
-    ) DocumentEngine(admin, forwarder) {}
+    constructor(address admin, address forwarder) DocumentEngine(admin, forwarder) {}
 
     function _authorizeDocumentManagement() internal view override {
         // no access restriction (custom authorization)
@@ -55,19 +52,13 @@ contract DocumentEngineTest is Test, DocumentEngineInvariant, AccessControl {
     bytes32 public constant DOCUMENT_ROLE = keccak256("DOCUMENT_ROLE");
     // Roles are defined on the role-based deployment (DocumentEngine), not on the
     // shared DocumentEngineInvariant; mirrored here for the assertions.
-    bytes32 public constant DOCUMENT_MANAGER_ROLE =
-        keccak256("DOCUMENT_MANAGER_ROLE");
+    bytes32 public constant DOCUMENT_MANAGER_ROLE = keccak256("DOCUMENT_MANAGER_ROLE");
     address AddressZero = address(0);
 
     function setUp() public {
         documentEngine = new DocumentEngine(admin, AddressZero);
         vm.prank(admin);
-        documentEngine.setDocument(
-            testContract,
-            documentName,
-            documentURI,
-            documentHash
-        );
+        documentEngine.setDocument(testContract, documentName, documentURI, documentHash);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -81,9 +72,7 @@ contract DocumentEngineTest is Test, DocumentEngineInvariant, AccessControl {
         // Forwarder
         assertEq(documentEngine.isTrustedForwarder(forwarder), true);
         // admin
-        vm.expectRevert(
-            abi.encodeWithSelector(AdminWithAddressZeroNotAllowed.selector)
-        );
+        vm.expectRevert(abi.encodeWithSelector(AdminWithAddressZeroNotAllowed.selector));
         documentEngine = new DocumentEngine(AddressZero, forwarder);
     }
 
@@ -94,28 +83,15 @@ contract DocumentEngineTest is Test, DocumentEngineInvariant, AccessControl {
     function testCannotNonAdminSetDocument() public {
         vm.prank(attacker);
         vm.expectRevert(
-            abi.encodeWithSelector(
-                AccessControlUnauthorizedAccount.selector,
-                attacker,
-                DOCUMENT_MANAGER_ROLE
-            )
+            abi.encodeWithSelector(AccessControlUnauthorizedAccount.selector, attacker, DOCUMENT_MANAGER_ROLE)
         );
-        documentEngine.setDocument(
-            testContract,
-            documentName,
-            documentURI,
-            documentHash
-        );
+        documentEngine.setDocument(testContract, documentName, documentURI, documentHash);
     }
 
     function testCannotNonAdminRemoveDocument() public {
         vm.prank(attacker);
         vm.expectRevert(
-            abi.encodeWithSelector(
-                AccessControlUnauthorizedAccount.selector,
-                attacker,
-                DOCUMENT_MANAGER_ROLE
-            )
+            abi.encodeWithSelector(AccessControlUnauthorizedAccount.selector, attacker, DOCUMENT_MANAGER_ROLE)
         );
         documentEngine.removeDocument(testContract, documentName);
     }
@@ -139,21 +115,13 @@ contract DocumentEngineTest is Test, DocumentEngineInvariant, AccessControl {
 
         vm.prank(attacker);
         vm.expectRevert(
-            abi.encodeWithSelector(
-                AccessControlUnauthorizedAccount.selector,
-                attacker,
-                DOCUMENT_MANAGER_ROLE
-            )
+            abi.encodeWithSelector(AccessControlUnauthorizedAccount.selector, attacker, DOCUMENT_MANAGER_ROLE)
         );
         documentEngine.batchSetDocuments(smartContracts, names, uris, hashes);
 
         vm.prank(attacker);
         vm.expectRevert(
-            abi.encodeWithSelector(
-                AccessControlUnauthorizedAccount.selector,
-                attacker,
-                DOCUMENT_MANAGER_ROLE
-            )
+            abi.encodeWithSelector(AccessControlUnauthorizedAccount.selector, attacker, DOCUMENT_MANAGER_ROLE)
         );
         documentEngine.batchSetDocuments(testContract, names, uris, hashes);
     }
@@ -169,21 +137,13 @@ contract DocumentEngineTest is Test, DocumentEngineInvariant, AccessControl {
 
         vm.prank(attacker);
         vm.expectRevert(
-            abi.encodeWithSelector(
-                AccessControlUnauthorizedAccount.selector,
-                attacker,
-                DOCUMENT_MANAGER_ROLE
-            )
+            abi.encodeWithSelector(AccessControlUnauthorizedAccount.selector, attacker, DOCUMENT_MANAGER_ROLE)
         );
         documentEngine.batchRemoveDocuments(smartContracts, names);
 
         vm.prank(attacker);
         vm.expectRevert(
-            abi.encodeWithSelector(
-                AccessControlUnauthorizedAccount.selector,
-                attacker,
-                DOCUMENT_MANAGER_ROLE
-            )
+            abi.encodeWithSelector(AccessControlUnauthorizedAccount.selector, attacker, DOCUMENT_MANAGER_ROLE)
         );
         documentEngine.batchRemoveDocuments(testContract, names);
     }
@@ -209,12 +169,7 @@ contract DocumentEngineTest is Test, DocumentEngineInvariant, AccessControl {
 
         uint256 lastModif = block.timestamp;
         vm.prank(admin);
-        documentEngine.setDocument(
-            address(cmtat),
-            documentName,
-            documentURI,
-            documentHash
-        );
+        documentEngine.setDocument(address(cmtat), documentName, documentURI, documentHash);
 
         // Call from CMTAT, forwarded to the engine
         bytes32[] memory docs = cmtat.getAllDocuments();
@@ -245,10 +200,7 @@ contract DocumentEngineTest is Test, DocumentEngineInvariant, AccessControl {
         vm.prank(testContract);
         documentEngine.setDocument(selfName, selfURI, selfHash);
 
-        IERC1643.Document memory doc = documentEngine.getDocument(
-            testContract,
-            selfName
-        );
+        IERC1643.Document memory doc = documentEngine.getDocument(testContract, selfName);
         assertEq(doc.uri, selfURI);
         assertEq(doc.documentHash, selfHash);
         assertEq(doc.lastModified, block.timestamp);
@@ -265,11 +217,7 @@ contract DocumentEngineTest is Test, DocumentEngineInvariant, AccessControl {
     function testNonAdminCannotBindToken() public {
         vm.prank(attacker);
         vm.expectRevert(
-            abi.encodeWithSelector(
-                AccessControlUnauthorizedAccount.selector,
-                attacker,
-                DOCUMENT_MANAGER_ROLE
-            )
+            abi.encodeWithSelector(AccessControlUnauthorizedAccount.selector, attacker, DOCUMENT_MANAGER_ROLE)
         );
         documentEngine.bindToken(testContract);
     }
@@ -287,24 +235,14 @@ contract DocumentEngineTest is Test, DocumentEngineInvariant, AccessControl {
     function testUnboundContractCannotSetOwnDocument() public {
         bytes32 selfName = keccak256("self-doc");
         vm.prank(attacker);
-        vm.expectRevert(
-            abi.encodeWithSelector(
-                TokenBindingModule.NotBoundToken.selector,
-                attacker
-            )
-        );
+        vm.expectRevert(abi.encodeWithSelector(TokenBindingModule.NotBoundToken.selector, attacker));
         documentEngine.setDocument(selfName, documentURI, documentHash);
     }
 
     function testUnboundContractCannotRemoveOwnDocument() public {
         bytes32 selfName = keccak256("self-doc");
         vm.prank(attacker);
-        vm.expectRevert(
-            abi.encodeWithSelector(
-                TokenBindingModule.NotBoundToken.selector,
-                attacker
-            )
-        );
+        vm.expectRevert(abi.encodeWithSelector(TokenBindingModule.NotBoundToken.selector, attacker));
         documentEngine.removeDocument(selfName);
     }
 
@@ -313,25 +251,14 @@ contract DocumentEngineTest is Test, DocumentEngineInvariant, AccessControl {
     //////////////////////////////////////////////////////////////*/
 
     function testFlexibleAuthorizationCanBeOverridden() public {
-        OpenDocumentEngine openEngine = new OpenDocumentEngine(
-            admin,
-            AddressZero
-        );
+        OpenDocumentEngine openEngine = new OpenDocumentEngine(admin, AddressZero);
 
         // attacker holds no role, yet can manage documents because the
         // authorization hook was overridden to allow anyone.
         vm.prank(attacker);
-        openEngine.setDocument(
-            testContract,
-            documentName,
-            documentURI,
-            documentHash
-        );
+        openEngine.setDocument(testContract, documentName, documentURI, documentHash);
 
-        IERC1643.Document memory doc = openEngine.getDocument(
-            testContract,
-            documentName
-        );
+        IERC1643.Document memory doc = openEngine.getDocument(testContract, documentName);
         assertEq(doc.uri, documentURI);
         assertEq(doc.documentHash, documentHash);
     }
@@ -351,24 +278,16 @@ contract DocumentEngineTest is Test, DocumentEngineInvariant, AccessControl {
     function testSupportsInterfaceERC8303() public {
         // interface id declared by ERC-8303
         assertEq(type(IERC8303).interfaceId, bytes4(0x54fd4d50));
-        assertTrue(
-            documentEngine.supportsInterface(type(IERC8303).interfaceId)
-        );
+        assertTrue(documentEngine.supportsInterface(type(IERC8303).interfaceId));
     }
 
     function testSupportsERC1643Interfaces() public {
         // implements the base single-argument functions...
         assertTrue(documentEngine.supportsInterface(type(IERC1643).interfaceId));
         // ...and the address-scoped multi-token extension
-        assertTrue(
-            documentEngine.supportsInterface(
-                type(IERC1643MultiDocument).interfaceId
-            )
-        );
+        assertTrue(documentEngine.supportsInterface(type(IERC1643MultiDocument).interfaceId));
         // ...and the shared token-binding surface
-        assertTrue(
-            documentEngine.supportsInterface(type(ITokenBinding).interfaceId)
-        );
+        assertTrue(documentEngine.supportsInterface(type(ITokenBinding).interfaceId));
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -377,22 +296,13 @@ contract DocumentEngineTest is Test, DocumentEngineInvariant, AccessControl {
 
     function testCannotSetDocumentWithZeroName() public {
         vm.prank(admin);
-        vm.expectRevert(
-            abi.encodeWithSelector(ERC1643InvalidName.selector)
-        );
-        documentEngine.setDocument(
-            testContract,
-            bytes32(0),
-            documentURI,
-            documentHash
-        );
+        vm.expectRevert(abi.encodeWithSelector(ERC1643InvalidName.selector));
+        documentEngine.setDocument(testContract, bytes32(0), documentURI, documentHash);
     }
 
     function testCannotRemoveMissingDocument() public {
         vm.prank(admin);
-        vm.expectRevert(
-            abi.encodeWithSelector(ERC1643MissingDocument.selector)
-        );
+        vm.expectRevert(abi.encodeWithSelector(ERC1643MissingDocument.selector));
         documentEngine.removeDocument(testContract, keccak256("does-not-exist"));
     }
 
@@ -400,19 +310,13 @@ contract DocumentEngineTest is Test, DocumentEngineInvariant, AccessControl {
         vm.prank(admin);
         documentEngine.bindToken(testContract);
         vm.prank(testContract);
-        vm.expectRevert(
-            abi.encodeWithSelector(ERC1643InvalidName.selector)
-        );
+        vm.expectRevert(abi.encodeWithSelector(ERC1643InvalidName.selector));
         documentEngine.setDocument(bytes32(0), documentURI, documentHash);
     }
 
     function testSupportsInterfaceERC165AndAccessControl() public {
-        assertTrue(
-            documentEngine.supportsInterface(type(IERC165).interfaceId)
-        );
-        assertTrue(
-            documentEngine.supportsInterface(type(IAccessControl).interfaceId)
-        );
+        assertTrue(documentEngine.supportsInterface(type(IERC165).interfaceId));
+        assertTrue(documentEngine.supportsInterface(type(IAccessControl).interfaceId));
     }
 
     function testDoesNotSupportInvalidInterface() public {
@@ -425,17 +329,9 @@ contract DocumentEngineTest is Test, DocumentEngineInvariant, AccessControl {
     function testAdminCanSetDocument() public {
         uint256 lastModif = block.timestamp;
         vm.prank(admin);
-        documentEngine.setDocument(
-            testContract,
-            documentName,
-            documentURI,
-            documentHash
-        );
+        documentEngine.setDocument(testContract, documentName, documentURI, documentHash);
 
-        IERC1643.Document memory doc = documentEngine.getDocument(
-            testContract,
-            documentName
-        );
+        IERC1643.Document memory doc = documentEngine.getDocument(testContract, documentName);
         assertEq(doc.uri, documentURI);
         assertEq(doc.documentHash, documentHash);
         assertEq(doc.lastModified, lastModif);
@@ -444,12 +340,7 @@ contract DocumentEngineTest is Test, DocumentEngineInvariant, AccessControl {
     function testAdminCanSetDocumentAgain() public {
         // Arrange
         vm.prank(admin);
-        documentEngine.setDocument(
-            testContract,
-            documentName,
-            documentURI,
-            documentHash
-        );
+        documentEngine.setDocument(testContract, documentName, documentURI, documentHash);
         bytes32[] memory docs = documentEngine.getAllDocuments(testContract);
         assertEq(docs.length, 1);
         assertEq(docs[0], documentName);
@@ -458,18 +349,10 @@ contract DocumentEngineTest is Test, DocumentEngineInvariant, AccessControl {
         string memory documentURIV2 = "https://example.com/doc1";
         bytes32 documentHashV2 = keccak256("doc1Hash");
         vm.prank(admin);
-        documentEngine.setDocument(
-            testContract,
-            documentName,
-            documentURIV2,
-            documentHashV2
-        );
+        documentEngine.setDocument(testContract, documentName, documentURIV2, documentHashV2);
 
         // Assert
-        IERC1643.Document memory doc = documentEngine.getDocument(
-            testContract,
-            documentName
-        );
+        IERC1643.Document memory doc = documentEngine.getDocument(testContract, documentName);
         assertEq(doc.uri, documentURIV2);
         assertEq(doc.documentHash, documentHashV2);
         assertEq(doc.lastModified, lastModif);
@@ -499,19 +382,13 @@ contract DocumentEngineTest is Test, DocumentEngineInvariant, AccessControl {
         documentEngine.batchSetDocuments(smartContracts, names, uris, hashes);
 
         // Check the first document
-        IERC1643.Document memory doc1 = documentEngine.getDocument(
-            testContract,
-            documentName
-        );
+        IERC1643.Document memory doc1 = documentEngine.getDocument(testContract, documentName);
         assertEq(doc1.uri, documentURI);
         assertEq(doc1.documentHash, documentHash);
         assertEq(doc1.lastModified, block.timestamp);
 
         // Check the second document
-        IERC1643.Document memory doc2 = documentEngine.getDocument(
-            anotherSmartContract,
-            names[1]
-        );
+        IERC1643.Document memory doc2 = documentEngine.getDocument(anotherSmartContract, names[1]);
         assertEq(doc2.uri, uris[1]);
         assertEq(doc2.documentHash, hashes[1]);
         assertEq(doc2.lastModified, block.timestamp);
@@ -538,19 +415,13 @@ contract DocumentEngineTest is Test, DocumentEngineInvariant, AccessControl {
         documentEngine.batchSetDocuments(smartContracts, names, uris, hashes);
 
         // Check the first document
-        IERC1643.Document memory doc1 = documentEngine.getDocument(
-            testContract,
-            documentName
-        );
+        IERC1643.Document memory doc1 = documentEngine.getDocument(testContract, documentName);
         assertEq(doc1.uri, documentURI);
         assertEq(doc1.documentHash, documentHash);
         assertEq(doc1.lastModified, block.timestamp);
 
         // Check the second document
-        IERC1643.Document memory doc2 = documentEngine.getDocument(
-            testContract,
-            names[1]
-        );
+        IERC1643.Document memory doc2 = documentEngine.getDocument(testContract, names[1]);
         assertEq(doc2.uri, uris[1]);
         assertEq(doc2.documentHash, hashes[1]);
         assertEq(doc2.lastModified, block.timestamp);
@@ -620,10 +491,7 @@ contract DocumentEngineTest is Test, DocumentEngineInvariant, AccessControl {
 
         // Check that both documents are removed
         // Check the second document
-        IERC1643.Document memory doc = documentEngine.getDocument(
-            testContract,
-            documentName
-        );
+        IERC1643.Document memory doc = documentEngine.getDocument(testContract, documentName);
         assertEq(doc.uri, "");
         assertEq(doc.documentHash, "");
         assertEq(doc.lastModified, 0);
@@ -649,20 +517,14 @@ contract DocumentEngineTest is Test, DocumentEngineInvariant, AccessControl {
 
         // Check that both documents are removed
         // Check the second document
-        IERC1643.Document memory doc = documentEngine.getDocument(
-            testContract,
-            documentName
-        );
+        IERC1643.Document memory doc = documentEngine.getDocument(testContract, documentName);
         assertEq(doc.uri, "");
         assertEq(doc.documentHash, "");
         assertEq(doc.lastModified, 0);
         bytes32[] memory docs = documentEngine.getAllDocuments(testContract);
         assertEq(docs.length, 0);
 
-        IERC1643.Document memory doc2 = documentEngine.getDocument(
-            anotherSmartContract,
-            names[1]
-        );
+        IERC1643.Document memory doc2 = documentEngine.getDocument(anotherSmartContract, names[1]);
         assertEq(doc2.uri, "");
         assertEq(doc2.documentHash, "");
         assertEq(doc2.lastModified, 0);
@@ -711,19 +573,13 @@ contract DocumentEngineTest is Test, DocumentEngineInvariant, AccessControl {
         documentEngine.batchSetDocuments(testContract, names, uris, hashes);
 
         // Check the first document
-        IERC1643.Document memory doc1 = documentEngine.getDocument(
-            testContract,
-            documentName
-        );
+        IERC1643.Document memory doc1 = documentEngine.getDocument(testContract, documentName);
         assertEq(doc1.uri, documentURI);
         assertEq(doc1.documentHash, documentHash);
         assertEq(doc1.lastModified, block.timestamp);
 
         // Check the second document
-        IERC1643.Document memory doc2 = documentEngine.getDocument(
-            testContract,
-            names[1]
-        );
+        IERC1643.Document memory doc2 = documentEngine.getDocument(testContract, names[1]);
         assertEq(doc2.uri, uris[1]);
         assertEq(doc2.documentHash, hashes[1]);
         assertEq(doc2.lastModified, block.timestamp);
@@ -743,27 +599,19 @@ contract DocumentEngineTest is Test, DocumentEngineInvariant, AccessControl {
 
         // Check that both documents are removed
         // Check the second document
-        IERC1643.Document memory doc = documentEngine.getDocument(
-            testContract,
-            documentName
-        );
+        IERC1643.Document memory doc = documentEngine.getDocument(testContract, documentName);
         assertEq(doc.uri, "");
         assertEq(doc.documentHash, "");
         assertEq(doc.lastModified, 0);
         bytes32[] memory docs = documentEngine.getAllDocuments(testContract);
         assertEq(docs.length, 0);
-        IERC1643.Document memory doc2 = documentEngine.getDocument(
-            testContract,
-            names[1]
-        );
+        IERC1643.Document memory doc2 = documentEngine.getDocument(testContract, names[1]);
         assertEq(doc2.uri, "");
         assertEq(doc2.documentHash, "");
         assertEq(doc2.lastModified, 0);
     }
 
-    function testCannotRemoveBatchDocumentIfEmptyLengthForOnlyOneContract()
-        public
-    {
+    function testCannotRemoveBatchDocumentIfEmptyLengthForOnlyOneContract() public {
         bytes32[] memory names = new bytes32[](0);
 
         vm.expectRevert(abi.encodeWithSelector(InvalidInputLength.selector));

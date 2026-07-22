@@ -21,20 +21,12 @@ import "./modules/VersionModule.sol";
  * flow for safety, and the contract also exposes its version through ERC-8303
  * ({VersionModule}) and wires ERC-2771.
  */
-contract DocumentEngineOwnable is
-    TokenBindingModule,
-    VersionModule,
-    Ownable2Step,
-    ERC2771Context
-{
+contract DocumentEngineOwnable is TokenBindingModule, VersionModule, Ownable2Step, ERC2771Context {
     /**
      * @param owner_ initial owner of the contract
      * @param forwarderIrrevocable address of the ERC-2771 forwarder (gasless support)
      */
-    constructor(
-        address owner_,
-        address forwarderIrrevocable
-    ) Ownable(owner_) ERC2771Context(forwarderIrrevocable) {}
+    constructor(address owner_, address forwarderIrrevocable) Ownable(owner_) ERC2771Context(forwarderIrrevocable) {}
 
     /*//////////////////////////////////////////////////////////////
                         ACCESS CONTROL (implementation)
@@ -52,14 +44,9 @@ contract DocumentEngineOwnable is
      * @dev ERC-165 discovery: advertises ERC-1643 and its multi-token extension,
      * plus the version module (ERC-8303). See {IERC165-supportsInterface}.
      */
-    function supportsInterface(
-        bytes4 interfaceId
-    ) public view virtual override(VersionModule) returns (bool) {
-        return
-            interfaceId == type(IERC1643).interfaceId ||
-            interfaceId == type(IERC1643MultiDocument).interfaceId ||
-            interfaceId == type(ITokenBinding).interfaceId ||
-            super.supportsInterface(interfaceId);
+    function supportsInterface(bytes4 interfaceId) public view virtual override(VersionModule) returns (bool) {
+        return interfaceId == type(IERC1643).interfaceId || interfaceId == type(IERC1643MultiDocument).interfaceId
+            || interfaceId == type(ITokenBinding).interfaceId || super.supportsInterface(interfaceId);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -69,36 +56,21 @@ contract DocumentEngineOwnable is
     /**
      * @dev This surcharge is not necessary if you do not use ERC2771
      */
-    function _msgSender()
-        internal
-        view
-        override(ERC2771Context, Context)
-        returns (address sender)
-    {
+    function _msgSender() internal view override(ERC2771Context, Context) returns (address sender) {
         return ERC2771Context._msgSender();
     }
 
     /**
      * @dev This surcharge is not necessary if you do not use ERC2771
      */
-    function _msgData()
-        internal
-        view
-        override(ERC2771Context, Context)
-        returns (bytes calldata)
-    {
+    function _msgData() internal view override(ERC2771Context, Context) returns (bytes calldata) {
         return ERC2771Context._msgData();
     }
 
     /**
      * @dev This surcharge is not necessary if you do not use the MetaTxModule
      */
-    function _contextSuffixLength()
-        internal
-        view
-        override(ERC2771Context, Context)
-        returns (uint256)
-    {
+    function _contextSuffixLength() internal view override(ERC2771Context, Context) returns (uint256) {
         return ERC2771Context._contextSuffixLength();
     }
 }

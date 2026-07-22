@@ -30,9 +30,9 @@ Reference: [keepachangelog.com/en/1.1.0/](https://keepachangelog.com/en/1.1.0/)
 > Before a new release, perform the following tasks
 
 - Code: Update the version name in the `Version` core module, variable VERSION
-- Run linter
+- Run the formatter
 
-> npm run-script lint:all:prettier
+> forge fmt
 
 - Documentation
   - Perform a code coverage and update the files in the corresponding directory [./doc/general/test/coverage](./doc/general/test/coverage)

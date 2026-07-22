@@ -16,42 +16,22 @@ import {IERC1643} from "CMTAT/interfaces/tokenization/draft-IERC1643.sol";
  */
 interface IERC1643MultiDocument {
     /// @notice Returns metadata for the document `name` belonging to `subject`.
-    function getDocument(
-        address subject,
-        bytes32 name
-    ) external view returns (IERC1643.Document memory document);
+    function getDocument(address subject, bytes32 name) external view returns (IERC1643.Document memory document);
 
     /// @notice Returns all document names currently tracked for `subject`.
-    function getAllDocuments(
-        address subject
-    ) external view returns (bytes32[] memory documentNames);
+    function getAllDocuments(address subject) external view returns (bytes32[] memory documentNames);
 
     /// @notice Creates or updates a document entry for `subject`.
     /// @dev MUST emit {DocumentUpdatedForSubject} on success.
-    function setDocument(
-        address subject,
-        bytes32 name,
-        string calldata uri,
-        bytes32 documentHash
-    ) external;
+    function setDocument(address subject, bytes32 name, string calldata uri, bytes32 documentHash) external;
 
     /// @notice Removes an existing document entry for `subject`.
     /// @dev MUST emit {DocumentRemovedForSubject} on success.
     function removeDocument(address subject, bytes32 name) external;
 
     /// @notice Emitted when a document is created or updated for `subject`.
-    event DocumentUpdatedForSubject(
-        address indexed subject,
-        bytes32 indexed name,
-        string uri,
-        bytes32 documentHash
-    );
+    event DocumentUpdatedForSubject(address indexed subject, bytes32 indexed name, string uri, bytes32 documentHash);
 
     /// @notice Emitted when a document is removed for `subject`.
-    event DocumentRemovedForSubject(
-        address indexed subject,
-        bytes32 indexed name,
-        string uri,
-        bytes32 documentHash
-    );
+    event DocumentRemovedForSubject(address indexed subject, bytes32 indexed name, string uri, bytes32 documentHash);
 }

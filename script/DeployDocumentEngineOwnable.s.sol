@@ -27,20 +27,14 @@ contract DeployDocumentEngineOwnable is Script {
 
         documentEngine = deploy(owner, forwarder);
 
-        console2.log(
-            "DocumentEngineOwnable deployed at:",
-            address(documentEngine)
-        );
+        console2.log("DocumentEngineOwnable deployed at:", address(documentEngine));
         console2.log("  owner            :", owner);
         console2.log("  trusted forwarder:", forwarder);
         console2.log("  version          :", documentEngine.version());
     }
 
     /// @dev Broadcasted deployment, isolated from env parsing so it can be reused/tested.
-    function deploy(
-        address owner,
-        address forwarder
-    ) public returns (DocumentEngineOwnable documentEngine) {
+    function deploy(address owner, address forwarder) public returns (DocumentEngineOwnable documentEngine) {
         vm.startBroadcast();
         documentEngine = new DocumentEngineOwnable(owner, forwarder);
         vm.stopBroadcast();
