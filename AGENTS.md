@@ -73,7 +73,8 @@ src/
 ├── DocumentEngineOwnable.sol     # Deployment #2: Ownable2Step (single owner) instead of
 │                                 #   roles; document mgmt + binding are owner-only
 ├── DocumentEngineInvariant.sol   # Shared errors only (incl. ERC1643InvalidName /
-│                                 #   ERC1643MissingDocument); NO access-control specifics
+│                                 #   ERC1643InvalidSubject / ERC1643MissingDocument);
+│                                 #   NO access-control specifics
 ├── interfaces/
 │   ├── IERC8303.sol              # ERC-8303 "Contract Version" interface (id 0x54fd4d50)
 │   ├── IERC1643MultiDocument.sol # Multi-token ERC-1643 extension (address-scoped fns +

@@ -18,6 +18,10 @@ abstract contract DocumentEngineInvariant {
     /// @dev ERC-1643-recommended error name.
     error ERC1643InvalidName();
 
+    /// @notice Reverts when a document is set for the null `subject` (`address(0)`).
+    /// @dev Multi-token extension guard; see IMP.md for the proposed standard note.
+    error ERC1643InvalidSubject();
+
     /// @notice Reverts when `removeDocument` targets a document that does not exist.
     /// @dev ERC-1643-recommended error name.
     error ERC1643MissingDocument();

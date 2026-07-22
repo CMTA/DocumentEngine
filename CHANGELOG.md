@@ -75,7 +75,7 @@ Aligned the implementation with the updated [ERC-1643](./doc/ERCSpecification/er
 
 - **Emission responsibility.** As a shared, multi-token manager the engine now emits **only** the address-carrying extension events and **no longer** emits the base `DocumentUpdated` / `DocumentRemoved` events (the spec's `MUST NOT` for a shared manager — those events carry no `subject` and belong on the token contract).
 - **Extension events/interface.** Renamed the multi-token events to the standard `DocumentUpdatedForSubject` / `DocumentRemovedForSubject` (parameter `subject`), and introduced the `IERC1643MultiDocument` interface (`src/interfaces/IERC1643MultiDocument.sol`) that the base now implements — the address-scoped `getDocument` / `getAllDocuments` / `setDocument` / `removeDocument`.
-- **Input validation.** `setDocument` now reverts `ERC1643InvalidName()` when `name == bytes32(0)`; `removeDocument` now reverts `ERC1643MissingDocument()` for a non-existent document (previously it silently emitted a spurious removal event).
+- **Input validation.** `setDocument` now reverts `ERC1643InvalidName()` when `name == bytes32(0)` and `ERC1643InvalidSubject()` when `subject == address(0)` (the multi-token extension's null-namespace guard); `removeDocument` now reverts `ERC1643MissingDocument()` for a non-existent document (previously it silently emitted a spurious removal event). See [`IMP.md`](./IMP.md) for the proposed corresponding ERC-1643 extension note.
 - **ERC-165 discovery.** `supportsInterface` now returns `true` for `type(IERC1643).interfaceId` and `type(IERC1643MultiDocument).interfaceId` (both deployments).
 
 ### Added (token binding)

@@ -703,6 +703,27 @@ contract DocumentEngineTest is Test, DocumentEngineInvariant, AccessControl {
                     Batch edge cases (name==0 / missing doc)
     //////////////////////////////////////////////////////////////*/
 
+    function testCannotSetDocumentForZeroSubject() public {
+        vm.prank(admin);
+        vm.expectRevert(abi.encodeWithSelector(ERC1643InvalidSubject.selector));
+        documentEngine.setDocument(AddressZero, documentName, documentURI, documentHash);
+    }
+
+    function testBatchSetRevertsOnZeroSubject() public {
+        address[] memory subjects = new address[](1);
+        subjects[0] = AddressZero;
+        bytes32[] memory names = new bytes32[](1);
+        names[0] = documentName;
+        string[] memory uris = new string[](1);
+        uris[0] = documentURI;
+        bytes32[] memory hashes = new bytes32[](1);
+        hashes[0] = documentHash;
+
+        vm.prank(admin);
+        vm.expectRevert(abi.encodeWithSelector(ERC1643InvalidSubject.selector));
+        documentEngine.batchSetDocuments(subjects, names, uris, hashes);
+    }
+
     function testBatchSetRevertsOnZeroName() public {
         address[] memory subjects = new address[](1);
         subjects[0] = testContract;
@@ -763,6 +784,7 @@ contract DocumentEngineTest is Test, DocumentEngineInvariant, AccessControl {
 
     function testFuzzSetGetRemoveRoundTrip(address subject, bytes32 name, string calldata uri, bytes32 hash) public {
         vm.assume(name != bytes32(0)); // the null name reverts by design
+        vm.assume(subject != AddressZero); // the null subject reverts by design
 
         vm.prank(admin);
         documentEngine.setDocument(subject, name, uri, hash);
@@ -784,6 +806,7 @@ contract DocumentEngineTest is Test, DocumentEngineInvariant, AccessControl {
     function testFuzzDocumentsAreIsolatedPerSubject(address subjectA, address subjectB, bytes32 name) public {
         vm.assume(name != bytes32(0));
         vm.assume(subjectA != subjectB);
+        vm.assume(subjectA != AddressZero); // the null subject reverts by design
         // `testContract` is pre-populated in setUp; exclude it from the "untouched" subject
         vm.assume(subjectB != testContract);
 
