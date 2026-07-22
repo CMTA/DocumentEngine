@@ -97,9 +97,10 @@ abstract contract DocumentEngineBase is
     /**
      * @notice ERC-1643 function to set or update a document for the caller.
      * @dev The document is stored under the caller (`_msgSender()`) namespace.
-     * The caller must be a token bound to this engine (`TOKEN_CONTRACT_ROLE`),
-     * following the RuleEngine binding pattern. A bound token can only manage
-     * its own documents; it can never affect another contract's documents.
+     * Restricted by the `onlyBoundToken` hook: the caller must be a token bound to
+     * this engine. How a token is bound is deployment-specific (see the
+     * {_authorizeBoundTokenDocumentManagement} implementations). A bound token can
+     * only manage its own documents; it can never affect another contract's documents.
      */
     function setDocument(
         bytes32 name_,

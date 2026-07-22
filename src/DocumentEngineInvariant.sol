@@ -3,13 +3,14 @@ pragma solidity ^0.8.20;
 
 /**
  * @title DocumentEngineInvariant
- * @notice Shared errors and events for the DocumentEngine, common to every
- * deployment regardless of its access-control model.
+ * @notice Shared errors for the DocumentEngine, common to every deployment
+ * regardless of its access-control model.
  * @dev Access-control specifics (roles, owner, ...) are intentionally NOT
  * defined here; they belong to the deployment contract (e.g. the role constants
- * live in {DocumentEngine}, the owner logic in {DocumentEngineOwnable}).
+ * live in {DocumentEngine}, the owner logic in {DocumentEngineOwnable}). This
+ * contract is only ever used as a base, never deployed on its own.
  */
-contract DocumentEngineInvariant {
+abstract contract DocumentEngineInvariant {
     error DocumentNotFound(address subject, bytes32 name);
     error InvalidInputLength();
     error AdminWithAddressZeroNotAllowed();

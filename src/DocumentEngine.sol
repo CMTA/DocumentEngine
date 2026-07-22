@@ -108,8 +108,14 @@ contract DocumentEngine is
         return hasRole(TOKEN_CONTRACT_ROLE, token);
     }
 
-    /*
-     * @dev Returns `true` if `account` has been granted `role`.
+    /**
+     * @dev Returns `true` if `account` has been granted `role`. The default admin
+     * (`DEFAULT_ADMIN_ROLE`) is treated as holding **every** role.
+     *
+     * Note: this virtual "admin has all roles" behavior is NOT reflected by
+     * {AccessControlEnumerable} enumeration. `getRoleMember` / `getRoleMemberCount`
+     * report only explicit grants, so a `DEFAULT_ADMIN_ROLE` holder satisfies
+     * `hasRole(anyRole, admin)` yet does not appear in `getRoleMember(anyRole, ...)`.
      */
     function hasRole(
         bytes32 role,
