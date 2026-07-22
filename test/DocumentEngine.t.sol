@@ -9,6 +9,7 @@ import {IERC165} from "OZ/utils/introspection/IERC165.sol";
 import {IERC8303} from "../src/interfaces/IERC8303.sol";
 import {IERC1643MultiDocument} from "../src/interfaces/IERC1643MultiDocument.sol";
 import {ITokenBinding} from "../src/interfaces/ITokenBinding.sol";
+import {TokenBindingModule} from "../src/modules/TokenBindingModule.sol";
 import {DocumentEngineModule} from "CMTAT/modules/wrapper/options/DocumentEngineModule.sol";
 
 /**
@@ -56,8 +57,6 @@ contract DocumentEngineTest is Test, DocumentEngineInvariant, AccessControl {
     // shared DocumentEngineInvariant; mirrored here for the assertions.
     bytes32 public constant DOCUMENT_MANAGER_ROLE =
         keccak256("DOCUMENT_MANAGER_ROLE");
-    bytes32 public constant TOKEN_CONTRACT_ROLE =
-        keccak256("TOKEN_CONTRACT_ROLE");
     address AddressZero = address(0);
 
     function setUp() public {
@@ -229,7 +228,7 @@ contract DocumentEngineTest is Test, DocumentEngineInvariant, AccessControl {
     }
 
     /*//////////////////////////////////////////////////////////////
-            Bound token (RuleEngine binding pattern, TOKEN_CONTRACT_ROLE)
+            Bound token (shared ITokenBinding allowlist / TokenBindingModule)
     //////////////////////////////////////////////////////////////*/
 
     function testBoundTokenCanManageOwnDocument() public {
@@ -269,7 +268,7 @@ contract DocumentEngineTest is Test, DocumentEngineInvariant, AccessControl {
             abi.encodeWithSelector(
                 AccessControlUnauthorizedAccount.selector,
                 attacker,
-                DEFAULT_ADMIN_ROLE
+                DOCUMENT_MANAGER_ROLE
             )
         );
         documentEngine.bindToken(testContract);
@@ -290,9 +289,8 @@ contract DocumentEngineTest is Test, DocumentEngineInvariant, AccessControl {
         vm.prank(attacker);
         vm.expectRevert(
             abi.encodeWithSelector(
-                AccessControlUnauthorizedAccount.selector,
-                attacker,
-                TOKEN_CONTRACT_ROLE
+                TokenBindingModule.NotBoundToken.selector,
+                attacker
             )
         );
         documentEngine.setDocument(selfName, documentURI, documentHash);
@@ -303,9 +301,8 @@ contract DocumentEngineTest is Test, DocumentEngineInvariant, AccessControl {
         vm.prank(attacker);
         vm.expectRevert(
             abi.encodeWithSelector(
-                AccessControlUnauthorizedAccount.selector,
-                attacker,
-                TOKEN_CONTRACT_ROLE
+                TokenBindingModule.NotBoundToken.selector,
+                attacker
             )
         );
         documentEngine.removeDocument(selfName);

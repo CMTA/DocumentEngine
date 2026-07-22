@@ -58,13 +58,13 @@ same way regardless of the access-control model:
 documentEngine.bindToken(address(token));    // also: unbindToken(token), isTokenBound(token)
 ```
 
-Under the hood the role-based `DocumentEngine` binds by granting
-`TOKEN_CONTRACT_ROLE` (the CMTA [RuleEngine](https://github.com/CMTA/RuleEngine)
-pattern) and the `DocumentEngineOwnable` uses an owner-managed allowlist; both
-expose the same `bindToken` / `unbindToken` / `isTokenBound` functions and the
-`TokenBindingSet` event. (The revert raised when a *non-bound* caller attempts a
-write differs — `AccessControlUnauthorizedAccount` vs `NotBoundToken` — since it
-comes from each deployment's access-control model.)
+Both deployments share the exact same binding mechanism — a single allowlist in
+`TokenBindingModule` (`src/modules/TokenBindingModule.sol`), **not** a role. They
+expose the same `bindToken` / `unbindToken` / `isTokenBound` functions, emit the
+same `TokenBindingSet` event, and revert with the same `NotBoundToken` error when a
+non-bound caller attempts a write. The only difference is *who* may bind: whoever
+may manage documents in that deployment (the `DOCUMENT_MANAGER_ROLE` holder, or the
+`owner`), since binding is authorized by the same document-management hook.
 
 Once bound, the token manages its **own** documents (`msg.sender` is the token);
 it can never affect another contract's documents:
@@ -82,24 +82,32 @@ function removeDocument(bytes32 name_) external;
 ### Flexible access control
 
 Following the CMTAT / [RuleEngine](https://github.com/CMTA/RuleEngine) pattern,
-the restricted functions do not hardcode a role check. They carry a **modifier**
+the restricted functions do not hardcode a check. They carry a **modifier**
 (`onlyDocumentManager` / `onlyBoundToken`) that delegates to an **overridable
 `internal virtual` authorization hook**:
 
+- the **admin path** delegates to `_authorizeDocumentManagement()`, the one hook
+  each deployment implements (`_checkRole(DOCUMENT_MANAGER_ROLE)` for
+  `DocumentEngine`, `_checkOwner()` for `DocumentEngineOwnable`);
+- the **bound-token path** delegates to `_authorizeBoundTokenDocumentManagement()`,
+  which `TokenBindingModule` implements once for both deployments (it checks the
+  shared binding allowlist).
+
 ```solidity
+// implemented per deployment (the only access-control hook they supply)
 function _authorizeDocumentManagement() internal view virtual {
-    _checkRole(DOCUMENT_MANAGER_ROLE);
+    _checkRole(DOCUMENT_MANAGER_ROLE); // or _checkOwner()
 }
 
-function _authorizeBoundTokenDocumentManagement() internal view virtual {
-    _checkRole(TOKEN_CONTRACT_ROLE);
+// implemented once in TokenBindingModule for both deployments
+function _authorizeBoundTokenDocumentManagement() internal view virtual override {
+    _checkTokenBound(); // reverts NotBoundToken if msg.sender is not bound
 }
 ```
 
 This separates the document-management implementation from the authorization
-logic: a subclass can override a hook to change *who* is authorized (e.g. a
-different role, an allowlist, or open access) without touching the management
-functions. The default behavior is the role checks shown above.
+logic: a subclass changes *who* is authorized by overriding the hook, never by
+touching the management functions.
 
 ### Why not reuse RuleEngine's ERC-3643 compliance module?
 
@@ -172,17 +180,20 @@ The engine is split into two contracts (CMTAT module/deployment pattern):
   the members of each role on-chain.
 - **`DocumentEngineOwnable`** (alternative deployment) — same base logic, but
   access control is a single **owner** via `Ownable2Step` (two-step ownership
-  transfer) instead of roles. Admin management is `owner`-only; token binding uses
-  an owner-managed allowlist behind the shared `ITokenBinding` surface.
+  transfer) instead of roles. Both document management and token binding are
+  `owner`-only.
+- **`TokenBindingModule`** (`src/modules/TokenBindingModule.sol`) — the shared
+  token-binding registry (an allowlist) implementing `ITokenBinding`
+  (`bindToken` / `unbindToken` / `isTokenBound` + `TokenBindingSet`). Both
+  deployments inherit it, so binding is identical (same functions, event, and
+  `NotBoundToken` revert) and ERC-165-discoverable regardless of the
+  access-control model; binding is authorized by each deployment's
+  document-management hook.
 
-Both deployments implement the shared **`ITokenBinding`** interface
-(`bindToken` / `unbindToken` / `isTokenBound` + `TokenBindingSet`), so the binding
-surface is uniform and ERC-165-discoverable regardless of the access-control model.
-
-`DocumentEngineInvariant` provides the errors and the optional multi-token events
-shared by every deployment. Access-control specifics are **not** defined there:
-the role constants (`DOCUMENT_MANAGER_ROLE`, `TOKEN_CONTRACT_ROLE`) live in the
-role-based `DocumentEngine`, and the owner/binding logic in `DocumentEngineOwnable`.
+`DocumentEngineInvariant` provides the errors shared by every deployment.
+Access-control specifics are **not** defined there: the `DOCUMENT_MANAGER_ROLE`
+constant lives in the role-based `DocumentEngine`, and the owner logic in
+`DocumentEngineOwnable`.
 
 `VersionModule` (`src/modules/VersionModule.sol`) isolates the version concern
 and implements [ERC-8303](https://ethereum-magicians.org/t/erc-8303-contract-version/28795)

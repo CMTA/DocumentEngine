@@ -7,7 +7,7 @@ import {IERC1643} from "CMTAT/interfaces/tokenization/draft-IERC1643.sol";
 import {IERC1643MultiDocument} from "./interfaces/IERC1643MultiDocument.sol";
 import {ITokenBinding} from "./interfaces/ITokenBinding.sol";
 import "OZ/metatx/ERC2771Context.sol";
-import "./DocumentEngineBase.sol";
+import "./modules/TokenBindingModule.sol";
 import "./modules/VersionModule.sol";
 
 /**
@@ -22,21 +22,16 @@ import "./modules/VersionModule.sol";
  * the ERC-2771 (gasless) meta-transaction support.
  */
 contract DocumentEngine is
-    DocumentEngineBase,
+    TokenBindingModule,
     VersionModule,
     AccessControlEnumerable,
-    ERC2771Context,
-    ITokenBinding
+    ERC2771Context
 {
-    // Role allowed to manage documents on behalf of any smart contract (admin path)
+    // Role allowed to manage documents on behalf of any smart contract, and to
+    // bind/unbind tokens (admin path). Token binding uses the shared allowlist in
+    // {TokenBindingModule}, not a dedicated role.
     bytes32 public constant DOCUMENT_MANAGER_ROLE =
         keccak256("DOCUMENT_MANAGER_ROLE");
-
-    // Role granted to a token bound to the engine, allowing it to manage its own
-    // documents through the standard ERC-1643 functions (msg.sender is the token).
-    // Mirrors the RuleEngine binding pattern (CMTA/RuleEngine `TOKEN_CONTRACT_ROLE`).
-    bytes32 public constant TOKEN_CONTRACT_ROLE =
-        keccak256("TOKEN_CONTRACT_ROLE");
 
     // Constructor to initialize the admin role
     constructor(
@@ -59,53 +54,6 @@ contract DocumentEngine is
      */
     function _authorizeDocumentManagement() internal view virtual override {
         _checkRole(DOCUMENT_MANAGER_ROLE);
-    }
-
-    /**
-     * @dev Authorization for the bound-token document-management path.
-     * The caller must hold `TOKEN_CONTRACT_ROLE` (the RuleEngine binding
-     * pattern). Override to customize.
-     */
-    function _authorizeBoundTokenDocumentManagement()
-        internal
-        view
-        virtual
-        override
-    {
-        _checkRole(TOKEN_CONTRACT_ROLE);
-    }
-
-    /* ============ Token binding (ITokenBinding) ============ */
-
-    /**
-     * @inheritdoc ITokenBinding
-     * @dev Binding a token is granting it `TOKEN_CONTRACT_ROLE`. Authorization is
-     * that of {AccessControl-grantRole} (the role admin of `TOKEN_CONTRACT_ROLE`,
-     * i.e. `DEFAULT_ADMIN_ROLE` by default).
-     */
-    function bindToken(address token) external override {
-        grantRole(TOKEN_CONTRACT_ROLE, token);
-        emit TokenBindingSet(token, true);
-    }
-
-    /**
-     * @inheritdoc ITokenBinding
-     * @dev Unbinding a token is revoking its `TOKEN_CONTRACT_ROLE`.
-     */
-    function unbindToken(address token) external override {
-        revokeRole(TOKEN_CONTRACT_ROLE, token);
-        emit TokenBindingSet(token, false);
-    }
-
-    /**
-     * @inheritdoc ITokenBinding
-     * @dev Note: because the default admin holds every role (see {hasRole}), this
-     * returns `true` for a `DEFAULT_ADMIN_ROLE` holder as well.
-     */
-    function isTokenBound(
-        address token
-    ) external view override returns (bool) {
-        return hasRole(TOKEN_CONTRACT_ROLE, token);
     }
 
     /**

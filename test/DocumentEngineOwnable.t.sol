@@ -10,6 +10,7 @@ import {IERC8303} from "../src/interfaces/IERC8303.sol";
 import {IERC1643} from "CMTAT/interfaces/tokenization/draft-IERC1643.sol";
 import {IERC1643MultiDocument} from "../src/interfaces/IERC1643MultiDocument.sol";
 import {ITokenBinding} from "../src/interfaces/ITokenBinding.sol";
+import {TokenBindingModule} from "../src/modules/TokenBindingModule.sol";
 
 contract DocumentEngineOwnableTest is Test {
     DocumentEngineOwnable public engine;
@@ -121,7 +122,7 @@ contract DocumentEngineOwnableTest is Test {
         vm.prank(testContract);
         vm.expectRevert(
             abi.encodeWithSelector(
-                DocumentEngineOwnable.NotBoundToken.selector,
+                TokenBindingModule.NotBoundToken.selector,
                 testContract
             )
         );
@@ -132,7 +133,7 @@ contract DocumentEngineOwnableTest is Test {
         vm.prank(attacker);
         vm.expectRevert(
             abi.encodeWithSelector(
-                DocumentEngineOwnable.NotBoundToken.selector,
+                TokenBindingModule.NotBoundToken.selector,
                 attacker
             )
         );

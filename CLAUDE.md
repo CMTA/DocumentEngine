@@ -26,9 +26,10 @@ addressed by a `bytes32` name.
   - **Bound-token path** — the standard single-arg `IERC1643` functions
     (`setDocument(name,uri,hash)`, `removeDocument(name)`) let a bound token manage
     its **own** namespace (`_msgSender()`). Bind via the shared `ITokenBinding`
-    surface: `bindToken(token)` / `unbindToken(token)` / `isTokenBound(token)`
-    (uniform across both deployments). Role deployment binds over
-    `TOKEN_CONTRACT_ROLE` (CMTA RuleEngine pattern); Ownable over an owner allowlist.
+    surface: `bindToken(token)` / `unbindToken(token)` / `isTokenBound(token)`,
+    implemented **once** for both deployments by `TokenBindingModule` — a single
+    allowlist, NOT a role (there is no `TOKEN_CONTRACT_ROLE`). Binding is authorized
+    by each deployment's document-management hook (DOCUMENT_MANAGER_ROLE / owner).
     NOTE: RuleEngine's `ERC3643ComplianceExtendedModule` is intentionally **not**
     reused for binding — it is an `IERC3643Compliance`, which would drag in
     transfer-compliance callbacks (`canTransfer`/`transferred`/`created`/`destroyed`)
@@ -47,10 +48,11 @@ addressed by a `bytes32` name.
   `hasRole` override).
 - **Flexible access control (CMTAT / RuleEngine pattern):** restricted functions
   use the `onlyDocumentManager` / `onlyBoundToken` modifiers, which delegate to
-  overridable `internal virtual` hooks `_authorizeDocumentManagement()` /
-  `_authorizeBoundTokenDocumentManagement()` (default `DOCUMENT_MANAGER_ROLE` /
-  `TOKEN_CONTRACT_ROLE`). Keep the management implementation separate from the
-  authorization logic — change *who* is authorized by overriding a hook, not by
+  overridable `internal virtual` hooks `_authorizeDocumentManagement()` (per
+  deployment: `DOCUMENT_MANAGER_ROLE` / owner) and
+  `_authorizeBoundTokenDocumentManagement()` (implemented once by
+  `TokenBindingModule` → allowlist check). Keep the management implementation
+  separate from the authorization logic — change *who* is authorized via a hook, not by
   editing the management functions.
 - **CMTAT integration:** since CMTAT v3, a token uses the engine via CMTAT's
   `DocumentEngineModule` and `setDocumentEngine(engine)` (reads/writes are forwarded
@@ -65,11 +67,11 @@ src/
 │                                 #   both management paths, batch functions, modifiers,
 │                                 #   and the ABSTRACT _authorize* hooks (no access control)
 ├── DocumentEngine.sol            # Deployment #1: role-based access control
-│                                 #   (AccessControlEnumerable, the role constants
-│                                 #   DOCUMENT_MANAGER_ROLE / TOKEN_CONTRACT_ROLE, _authorize*
-│                                 #   impls, hasRole), ERC-2771, supportsInterface, constructor
+│                                 #   (AccessControlEnumerable, DOCUMENT_MANAGER_ROLE,
+│                                 #   _authorizeDocumentManagement, hasRole), ERC-2771,
+│                                 #   supportsInterface, constructor
 ├── DocumentEngineOwnable.sol     # Deployment #2: Ownable2Step (single owner) instead of
-│                                 #   roles; owner-managed token binding (ITokenBinding)
+│                                 #   roles; document mgmt + binding are owner-only
 ├── DocumentEngineInvariant.sol   # Shared errors only (incl. ERC1643InvalidName /
 │                                 #   ERC1643MissingDocument); NO access-control specifics
 ├── interfaces/
@@ -79,8 +81,10 @@ src/
 │   └── ITokenBinding.sol         # Shared binding surface: bindToken / unbindToken /
 │                                 #   isTokenBound + TokenBindingSet (both deployments)
 └── modules/
-    └── VersionModule.sol         # Version module: implements ERC-8303 version() + ERC-165,
-                                  #   holds the VERSION constant (currently "0.4.0")
+    ├── VersionModule.sol         # Version module: implements ERC-8303 version() + ERC-165,
+    │                             #   holds the VERSION constant (currently "0.4.0")
+    └── TokenBindingModule.sol    # Shared token-binding allowlist (ITokenBinding) + NotBoundToken;
+                                  #   wires the bound-token hook; used by both deployments
 
 script/
 ├── DeployDocumentEngine.s.sol        # Deploy role-based DocumentEngine (env: DOCUMENT_ENGINE_ADMIN,
