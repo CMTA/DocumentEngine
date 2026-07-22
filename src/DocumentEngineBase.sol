@@ -120,7 +120,8 @@ abstract contract DocumentEngineBase is IERC1643, IERC1643MultiDocument, Documen
         ) {
             revert InvalidInputLength();
         }
-        for (uint256 i = 0; i < subjects.length; i++) {
+        uint256 length = subjects.length;
+        for (uint256 i = 0; i < length; ++i) {
             _setDocument(subjects[i], names[i], uris[i], hashes[i]);
         }
     }
@@ -137,7 +138,8 @@ abstract contract DocumentEngineBase is IERC1643, IERC1643MultiDocument, Documen
         if (names.length == 0 || names.length != uris.length || uris.length != hashes.length) {
             revert InvalidInputLength();
         }
-        for (uint256 i = 0; i < names.length; ++i) {
+        uint256 length = names.length;
+        for (uint256 i = 0; i < length; ++i) {
             _setDocument(subject, names[i], uris[i], hashes[i]);
         }
     }
@@ -150,7 +152,8 @@ abstract contract DocumentEngineBase is IERC1643, IERC1643MultiDocument, Documen
             revert InvalidInputLength();
         }
 
-        for (uint256 i = 0; i < subjects.length; ++i) {
+        uint256 length = subjects.length;
+        for (uint256 i = 0; i < length; ++i) {
             _removeDocument(subjects[i], names[i]);
         }
     }
@@ -163,7 +166,8 @@ abstract contract DocumentEngineBase is IERC1643, IERC1643MultiDocument, Documen
             revert InvalidInputLength();
         }
 
-        for (uint256 i = 0; i < names.length; ++i) {
+        uint256 length = names.length;
+        for (uint256 i = 0; i < length; ++i) {
             _removeDocument(subject, names[i]);
         }
     }
