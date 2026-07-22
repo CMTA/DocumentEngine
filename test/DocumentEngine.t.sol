@@ -21,6 +21,22 @@ contract CMTATDocumentEngineMock is DocumentEngineModule {
     function _authorizeDocumentManagement() internal override {}
 }
 
+/**
+ * @dev Demonstrates the flexible access control: overriding the authorization
+ * hook opens the admin document-management path to anyone, without touching the
+ * document-management implementation.
+ */
+contract OpenDocumentEngine is DocumentEngine {
+    constructor(
+        address admin,
+        address forwarder
+    ) DocumentEngine(admin, forwarder) {}
+
+    function _authorizeDocumentManagement() internal view override {
+        // no access restriction (custom authorization)
+    }
+}
+
 contract DocumentEngineTest is Test, DocumentEngineInvariant, AccessControl {
     DocumentEngine public documentEngine;
     address public admin = address(0x1);
@@ -260,6 +276,34 @@ contract DocumentEngineTest is Test, DocumentEngineInvariant, AccessControl {
             )
         );
         documentEngine.removeDocument(selfName);
+    }
+
+    /*//////////////////////////////////////////////////////////////
+            Flexible access control (overridable authorization hook)
+    //////////////////////////////////////////////////////////////*/
+
+    function testFlexibleAuthorizationCanBeOverridden() public {
+        OpenDocumentEngine openEngine = new OpenDocumentEngine(
+            admin,
+            AddressZero
+        );
+
+        // attacker holds no role, yet can manage documents because the
+        // authorization hook was overridden to allow anyone.
+        vm.prank(attacker);
+        openEngine.setDocument(
+            testContract,
+            documentName,
+            documentURI,
+            documentHash
+        );
+
+        IERC1643.Document memory doc = openEngine.getDocument(
+            testContract,
+            documentName
+        );
+        assertEq(doc.uri, documentURI);
+        assertEq(doc.documentHash, documentHash);
     }
 
     /*//////////////////////////////////////////////////////////////

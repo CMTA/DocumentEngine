@@ -67,6 +67,28 @@ function setDocument(bytes32 name_, string calldata uri_, bytes32 documentHash_)
 function removeDocument(bytes32 name_) external;
 ```
 
+### Flexible access control
+
+Following the CMTAT / [RuleEngine](https://github.com/CMTA/RuleEngine) pattern,
+the restricted functions do not hardcode a role check. They carry a **modifier**
+(`onlyDocumentManager` / `onlyBoundToken`) that delegates to an **overridable
+`internal virtual` authorization hook**:
+
+```solidity
+function _authorizeDocumentManagement() internal view virtual {
+    _checkRole(DOCUMENT_MANAGER_ROLE);
+}
+
+function _authorizeBoundTokenDocumentManagement() internal view virtual {
+    _checkRole(TOKEN_CONTRACT_ROLE);
+}
+```
+
+This separates the document-management implementation from the authorization
+logic: a subclass can override a hook to change *who* is authorized (e.g. a
+different role, an allowlist, or open access) without touching the management
+functions. The default behavior is the role checks shown above.
+
 ### Events
 
 On every write, the engine emits the standard `IERC1643` events **and** the
@@ -112,14 +134,14 @@ reads/writes are then forwarded to the engine keyed by the token address.
 |                    |                      |                                                  |                |               |
 | **DocumentEngine** |    Implementation    | IERC1643, DocumentEngineInvariant, AccessControl, ERC2771Context |                |               |
 |         └          |    <Constructor>     |                     Public ❗️                     |       🛑        |      NO❗️      |
-|         └          |     setDocument      |                     Public ❗️                     |       🛑        |   onlyRole (DOCUMENT_MANAGER_ROLE)    |
-|         └          |    removeDocument    |                    External ❗️                    |       🛑        |   onlyRole (DOCUMENT_MANAGER_ROLE)    |
-|         └          |     setDocument      |                    External ❗️                    |       🛑        |   onlyRole (TOKEN_CONTRACT_ROLE)    |
-|         └          |    removeDocument    |                    External ❗️                    |       🛑        |   onlyRole (TOKEN_CONTRACT_ROLE)    |
-|         └          |  batchSetDocuments   |                    External ❗️                    |       🛑        |   onlyRole    |
-|         └          |  batchSetDocuments   |                    External ❗️                    |       🛑        |   onlyRole    |
-|         └          | batchRemoveDocuments |                    External ❗️                    |       🛑        |   onlyRole    |
-|         └          | batchRemoveDocuments |                    External ❗️                    |       🛑        |   onlyRole    |
+|         └          |     setDocument      |                     Public ❗️                     |       🛑        |   onlyDocumentManager    |
+|         └          |    removeDocument    |                    External ❗️                    |       🛑        |   onlyDocumentManager    |
+|         └          |     setDocument      |                    External ❗️                    |       🛑        |   onlyBoundToken    |
+|         └          |    removeDocument    |                    External ❗️                    |       🛑        |   onlyBoundToken    |
+|         └          |  batchSetDocuments   |                    External ❗️                    |       🛑        |   onlyDocumentManager    |
+|         └          |  batchSetDocuments   |                    External ❗️                    |       🛑        |   onlyDocumentManager    |
+|         └          | batchRemoveDocuments |                    External ❗️                    |       🛑        |   onlyDocumentManager    |
+|         └          | batchRemoveDocuments |                    External ❗️                    |       🛑        |   onlyDocumentManager    |
 |         └          |     getDocument      |                    External ❗️                    |                |      NO❗️      |
 |         └          |     getDocument      |                    External ❗️                    |                |      NO❗️      |
 |         └          |   getAllDocuments    |                    External ❗️                    |                |      NO❗️      |

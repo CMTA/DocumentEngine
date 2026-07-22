@@ -33,6 +33,13 @@ addressed by a `bytes32` name.
 - **ERC-2771:** meta-transaction (gasless) support; `_msgSender()` is used everywhere.
 - **Access control:** `DEFAULT_ADMIN_ROLE` implicitly has every role (see the
   `hasRole` override).
+- **Flexible access control (CMTAT / RuleEngine pattern):** restricted functions
+  use the `onlyDocumentManager` / `onlyBoundToken` modifiers, which delegate to
+  overridable `internal virtual` hooks `_authorizeDocumentManagement()` /
+  `_authorizeBoundTokenDocumentManagement()` (default `DOCUMENT_MANAGER_ROLE` /
+  `TOKEN_CONTRACT_ROLE`). Keep the management implementation separate from the
+  authorization logic — change *who* is authorized by overriding a hook, not by
+  editing the management functions.
 - **CMTAT integration:** since CMTAT v3, a token uses the engine via CMTAT's
   `DocumentEngineModule` and `setDocumentEngine(engine)` (reads/writes are forwarded
   keyed by the token address). Standard CMTAT standalone tokens store documents

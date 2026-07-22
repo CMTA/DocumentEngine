@@ -48,7 +48,7 @@ contract DocumentEngine is
         bytes32 name_,
         string memory uri_,
         bytes32 documentHash_
-    ) public onlyRole(DOCUMENT_MANAGER_ROLE) {
+    ) public onlyDocumentManager {
         _setDocument(smartContract, name_, uri_, documentHash_);
     }
 
@@ -58,7 +58,7 @@ contract DocumentEngine is
     function removeDocument(
         address smartContract,
         bytes32 name_
-    ) external onlyRole(DOCUMENT_MANAGER_ROLE) {
+    ) external onlyDocumentManager {
         _removeDocument(smartContract, name_);
     }
 
@@ -75,7 +75,7 @@ contract DocumentEngine is
         bytes32 name_,
         string calldata uri_,
         bytes32 documentHash_
-    ) external override onlyRole(TOKEN_CONTRACT_ROLE) {
+    ) external override onlyBoundToken {
         _setDocument(_msgSender(), name_, uri_, documentHash_);
     }
 
@@ -85,7 +85,7 @@ contract DocumentEngine is
      */
     function removeDocument(
         bytes32 name_
-    ) external override onlyRole(TOKEN_CONTRACT_ROLE) {
+    ) external override onlyBoundToken {
         _removeDocument(_msgSender(), name_);
     }
 
@@ -97,7 +97,7 @@ contract DocumentEngine is
         bytes32[] calldata names,
         string[] calldata uris,
         bytes32[] calldata hashes
-    ) external onlyRole(DOCUMENT_MANAGER_ROLE) {
+    ) external onlyDocumentManager {
         if (
             smartContracts.length == 0 ||
             smartContracts.length != names.length ||
@@ -119,7 +119,7 @@ contract DocumentEngine is
         bytes32[] calldata names,
         string[] calldata uris,
         bytes32[] calldata hashes
-    ) external onlyRole(DOCUMENT_MANAGER_ROLE) {
+    ) external onlyDocumentManager {
         if (
             names.length == 0 ||
             names.length != uris.length ||
@@ -138,7 +138,7 @@ contract DocumentEngine is
     function batchRemoveDocuments(
         address[] calldata smartContracts,
         bytes32[] calldata names
-    ) external onlyRole(DOCUMENT_MANAGER_ROLE) {
+    ) external onlyDocumentManager {
         if (
             smartContracts.length == 0 ||
             (smartContracts.length != names.length)
@@ -157,7 +157,7 @@ contract DocumentEngine is
     function batchRemoveDocuments(
         address smartContract,
         bytes32[] calldata names
-    ) external onlyRole(DOCUMENT_MANAGER_ROLE) {
+    ) external onlyDocumentManager {
         if (names.length == 0) {
             revert InvalidInputLength();
         }
@@ -207,7 +207,53 @@ contract DocumentEngine is
         return _documentNames[smartContract];
     }
 
-    /* ============ ACCESS CONTROL ============ */
+    /*//////////////////////////////////////////////////////////////
+                        ACCESS CONTROL (flexible)
+    //////////////////////////////////////////////////////////////*/
+
+    /**
+     * @dev Restricts a function to accounts allowed to manage documents on
+     * behalf of any smart contract (admin path).
+     *
+     * The access-control logic is delegated to {_authorizeDocumentManagement},
+     * so the document-management implementation is kept separate from the
+     * authorization: a subclass can override the hook to change *who* is
+     * authorized without touching the management functions
+     * (pattern borrowed from CMTAT and CMTA/RuleEngine).
+     */
+    modifier onlyDocumentManager() {
+        _authorizeDocumentManagement();
+        _;
+    }
+
+    /**
+     * @dev Restricts a function to tokens bound to this engine, letting them
+     * manage their own documents (bound-token path). Delegates to
+     * {_authorizeBoundTokenDocumentManagement}.
+     */
+    modifier onlyBoundToken() {
+        _authorizeBoundTokenDocumentManagement();
+        _;
+    }
+
+    /**
+     * @dev Authorization hook for the admin document-management path.
+     * Default: the caller must hold `DOCUMENT_MANAGER_ROLE`.
+     * Override to customize the authorization logic.
+     */
+    function _authorizeDocumentManagement() internal view virtual {
+        _checkRole(DOCUMENT_MANAGER_ROLE);
+    }
+
+    /**
+     * @dev Authorization hook for the bound-token document-management path.
+     * Default: the caller must hold `TOKEN_CONTRACT_ROLE` (the RuleEngine
+     * binding pattern). Override to customize the authorization logic.
+     */
+    function _authorizeBoundTokenDocumentManagement() internal view virtual {
+        _checkRole(TOKEN_CONTRACT_ROLE);
+    }
+
     /*
      * @dev Returns `true` if `account` has been granted `role`.
      */
