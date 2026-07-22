@@ -11,7 +11,6 @@ pragma solidity ^0.8.20;
  * contract is only ever used as a base, never deployed on its own.
  */
 abstract contract DocumentEngineInvariant {
-    error DocumentNotFound(address subject, bytes32 name);
     error InvalidInputLength();
     error AdminWithAddressZeroNotAllowed();
 
