@@ -350,9 +350,29 @@ $ anvil
 
 ##### Deploy
 
+Two deployment scripts are provided in [`script/`](./script), one per access-control
+variant. Both read their configuration from environment variables:
+
+| Variable | Used by | Default | Meaning |
+| --- | --- | --- | --- |
+| `DOCUMENT_ENGINE_ADMIN` | `DeployDocumentEngine` | `msg.sender` | account granted `DEFAULT_ADMIN_ROLE` |
+| `DOCUMENT_ENGINE_OWNER` | `DeployDocumentEngineOwnable` | `msg.sender` | initial owner |
+| `DOCUMENT_ENGINE_FORWARDER` | both | `address(0)` | ERC-2771 trusted forwarder (`address(0)` disables gasless) |
+
 ```shell
-$ forge script script/Counter.s.sol:CounterScript --rpc-url <your_rpc_url> --private-key <your_private_key>
+# Role-based DocumentEngine (AccessControlEnumerable)
+$ DOCUMENT_ENGINE_ADMIN=0xYourAdmin \
+  forge script script/DeployDocumentEngine.s.sol \
+  --rpc-url <your_rpc_url> --private-key <your_private_key> --broadcast
+
+# Owner-based DocumentEngineOwnable (Ownable2Step)
+$ DOCUMENT_ENGINE_OWNER=0xYourOwner \
+  forge script script/DeployDocumentEngineOwnable.s.sol \
+  --rpc-url <your_rpc_url> --private-key <your_private_key> --broadcast
 ```
+
+Drop `--broadcast` (and `--rpc-url`) for a local dry-run. The scripts are covered by
+[`test/Deploy.t.sol`](./test/Deploy.t.sol).
 
 ##### Cast
 

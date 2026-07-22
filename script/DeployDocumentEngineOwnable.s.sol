@@ -1,0 +1,43 @@
+//SPDX-License-Identifier: MPL-2.0
+pragma solidity ^0.8.20;
+
+import "forge-std/Script.sol";
+import {DocumentEngineOwnable} from "../src/DocumentEngineOwnable.sol";
+
+/**
+ * @title DeployDocumentEngineOwnable
+ * @notice Deploys the owner-based {DocumentEngineOwnable} (Ownable2Step).
+ * @dev Configuration via environment variables:
+ *  - `DOCUMENT_ENGINE_OWNER`     : initial owner (default: `msg.sender`)
+ *  - `DOCUMENT_ENGINE_FORWARDER` : ERC-2771 trusted forwarder, `address(0)` disables gasless (default: `address(0)`)
+ *
+ * Usage:
+ *   forge script script/DeployDocumentEngineOwnable.s.sol \
+ *     --rpc-url $RPC_URL --private-key $PRIVATE_KEY --broadcast
+ */
+contract DeployDocumentEngineOwnable is Script {
+    function run() external returns (DocumentEngineOwnable documentEngine) {
+        address owner = vm.envOr("DOCUMENT_ENGINE_OWNER", msg.sender);
+        address forwarder = vm.envOr("DOCUMENT_ENGINE_FORWARDER", address(0));
+
+        documentEngine = deploy(owner, forwarder);
+
+        console2.log(
+            "DocumentEngineOwnable deployed at:",
+            address(documentEngine)
+        );
+        console2.log("  owner            :", owner);
+        console2.log("  trusted forwarder:", forwarder);
+        console2.log("  version          :", documentEngine.version());
+    }
+
+    /// @dev Broadcasted deployment, isolated from env parsing so it can be reused/tested.
+    function deploy(
+        address owner,
+        address forwarder
+    ) public returns (DocumentEngineOwnable documentEngine) {
+        vm.startBroadcast();
+        documentEngine = new DocumentEngineOwnable(owner, forwarder);
+        vm.stopBroadcast();
+    }
+}

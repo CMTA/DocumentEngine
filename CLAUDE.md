@@ -78,13 +78,19 @@ src/
     └── VersionModule.sol         # Version module: implements ERC-8303 version() + ERC-165,
                                   #   holds the VERSION constant (currently "0.4.0")
 
+script/
+├── DeployDocumentEngine.s.sol        # Deploy role-based DocumentEngine (env: DOCUMENT_ENGINE_ADMIN,
+│                                     #   DOCUMENT_ENGINE_FORWARDER); run()=env, deploy(admin,fwd)=testable
+└── DeployDocumentEngineOwnable.s.sol # Deploy Ownable variant (env: DOCUMENT_ENGINE_OWNER, _FORWARDER)
+
 test/
 ├── DocumentEngine.t.sol          # Foundry tests: deploy, access control, admin path,
 │                                 #   bound-token path, batch ops, ERC-8303, CMTAT integration
 │                                 #   (CMTATDocumentEngineMock built on DocumentEngineModule),
 │                                 #   flexible-authorization override (OpenDocumentEngine)
-└── DocumentEngineOwnable.t.sol   # Tests for the Ownable2Step deployment (owner path,
-                                  #   token binding, two-step ownership, ERC-8303)
+├── DocumentEngineOwnable.t.sol   # Tests for the Ownable2Step deployment (owner path,
+│                                 #   token binding, two-step ownership, ERC-8303)
+└── Deploy.t.sol                  # Tests for the deployment scripts (deploy() state + run() env)
 ```
 
 **Contract split (CMTAT module/deployment pattern):** `DocumentEngineBase` holds
