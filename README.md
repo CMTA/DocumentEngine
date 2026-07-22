@@ -359,6 +359,16 @@ variant. Both read their configuration from environment variables:
 | `DOCUMENT_ENGINE_OWNER` | `DeployDocumentEngineOwnable` | `msg.sender` | initial owner |
 | `DOCUMENT_ENGINE_FORWARDER` | both | `address(0)` | ERC-2771 trusted forwarder (`address(0)` disables gasless) |
 
+> **Warning**
+>
+> These environment variables, and passing a raw key with `--private-key`, are
+> intended for **local testing only — do not use them in production**. A private
+> key supplied on the command line or through an environment variable is exposed
+> in your shell history and process environment. For production deployments, use a
+> secure signing method (encrypted keystore, hardware wallet, ...) as described in
+> the Foundry Key Management documentation (getfoundry.sh) for securely
+> broadcasting transactions through a script.
+
 ```shell
 # Role-based DocumentEngine (AccessControlEnumerable)
 $ DOCUMENT_ENGINE_ADMIN=0xYourAdmin \

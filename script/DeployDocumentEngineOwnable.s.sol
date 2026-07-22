@@ -14,6 +14,11 @@ import {DocumentEngineOwnable} from "../src/DocumentEngineOwnable.sol";
  * Usage:
  *   forge script script/DeployDocumentEngineOwnable.s.sol \
  *     --rpc-url $RPC_URL --private-key $PRIVATE_KEY --broadcast
+ *
+ * Warning: the environment variables above and passing a raw key with
+ * `--private-key` are for local testing only, not for production. For production
+ * use a secure signing method (encrypted keystore, hardware wallet, ...) as
+ * described in the Foundry Key Management documentation (getfoundry.sh).
  */
 contract DeployDocumentEngineOwnable is Script {
     function run() external returns (DocumentEngineOwnable documentEngine) {
