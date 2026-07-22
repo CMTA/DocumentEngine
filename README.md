@@ -108,6 +108,22 @@ reads/writes are then forwarded to the engine keyed by the token address.
 
 
 
+## Architecture
+
+The engine is split into two contracts (CMTAT module/deployment pattern):
+
+- **`DocumentEngineBase`** (abstract) — holds the document storage and all the
+  ERC-1643 document-management functions, plus the `onlyDocumentManager` /
+  `onlyBoundToken` modifiers and the **abstract** `_authorize*` hooks. It is
+  agnostic to the access-control implementation.
+- **`DocumentEngine`** (deployment) — the concrete, deployable contract. It
+  defines the **access control** (`AccessControl`, the `_authorize*` hook
+  implementations and the `hasRole` override) and wires the ERC-2771 (gasless)
+  support.
+
+`DocumentEngineInvariant` provides the shared errors, roles
+(`DOCUMENT_MANAGER_ROLE`, `TOKEN_CONTRACT_ROLE`) and the optional multi-token events.
+
 ## Schema
 
 ### Inheritance
@@ -132,7 +148,7 @@ reads/writes are then forwarded to the engine keyed by the token address.
 | :----------------: | :------------------: | :----------------------------------------------: | :------------: | :-----------: |
 |         └          |  **Function Name**   |                  **Visibility**                  | **Mutability** | **Modifiers** |
 |                    |                      |                                                  |                |               |
-| **DocumentEngine** |    Implementation    | IERC1643, DocumentEngineInvariant, AccessControl, ERC2771Context |                |               |
+| **DocumentEngine** |    Implementation    | DocumentEngineBase, AccessControl, ERC2771Context |                |               |
 |         └          |    <Constructor>     |                     Public ❗️                     |       🛑        |      NO❗️      |
 |         └          |     setDocument      |                     Public ❗️                     |       🛑        |   onlyDocumentManager    |
 |         └          |    removeDocument    |                    External ❗️                    |       🛑        |   onlyDocumentManager    |

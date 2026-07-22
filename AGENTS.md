@@ -49,16 +49,26 @@ addressed by a `bytes32` name.
 
 ```
 src/
-├── DocumentEngine.sol            # Main contract: ERC-1643 impl, both management
-│                                 #   paths, batch functions, ERC-2771, access control
+├── DocumentEngineBase.sol        # Abstract base: ERC-1643 document logic + storage,
+│                                 #   both management paths, batch functions, modifiers,
+│                                 #   and the ABSTRACT _authorize* hooks (no access control)
+├── DocumentEngine.sol            # Deployment contract: defines the ACCESS CONTROL
+│                                 #   (AccessControl, _authorize* impls, hasRole) + ERC-2771,
+│                                 #   VERSION, constructor
 └── DocumentEngineInvariant.sol   # Errors, roles (DOCUMENT_MANAGER_ROLE,
                                   #   TOKEN_CONTRACT_ROLE) and the optional multi-token events
 
 test/
 └── DocumentEngine.t.sol          # Foundry tests: deploy, access control, admin path,
                                   #   bound-token path, batch ops, CMTAT integration
-                                  #   (CMTATDocumentEngineMock built on DocumentEngineModule)
+                                  #   (CMTATDocumentEngineMock built on DocumentEngineModule),
+                                  #   flexible-authorization override (OpenDocumentEngine)
 ```
+
+**Contract split (CMTAT module/deployment pattern):** `DocumentEngineBase` holds
+the document logic and abstract `_authorize*` hooks; `DocumentEngine` is the
+deployable contract that supplies the concrete access control. Add new
+management logic in the base; change *who* is authorized in the deployment.
 
 Other important files:
 
