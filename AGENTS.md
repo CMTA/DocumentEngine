@@ -53,7 +53,10 @@ addressed by a `bytes32` name.
   `TokenBindingInvalidToken()`.
 - **ERC-1643 conformance:** `setDocument` reverts `ERC1643InvalidName()` on
   `name == 0`; `removeDocument` reverts `ERC1643MissingDocument()` on a missing doc;
-  `supportsInterface` advertises `IERC1643` + `IERC1643MultiDocument` (both deployments).
+  `supportsInterface` advertises `IERC1643` + `IERC1643MultiDocument` + `ITokenBinding`
+  (both deployments). The base id is for a **token** checking that the single-argument
+  endpoints exist before wiring itself to the engine — it does **not** mean documents
+  should be read from the engine's address, since those functions are `_msgSender()`-scoped.
   Both errors are declared by `IERC1643` itself since CMTAT `v3.3.0-rc2` — do **not**
   re-declare them in `DocumentEngineInvariant` (duplicate declaration = compile error,
   and the multi-subject draft forbids it).

@@ -71,11 +71,23 @@ contract DocumentEngine is TokenBindingModule, VersionModule, AccessControlEnume
     }
 
     /**
-     * @dev ERC-165 discovery: advertises ERC-1643 and its multi-token extension,
-     * plus the version module (ERC-8303) and `AccessControlEnumerable`.
-     * The engine implements the base single-argument functions, so it advertises
-     * `type(IERC1643).interfaceId`; it also implements the address-scoped
-     * extension, so it advertises `type(IERC1643MultiDocument).interfaceId`.
+     * @dev ERC-165 discovery: advertises ERC-1643 and its multi-subject extension, the token-binding
+     * surface, the version module (ERC-8303) and `AccessControlEnumerable`.
+     *
+     * `type(IERC1643).interfaceId` is advertised because the engine does implement the base
+     * single-argument functions, which is exactly what the draft conditions the id on. Its audience
+     * is a **token wiring itself to this engine**: before calling `setDocumentEngine(engine)`, or
+     * before forwarding `setDocument(name, uri, hash)` to it, a token can confirm through ERC-165
+     * that the single-argument ERC-1643 endpoints exist here, rather than finding out from a failed
+     * call. `type(ITokenBinding).interfaceId` answers the complementary question — whether this
+     * engine has a binding surface at all — and `isTokenBound(address(this))` whether that
+     * particular token may use it.
+     *
+     * It is **not** an invitation to read documents from this address. The base functions are
+     * `_msgSender()`-scoped, so a consumer calling `getDocument(name)` here reads its own, empty
+     * namespace, and this engine emits only the address-carrying `*ForSubject` events. Point
+     * document consumers at the **subject**, or use the address-scoped `getDocument(subject, name)`.
+     *
      * See {IERC165-supportsInterface}.
      */
     function supportsInterface(bytes4 interfaceId)

@@ -41,8 +41,10 @@ contract DocumentEngineOwnable is TokenBindingModule, VersionModule, Ownable2Ste
     }
 
     /**
-     * @dev ERC-165 discovery: advertises ERC-1643 and its multi-token extension,
-     * plus the version module (ERC-8303). See {IERC165-supportsInterface}.
+     * @dev ERC-165 discovery: advertises ERC-1643 and its multi-subject extension, the token-binding
+     * surface and the version module (ERC-8303). See the rationale on
+     * {DocumentEngine-supportsInterface} for what `type(IERC1643).interfaceId` does and does not
+     * tell a caller here. See {IERC165-supportsInterface}.
      */
     function supportsInterface(bytes4 interfaceId) public view virtual override(VersionModule) returns (bool) {
         return interfaceId == type(IERC1643).interfaceId || interfaceId == type(IERC1643MultiDocument).interfaceId

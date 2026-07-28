@@ -232,6 +232,33 @@ interface IERC8303 {
 - ERC-165 discovery is supported: `supportsInterface(0x54fd4d50)` (the ERC-8303
   interface id) returns `true`.
 
+### ERC-165: what the engine advertises
+
+Both deployments advertise:
+
+| Interface | Id | |
+| --- | --- | --- |
+| `IERC1643` | `0xecfecec8` | base single-argument functions, for a **bound subject** |
+| `IERC1643MultiDocument` | `0xa2b1179b` | address-scoped document management |
+| `ITokenBinding` | — | `bindToken` / `unbindToken` / `isTokenBound` |
+| `IERC8303` | `0x54fd4d50` | `version()` |
+| `IERC165` | `0x01ffc9a7` | |
+| `IAccessControlEnumerable` | — | `DocumentEngine` only |
+
+`type(IERC1643).interfaceId` is advertised because the engine really does implement the base
+single-argument functions. Its audience is a **token wiring itself to the engine**: before calling
+`setDocumentEngine(engine)`, or before forwarding `setDocument(name, uri, hash)`, a token can confirm
+through ERC-165 that those endpoints exist here rather than discovering it from a failed call.
+`ITokenBinding` answers the complementary question — does this engine have a binding surface — and
+`isTokenBound(address(this))` whether that particular token may use it.
+
+> **It is not an invitation to read documents from this address.** The base functions are
+> `_msgSender()`-scoped, so a third party calling `getDocument(name)` on the engine reads *its own*,
+> empty namespace — no revert, no error, just nothing — and the engine emits only the
+> address-carrying `*ForSubject` events. Point document consumers at the **subject**, or use the
+> address-scoped `getDocument(subject, name)`. Asserted by
+> `testBaseERC1643IsAdvertisedButReadsAreCallerScoped`.
+
 ## Schema
 
 ### Inheritance

@@ -48,6 +48,7 @@ static analyzers — neither tool can see these, since both are ABI- and specifi
 | `ERC1643InvalidName` / `ERC1643MissingDocument` declared both locally and by `IERC1643`, which the multi-subject draft forbids and the compiler rejects | Blocker | **Fixed** — local declarations removed |
 | Null-subject error named `ERC1643InvalidSubject`, after a standard in which the condition cannot occur, and declared on an abstract contract rather than an interface | Low | **Fixed** — renamed `MultiDocumentInvalidSubject` and moved to `IERC1643MultiDocument`; every specification error now sits on the interface defining its condition |
 | `bindToken(address(0))` accepted, and bind/unbind emitted `TokenBindingSet` even when the binding did not change | Low | **Fixed** — null address rejected with `TokenBindingInvalidToken()`; both are now idempotent and emit only on a real transition |
+| ERC-165 advertises `type(IERC1643).interfaceId`, which a token uses to check the base endpoints exist, but which a third party could misread as "read documents here" — the base functions are caller-scoped, so such a read silently returns an empty namespace | Low | **Documented** — the id is kept for the token's capability check; the caveat is stated in the README and both `supportsInterface` NatSpecs, and asserted by a test |
 
 ## Known open items
 
@@ -58,7 +59,6 @@ detail, with a recommendation for each, in [`IMPROVEMENT.md`](../../IMPROVEMENT.
 | --- | --- | --- |
 | `_authorizeDocumentManagement()` takes no `subject`, so a deployment cannot make authorization per-subject by overriding the hook. Conformant for the single-issuer fleet the engine targets — `DOCUMENT_MANAGER_ROLE` is permitted to manage every subject — but it means one instance serves one trust domain | Low (Medium if shared across unrelated issuers) | item 1 |
 | Admin write path has no execution point in the subject, so an ERC-1643 subject emits nothing for writes sent straight to the engine | Medium | item 2 |
-| Engine advertises `IERC1643` but its base functions are `_msgSender()`-scoped, so it is not a usable endpoint for an external consumer | Low | item 3 |
 | `_removeDocumentName` is O(n); no paginated enumeration | Low | item 4 — also surfaced by Aderyn L-5 |
 | The ERC-2771 trusted forwarder can act as any bound subject and is immutable | Info | item 5 |
 

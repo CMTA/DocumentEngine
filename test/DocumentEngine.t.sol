@@ -7,6 +7,8 @@ import "../src/DocumentEngineInvariant.sol";
 import "OZ/access/AccessControl.sol";
 import {IERC165} from "OZ/utils/introspection/IERC165.sol";
 import {IERC8303} from "../src/interfaces/IERC8303.sol";
+// Imported explicitly rather than relied on transitively through DocumentEngine.sol.
+import {IERC1643} from "CMTAT/interfaces/tokenization/draft-IERC1643.sol";
 import {IERC1643MultiDocument} from "../src/interfaces/IERC1643MultiDocument.sol";
 import {ITokenBinding} from "../src/interfaces/ITokenBinding.sol";
 import {TokenBindingModule} from "../src/modules/TokenBindingModule.sol";
@@ -369,12 +371,35 @@ contract DocumentEngineTest is Test, DocumentEngineInvariant, AccessControl {
         assertEq(type(IERC1643).interfaceId, bytes4(0xecfecec8));
         assertEq(type(IERC1643MultiDocument).interfaceId, bytes4(0xa2b1179b));
 
-        // implements the base single-argument functions...
+        // implements the base single-argument functions, so a token can detect them here...
         assertTrue(documentEngine.supportsInterface(type(IERC1643).interfaceId));
-        // ...and the address-scoped multi-token extension
+        // ...the address-scoped multi-subject interface...
         assertTrue(documentEngine.supportsInterface(type(IERC1643MultiDocument).interfaceId));
         // ...and the shared token-binding surface
         assertTrue(documentEngine.supportsInterface(type(ITokenBinding).interfaceId));
+    }
+
+    /**
+     * @dev What `type(IERC1643).interfaceId` does and does not promise here.
+     *
+     * It promises the base single-argument functions exist, which is what a token checks before
+     * wiring itself to the engine. It does **not** make this address a document endpoint for third
+     * parties: those functions are `_msgSender()`-scoped, so an external reader gets its own empty
+     * namespace rather than the subject's documents — silently, with no revert. That asymmetry is
+     * asserted here so it stays a documented property rather than a surprise.
+     */
+    function testBaseERC1643IsAdvertisedButReadsAreCallerScoped() public {
+        assertTrue(documentEngine.supportsInterface(type(IERC1643).interfaceId));
+
+        // `documentName` exists — but only under `testContract`, not under an arbitrary reader.
+        (,, uint256 lastModifiedForSubject) = documentEngine.getDocument(testContract, documentName);
+        assertGt(lastModifiedForSubject, 0);
+
+        vm.prank(user);
+        (string memory uri, bytes32 hash_, uint256 lastModified) = documentEngine.getDocument(documentName);
+        assertEq(uri, "");
+        assertEq(hash_, bytes32(0));
+        assertEq(lastModified, 0, "a caller-scoped read returns the caller's own namespace, not the subject's");
     }
 
     /**

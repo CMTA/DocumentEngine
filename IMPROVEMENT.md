@@ -25,11 +25,14 @@ tracked separately under [`doc/audits/tools/`](./doc/audits/tools).
 | --- | --- | --- | --- | --- |
 | [1](#1--authorization-granularity-is-fixed-at-compile-time-the-hook-cannot-express-per-subject-rules) | Authorization granularity is fixed at compile time; the hook cannot express per-`subject` rules | Low¹ | Medium | Extensibility |
 | [2](#2--the-admin-path-bypasses-subject-side-erc-1643-emission) | Admin path bypasses subject-side ERC-1643 emission | **Medium** | Small–Medium | Spec `SHOULD` |
-| [3](#3--the-engine-advertises-ierc1643-but-is-not-a-usable-erc-1643-endpoint) | Engine advertises `IERC1643` but is not a usable ERC-1643 endpoint | Low | Trivial | Docs |
 | [4](#4--enumeration-cost-and-removal-complexity) | Enumeration cost and removal complexity | Low | Medium | Gas |
 | [5](#5--the-erc-2771-forwarder-is-a-universal-write-authority) | ERC-2771 forwarder is a universal write authority | Info | Trivial | Docs |
 | [6](#6--_removedocument-emits-before-the-state-change) | `_removeDocument` emits before the state change | Info | Trivial | Cosmetic |
 | [7](#7--upstream-imultidocumentsubject-manager-discovery) | Upstream: `IMultiDocumentSubject` manager discovery | Info | — | Upstream |
+
+Item numbers are stable identifiers, referenced from `CHANGELOG.md` and the audit reports; a resolved
+item's number is retired rather than reused. **Item 3 was closed in `v0.4.0`** by documenting what
+`type(IERC1643).interfaceId` does and does not promise on this address.
 
 ¹ Low for the single-issuer fleet this engine targets, which is the model the draft sets out to
 support. **Medium** only for a deployment shared by unrelated issuers — see item 1 for why that
@@ -186,23 +189,6 @@ contract signals the difference.
 - *Callback*: add the draft's "manager-initiated with callback" topology — an optional permissioned
   hook on the subject invoked after the write, so the subject emits.
 
-## 3 — The engine advertises `IERC1643` but is not a usable ERC-1643 endpoint
-
-**Severity:** Low · **Effort:** Trivial · **Kind:** documentation
-
-**Where:** `src/DocumentEngine.sol:88`; `src/DocumentEngineOwnable.sol:47-49`
-
-This is permitted — the draft's rule is that a contract may advertise `type(IERC1643).interfaceId`
-*only if* it implements the base functions, and the engine does. But those functions are
-`_msgSender()`-scoped (`DocumentEngineBase.sol:181-216`), so a consumer that ERC-165-detects
-ERC-1643 on the **engine** address and then calls `getDocument(name)` receives empty values, no
-revert, and never sees a base event. This is the deployment error the draft's Backwards Compatibility
-section names as the one way to break a legacy consumer, and ERC-165 offers no way to detect it.
-
-**Recommendation.** Documentation, not code: state prominently in the README and in the NatSpec of
-the no-argument functions that consumers must be pointed at the **subject**, never at the engine, and
-that the base functions exist solely for bound subjects calling on their own behalf.
-
 ## 4 — Enumeration cost and removal complexity
 
 **Severity:** Low · **Effort:** Medium · **Kind:** gas / scalability
@@ -304,3 +290,13 @@ Recorded so they are not re-raised. Verified conformant, several by explicit tes
   the interface id is identical for both shapes and ERC-165 cannot catch a regression. Both interface
   ids are asserted as literals (`0xecfecec8`, `0xa2b1179b`).
 - **Unstable ordering after removal** — explicitly permitted by ERC-1643; swap-and-pop is fine.
+- **ERC-165 advertises `type(IERC1643).interfaceId`** (was item 3, closed in `v0.4.0` by
+  documentation, which was the original recommendation). The base single-argument functions exist,
+  which is what the draft conditions the id on, and a **token** uses the advertisement to confirm
+  those endpoints before wiring itself to the engine. The caveat it does *not* cover — those
+  functions are `_msgSender()`-scoped, so a third party reading `getDocument(name)` from the engine
+  gets its own empty namespace instead of the subject's documents, silently — is now stated in the
+  README, in the `supportsInterface` NatSpec of both deployments, and asserted by
+  `testBaseERC1643IsAdvertisedButReadsAreCallerScoped`. Briefly removed during `v0.4.0` development
+  and restored: dropping the id would have made a token's legitimate capability check fail in order
+  to discourage a misuse that documentation addresses directly.
