@@ -13,22 +13,30 @@ The ERC-1643 defines a document with three attributes:
 - A generic URI (represented as a `string`) that could point to a website or other document portal.
 - The hash of the document contents associated with it on-chain.
 
-A smart contract needs only to read documents from this standard through the interface [IERC1643](./lib/CMTAT/contracts/interfaces/tokenization/draft-IERC1643.sol) to get the documents from the documentEngine. Since CMTAT v3, `getDocument` returns a `Document` struct:
+A smart contract needs only to read documents from this standard through the interface [IERC1643](./lib/CMTAT/contracts/interfaces/tokenization/draft-IERC1643.sol) to get the documents from the documentEngine:
 
 ```solidity
 interface IERC1643 {
-    struct Document {
-        string uri;
-        bytes32 documentHash;
-        uint256 lastModified;
-    }
+    error ERC1643InvalidName();
+    error ERC1643MissingDocument();
 
-    function getDocument(bytes32 name) external view returns (Document memory document);
+    function getDocument(bytes32 name)
+        external
+        view
+        returns (string memory uri, bytes32 documentHash, uint256 lastModified);
     function getAllDocuments() external view returns (bytes32[] memory documentNames_);
     function setDocument(bytes32 name, string calldata uri, bytes32 documentHash) external;
     function removeDocument(bytes32 name) external;
 }
 ```
+
+> **Note — `getDocument` returns flat values.** CMTAT `v3.3.0-rc1` briefly returned a `Document`
+> struct here; `v3.3.0-rc2` restored the three flat return values mandated by the ERC-1643 ABI, and
+> this engine follows. The distinction matters because return types are not part of a function
+> signature: both shapes have the same selector and the same `type(IERC1643).interfaceId`, so a
+> struct return is undetectable through ERC-165 and a consumer built from the specification ABI
+> would silently decode it as garbage. The `Document` struct is kept internally for storage only.
+> `testGetDocumentReturnsFlatErc1643Abi` pins the wire format.
 
 Using an external contract for your smart contract provides two advantages:
 
@@ -290,9 +298,36 @@ The toolchain includes the following components, where the versions are the late
 - Solidity 0.8.34 (via solc-js), `evm_version = prague`
 - OpenZeppelin Contracts (submodule) [v5.6.1](https://github.com/OpenZeppelin/openzeppelin-contracts/releases/tag/v5.6.1)
 - Tests
-  - [CMTAT v3.3.0-rc1](https://github.com/CMTA/CMTAT/releases/tag/v3.3.0-rc1)
+  - [CMTAT v3.3.0-rc2](https://github.com/CMTA/CMTAT/releases/tag/v3.3.0-rc2)
   - [RuleEngine v3.0.0-rc4](https://github.com/CMTA/RuleEngine/releases/tag/v3.0.0-rc4) (binding-pattern reference only — its compliance module is [not reused](#why-not-reuse-ruleengines-erc-3643-compliance-module))
   - OpenZeppelin Contracts Upgradeable (submodule) [v5.6.1](https://github.com/OpenZeppelin/openzeppelin-contracts-upgradeable/releases/tag/v5.6.1)
+
+### Version compatibility
+
+Each release of this engine is built and tested against one CMTAT release. CMTAT's `IERC1643` is
+not stable across its own release candidates, so pairing a version of this engine with a different
+CMTAT than the one below is not supported.
+
+| DocumentEngine | CMTAT | Solidity / `evm_version` | OpenZeppelin | `getDocument` returns |
+| -------------- | ----- | ------------------------ | ------------ | --------------------- |
+| **v0.4.0** (current) | [v3.3.0-rc2](https://github.com/CMTA/CMTAT/releases/tag/v3.3.0-rc2) | `0.8.34` / `prague` | v5.6.1 | `(string, bytes32, uint256)` |
+| v0.3.0 | [v2.5.0-rc0](https://github.com/CMTA/CMTAT/releases/tag/v2.5.0-rc0) | `0.8.26` / `cancun` | v5.0.2 | `(string, bytes32, uint256)` |
+| v0.2.0 | [v2.5.0-rc0](https://github.com/CMTA/CMTAT/releases/tag/v2.5.0-rc0) | `0.8.26` / `cancun` | v5.0.2 | `(string, bytes32, uint256)` |
+| v0.1.0 | [v2.5.0-rc0](https://github.com/CMTA/CMTAT/releases/tag/v2.5.0-rc0) | `0.8.26` / `cancun` | v5.0.2 | `(string, bytes32, uint256)` |
+
+Notes on the CMTAT v2 → v3 jump at `v0.4.0`:
+
+- **CMTAT `v3.3.0-rc1` is not supported.** It is the one release in which `IERC1643.getDocument`
+  returns a `Document` struct rather than the three flat values; `v3.3.0-rc2` reverted that. rc1 also
+  does not declare `ERC1643InvalidName` / `ERC1643MissingDocument` on the interface. Building this
+  engine against rc1 fails to compile.
+- The `IERC1643` import path moved in CMTAT v3, from
+  `CMTAT/interfaces/engine/draft-IERC1643.sol` to `CMTAT/interfaces/tokenization/draft-IERC1643.sol`.
+- Document names became `bytes32` in CMTAT v3 (they were `string` up to v2.5.0-rc0).
+- Solidity `≥ 0.8.27` is required from `v0.4.0` on, because CMTAT v3 uses
+  `require(cond, CustomError())`.
+
+Exact submodule revisions are pinned in [`foundry.lock`](./foundry.lock).
 
 ## Tools
 
@@ -306,11 +341,30 @@ forge fmt          # format src/, test/, script/
 forge fmt --check  # verify formatting (CI)
 ```
 
-### Slither
+### Static analysis
+
+Reports are versioned under [`doc/audits/tools/`](./doc/audits/tools), one directory per release,
+each with the raw tool output (prefixed by a summary table) and a feedback file triaging every
+finding against the source. The security overview is
+[`doc/audits/AUDIT_OVERVIEW.md`](./doc/audits/AUDIT_OVERVIEW.md).
+
+| Release | Tool | Result | Report | Triage |
+| ------- | ---- | ------ | ------ | ------ |
+| v0.4.0 | Aderyn `0.6.5` | 0 High · 6 Low — **nothing to fix** | [report](./doc/audits/tools/v0.4.0/aderyn/aderyn-report.md) | [feedback](./doc/audits/tools/v0.4.0/aderyn/aderyn-report-feedback.md) |
+| v0.4.0 | Slither | not run | — | — |
 
 ```bash
-slither .  --checklist --filter-paths "openzeppelin-contracts|test|CMTAT|forge-std" > slither-report.md
+# Aderyn — mocks excluded (this project's mocks live in test/, which Aderyn does not scan)
+aderyn -x mocks --output doc/audits/tools/v0.4.0/aderyn/aderyn-report.md
+
+# Slither
+slither . --checklist --filter-paths "node_modules,test,forge-std,CMTAT,openzeppelin-contracts" \
+  > doc/audits/tools/v0.4.0/slither/slither-report.md
 ```
+
+> **Static-analysis output is leads, not findings.** Every dismissal in the feedback files was
+> verified against the cited `file:line`, and neither tool can see the specification-level issues
+> that matter most here — those are in [`ERC_RESULT.md`](./ERC_RESULT.md).
 
 ### Surya
 

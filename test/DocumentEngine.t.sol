@@ -62,6 +62,24 @@ contract DocumentEngineTest is Test, DocumentEngineInvariant, AccessControl {
     bytes32 internal constant BASE_UPDATED_SIG = keccak256("DocumentUpdated(bytes32,string,bytes32)");
     bytes32 internal constant BASE_REMOVED_SIG = keccak256("DocumentRemoved(bytes32,string,bytes32)");
 
+    /**
+     * @dev Since CMTAT `v3.3.0-rc2`, `getDocument` returns the three ERC-1643 fields as flat
+     * values instead of a `Document` struct. These helpers repack them so the assertions below
+     * stay readable; {testGetDocumentReturnsFlatErc1643Abi} pins the wire format itself.
+     */
+    function _doc(IERC1643MultiDocument engine_, address subject, bytes32 name_)
+        internal
+        view
+        returns (IERC1643.Document memory document)
+    {
+        (document.uri, document.documentHash, document.lastModified) = engine_.getDocument(subject, name_);
+    }
+
+    /// @dev See {_doc(IERC1643MultiDocument,address,bytes32)}; caller-scoped ERC-1643 read.
+    function _doc(IERC1643 engine_, bytes32 name_) internal view returns (IERC1643.Document memory document) {
+        (document.uri, document.documentHash, document.lastModified) = engine_.getDocument(name_);
+    }
+
     function setUp() public {
         documentEngine = new DocumentEngine(admin, AddressZero);
         vm.prank(admin);
@@ -183,7 +201,7 @@ contract DocumentEngineTest is Test, DocumentEngineInvariant, AccessControl {
         assertEq(docs.length, 1);
         assertEq(docs[0], documentName);
 
-        IERC1643.Document memory doc = cmtat.getDocument(documentName);
+        IERC1643.Document memory doc = _doc(cmtat, documentName);
         assertEq(doc.uri, documentURI);
         assertEq(doc.documentHash, documentHash);
         assertEq(doc.lastModified, lastModif);
@@ -207,7 +225,7 @@ contract DocumentEngineTest is Test, DocumentEngineInvariant, AccessControl {
         vm.prank(testContract);
         documentEngine.setDocument(selfName, selfURI, selfHash);
 
-        IERC1643.Document memory doc = documentEngine.getDocument(testContract, selfName);
+        IERC1643.Document memory doc = _doc(documentEngine, testContract, selfName);
         assertEq(doc.uri, selfURI);
         assertEq(doc.documentHash, selfHash);
         assertEq(doc.lastModified, block.timestamp);
@@ -215,7 +233,7 @@ contract DocumentEngineTest is Test, DocumentEngineInvariant, AccessControl {
         // and can remove it
         vm.prank(testContract);
         documentEngine.removeDocument(selfName);
-        doc = documentEngine.getDocument(testContract, selfName);
+        doc = _doc(documentEngine, testContract, selfName);
         assertEq(doc.uri, "");
         assertEq(doc.documentHash, "");
         assertEq(doc.lastModified, 0);
@@ -265,7 +283,7 @@ contract DocumentEngineTest is Test, DocumentEngineInvariant, AccessControl {
         vm.prank(attacker);
         openEngine.setDocument(testContract, documentName, documentURI, documentHash);
 
-        IERC1643.Document memory doc = openEngine.getDocument(testContract, documentName);
+        IERC1643.Document memory doc = _doc(openEngine, testContract, documentName);
         assertEq(doc.uri, documentURI);
         assertEq(doc.documentHash, documentHash);
     }
@@ -289,6 +307,13 @@ contract DocumentEngineTest is Test, DocumentEngineInvariant, AccessControl {
     }
 
     function testSupportsERC1643Interfaces() public {
+        // Pinned literals: an interface id is the XOR of the selectors, which depend only on the
+        // function names and argument types. The CMTAT `v3.3.0-rc2` change of the `getDocument`
+        // return shape therefore moved neither id — which is exactly why that change was
+        // undetectable through ERC-165 (see {testGetDocumentReturnsFlatErc1643Abi}).
+        assertEq(type(IERC1643).interfaceId, bytes4(0xecfecec8));
+        assertEq(type(IERC1643MultiDocument).interfaceId, bytes4(0xa2b1179b));
+
         // implements the base single-argument functions...
         assertTrue(documentEngine.supportsInterface(type(IERC1643).interfaceId));
         // ...and the address-scoped multi-token extension
@@ -297,19 +322,54 @@ contract DocumentEngineTest is Test, DocumentEngineInvariant, AccessControl {
         assertTrue(documentEngine.supportsInterface(type(ITokenBinding).interfaceId));
     }
 
+    /**
+     * @dev Pins the `getDocument` wire format to the flat ERC-1643 ABI.
+     *
+     * Return types do not take part in a function signature, so returning a `Document` struct
+     * instead of the three flat values leaves both the selector and `type(IERC1643).interfaceId`
+     * unchanged: ERC-165 discovery cannot catch the difference, and a consumer built from the
+     * specification ABI would silently decode a struct return as garbage. The only way to catch a
+     * regression is to inspect the returndata, so assert the first word is the string offset
+     * (`0x60`) of a flat `(string,bytes32,uint256)` and not the `0x20` struct offset.
+     */
+    function testGetDocumentReturnsFlatErc1643Abi() public {
+        (bool okSubject, bytes memory subjectScoped) = address(documentEngine)
+            .staticcall(abi.encodeWithSignature("getDocument(address,bytes32)", testContract, documentName));
+        assertTrue(okSubject);
+        assertEq(_firstWord(subjectScoped), 0x60, "getDocument(address,bytes32) must return flat values");
+
+        vm.prank(testContract);
+        (bool okSelf, bytes memory selfScoped) =
+            address(documentEngine).staticcall(abi.encodeWithSignature("getDocument(bytes32)", documentName));
+        assertTrue(okSelf);
+        assertEq(_firstWord(selfScoped), 0x60, "getDocument(bytes32) must return flat values");
+
+        // The decoded values must round-trip through the specification's own signature.
+        (string memory uri, bytes32 hash_, uint256 lastModified) = abi.decode(subjectScoped, (string, bytes32, uint256));
+        assertEq(uri, documentURI);
+        assertEq(hash_, documentHash);
+        assertEq(lastModified, block.timestamp);
+    }
+
+    function _firstWord(bytes memory data) private pure returns (uint256 word) {
+        assembly {
+            word := mload(add(data, 0x20))
+        }
+    }
+
     /*//////////////////////////////////////////////////////////////
                     ERC-1643 input validation
     //////////////////////////////////////////////////////////////*/
 
     function testCannotSetDocumentWithZeroName() public {
         vm.prank(admin);
-        vm.expectRevert(abi.encodeWithSelector(ERC1643InvalidName.selector));
+        vm.expectRevert(abi.encodeWithSelector(IERC1643.ERC1643InvalidName.selector));
         documentEngine.setDocument(testContract, bytes32(0), documentURI, documentHash);
     }
 
     function testCannotRemoveMissingDocument() public {
         vm.prank(admin);
-        vm.expectRevert(abi.encodeWithSelector(ERC1643MissingDocument.selector));
+        vm.expectRevert(abi.encodeWithSelector(IERC1643.ERC1643MissingDocument.selector));
         documentEngine.removeDocument(testContract, keccak256("does-not-exist"));
     }
 
@@ -317,7 +377,7 @@ contract DocumentEngineTest is Test, DocumentEngineInvariant, AccessControl {
         vm.prank(admin);
         documentEngine.bindToken(testContract);
         vm.prank(testContract);
-        vm.expectRevert(abi.encodeWithSelector(ERC1643InvalidName.selector));
+        vm.expectRevert(abi.encodeWithSelector(IERC1643.ERC1643InvalidName.selector));
         documentEngine.setDocument(bytes32(0), documentURI, documentHash);
     }
 
@@ -338,7 +398,7 @@ contract DocumentEngineTest is Test, DocumentEngineInvariant, AccessControl {
         vm.prank(admin);
         documentEngine.setDocument(testContract, documentName, documentURI, documentHash);
 
-        IERC1643.Document memory doc = documentEngine.getDocument(testContract, documentName);
+        IERC1643.Document memory doc = _doc(documentEngine, testContract, documentName);
         assertEq(doc.uri, documentURI);
         assertEq(doc.documentHash, documentHash);
         assertEq(doc.lastModified, lastModif);
@@ -359,7 +419,7 @@ contract DocumentEngineTest is Test, DocumentEngineInvariant, AccessControl {
         documentEngine.setDocument(testContract, documentName, documentURIV2, documentHashV2);
 
         // Assert
-        IERC1643.Document memory doc = documentEngine.getDocument(testContract, documentName);
+        IERC1643.Document memory doc = _doc(documentEngine, testContract, documentName);
         assertEq(doc.uri, documentURIV2);
         assertEq(doc.documentHash, documentHashV2);
         assertEq(doc.lastModified, lastModif);
@@ -389,13 +449,13 @@ contract DocumentEngineTest is Test, DocumentEngineInvariant, AccessControl {
         documentEngine.batchSetDocuments(smartContracts, names, uris, hashes);
 
         // Check the first document
-        IERC1643.Document memory doc1 = documentEngine.getDocument(testContract, documentName);
+        IERC1643.Document memory doc1 = _doc(documentEngine, testContract, documentName);
         assertEq(doc1.uri, documentURI);
         assertEq(doc1.documentHash, documentHash);
         assertEq(doc1.lastModified, block.timestamp);
 
         // Check the second document
-        IERC1643.Document memory doc2 = documentEngine.getDocument(anotherSmartContract, names[1]);
+        IERC1643.Document memory doc2 = _doc(documentEngine, anotherSmartContract, names[1]);
         assertEq(doc2.uri, uris[1]);
         assertEq(doc2.documentHash, hashes[1]);
         assertEq(doc2.lastModified, block.timestamp);
@@ -422,13 +482,13 @@ contract DocumentEngineTest is Test, DocumentEngineInvariant, AccessControl {
         documentEngine.batchSetDocuments(smartContracts, names, uris, hashes);
 
         // Check the first document
-        IERC1643.Document memory doc1 = documentEngine.getDocument(testContract, documentName);
+        IERC1643.Document memory doc1 = _doc(documentEngine, testContract, documentName);
         assertEq(doc1.uri, documentURI);
         assertEq(doc1.documentHash, documentHash);
         assertEq(doc1.lastModified, block.timestamp);
 
         // Check the second document
-        IERC1643.Document memory doc2 = documentEngine.getDocument(testContract, names[1]);
+        IERC1643.Document memory doc2 = _doc(documentEngine, testContract, names[1]);
         assertEq(doc2.uri, uris[1]);
         assertEq(doc2.documentHash, hashes[1]);
         assertEq(doc2.lastModified, block.timestamp);
@@ -498,7 +558,7 @@ contract DocumentEngineTest is Test, DocumentEngineInvariant, AccessControl {
 
         // Check that both documents are removed
         // Check the second document
-        IERC1643.Document memory doc = documentEngine.getDocument(testContract, documentName);
+        IERC1643.Document memory doc = _doc(documentEngine, testContract, documentName);
         assertEq(doc.uri, "");
         assertEq(doc.documentHash, "");
         assertEq(doc.lastModified, 0);
@@ -524,14 +584,14 @@ contract DocumentEngineTest is Test, DocumentEngineInvariant, AccessControl {
 
         // Check that both documents are removed
         // Check the second document
-        IERC1643.Document memory doc = documentEngine.getDocument(testContract, documentName);
+        IERC1643.Document memory doc = _doc(documentEngine, testContract, documentName);
         assertEq(doc.uri, "");
         assertEq(doc.documentHash, "");
         assertEq(doc.lastModified, 0);
         bytes32[] memory docs = documentEngine.getAllDocuments(testContract);
         assertEq(docs.length, 0);
 
-        IERC1643.Document memory doc2 = documentEngine.getDocument(anotherSmartContract, names[1]);
+        IERC1643.Document memory doc2 = _doc(documentEngine, anotherSmartContract, names[1]);
         assertEq(doc2.uri, "");
         assertEq(doc2.documentHash, "");
         assertEq(doc2.lastModified, 0);
@@ -580,13 +640,13 @@ contract DocumentEngineTest is Test, DocumentEngineInvariant, AccessControl {
         documentEngine.batchSetDocuments(testContract, names, uris, hashes);
 
         // Check the first document
-        IERC1643.Document memory doc1 = documentEngine.getDocument(testContract, documentName);
+        IERC1643.Document memory doc1 = _doc(documentEngine, testContract, documentName);
         assertEq(doc1.uri, documentURI);
         assertEq(doc1.documentHash, documentHash);
         assertEq(doc1.lastModified, block.timestamp);
 
         // Check the second document
-        IERC1643.Document memory doc2 = documentEngine.getDocument(testContract, names[1]);
+        IERC1643.Document memory doc2 = _doc(documentEngine, testContract, names[1]);
         assertEq(doc2.uri, uris[1]);
         assertEq(doc2.documentHash, hashes[1]);
         assertEq(doc2.lastModified, block.timestamp);
@@ -606,13 +666,13 @@ contract DocumentEngineTest is Test, DocumentEngineInvariant, AccessControl {
 
         // Check that both documents are removed
         // Check the second document
-        IERC1643.Document memory doc = documentEngine.getDocument(testContract, documentName);
+        IERC1643.Document memory doc = _doc(documentEngine, testContract, documentName);
         assertEq(doc.uri, "");
         assertEq(doc.documentHash, "");
         assertEq(doc.lastModified, 0);
         bytes32[] memory docs = documentEngine.getAllDocuments(testContract);
         assertEq(docs.length, 0);
-        IERC1643.Document memory doc2 = documentEngine.getDocument(testContract, names[1]);
+        IERC1643.Document memory doc2 = _doc(documentEngine, testContract, names[1]);
         assertEq(doc2.uri, "");
         assertEq(doc2.documentHash, "");
         assertEq(doc2.lastModified, 0);
@@ -677,7 +737,7 @@ contract DocumentEngineTest is Test, DocumentEngineInvariant, AccessControl {
     function testMsgSenderScopedReads() public {
         // setUp registered `documentName` for `testContract`; read it as that caller
         vm.prank(testContract);
-        IERC1643.Document memory doc = documentEngine.getDocument(documentName);
+        IERC1643.Document memory doc = _doc(documentEngine, documentName);
         assertEq(doc.uri, documentURI);
         assertEq(doc.documentHash, documentHash);
 
@@ -690,7 +750,7 @@ contract DocumentEngineTest is Test, DocumentEngineInvariant, AccessControl {
     function testMsgSenderScopedReadReturnsEmptyForOther() public {
         // `attacker` has no documents of its own
         vm.prank(attacker);
-        IERC1643.Document memory doc = documentEngine.getDocument(documentName);
+        IERC1643.Document memory doc = _doc(documentEngine, documentName);
         assertEq(doc.uri, "");
         assertEq(doc.documentHash, "");
         assertEq(doc.lastModified, 0);
@@ -735,7 +795,7 @@ contract DocumentEngineTest is Test, DocumentEngineInvariant, AccessControl {
         hashes[0] = documentHash;
 
         vm.prank(admin);
-        vm.expectRevert(abi.encodeWithSelector(ERC1643InvalidName.selector));
+        vm.expectRevert(abi.encodeWithSelector(IERC1643.ERC1643InvalidName.selector));
         documentEngine.batchSetDocuments(subjects, names, uris, hashes);
     }
 
@@ -746,7 +806,7 @@ contract DocumentEngineTest is Test, DocumentEngineInvariant, AccessControl {
         names[0] = keccak256("never-set");
 
         vm.prank(admin);
-        vm.expectRevert(abi.encodeWithSelector(ERC1643MissingDocument.selector));
+        vm.expectRevert(abi.encodeWithSelector(IERC1643.ERC1643MissingDocument.selector));
         documentEngine.batchRemoveDocuments(subjects, names);
     }
 
@@ -789,7 +849,7 @@ contract DocumentEngineTest is Test, DocumentEngineInvariant, AccessControl {
         vm.prank(admin);
         documentEngine.setDocument(subject, name, uri, hash);
 
-        IERC1643.Document memory doc = documentEngine.getDocument(subject, name);
+        IERC1643.Document memory doc = _doc(documentEngine, subject, name);
         assertEq(doc.uri, uri);
         assertEq(doc.documentHash, hash);
         assertEq(doc.lastModified, block.timestamp);
@@ -797,7 +857,7 @@ contract DocumentEngineTest is Test, DocumentEngineInvariant, AccessControl {
         vm.prank(admin);
         documentEngine.removeDocument(subject, name);
 
-        doc = documentEngine.getDocument(subject, name);
+        doc = _doc(documentEngine, subject, name);
         assertEq(doc.uri, "");
         assertEq(doc.documentHash, "");
         assertEq(doc.lastModified, 0);
@@ -814,7 +874,7 @@ contract DocumentEngineTest is Test, DocumentEngineInvariant, AccessControl {
         documentEngine.setDocument(subjectA, name, documentURI, documentHash);
 
         // subjectB is unaffected
-        IERC1643.Document memory docB = documentEngine.getDocument(subjectB, name);
+        IERC1643.Document memory docB = _doc(documentEngine, subjectB, name);
         assertEq(docB.lastModified, 0);
         assertEq(documentEngine.getAllDocuments(subjectB).length, 0);
     }

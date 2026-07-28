@@ -23,6 +23,19 @@ contract DocumentEngineOwnableTest is Test {
     bytes32 public documentHash = keccak256("doc1Hash");
     address AddressZero = address(0);
 
+    /**
+     * @dev Since CMTAT `v3.3.0-rc2`, `getDocument` returns the three ERC-1643 fields as flat
+     * values instead of a `Document` struct; this helper repacks them so the assertions below
+     * stay readable. The wire format is pinned by `DocumentEngineTest`.
+     */
+    function _doc(IERC1643MultiDocument engine_, address subject, bytes32 name_)
+        internal
+        view
+        returns (IERC1643.Document memory document)
+    {
+        (document.uri, document.documentHash, document.lastModified) = engine_.getDocument(subject, name_);
+    }
+
     function setUp() public {
         engine = new DocumentEngineOwnable(owner, AddressZero);
     }
@@ -44,14 +57,14 @@ contract DocumentEngineOwnableTest is Test {
         vm.prank(owner);
         engine.setDocument(testContract, documentName, documentURI, documentHash);
 
-        IERC1643.Document memory doc = engine.getDocument(testContract, documentName);
+        IERC1643.Document memory doc = _doc(engine, testContract, documentName);
         assertEq(doc.uri, documentURI);
         assertEq(doc.documentHash, documentHash);
         assertEq(doc.lastModified, block.timestamp);
 
         vm.prank(owner);
         engine.removeDocument(testContract, documentName);
-        doc = engine.getDocument(testContract, documentName);
+        doc = _doc(engine, testContract, documentName);
         assertEq(doc.lastModified, 0);
     }
 
@@ -82,12 +95,12 @@ contract DocumentEngineOwnableTest is Test {
         vm.prank(testContract);
         engine.setDocument(documentName, documentURI, documentHash);
 
-        IERC1643.Document memory doc = engine.getDocument(testContract, documentName);
+        IERC1643.Document memory doc = _doc(engine, testContract, documentName);
         assertEq(doc.uri, documentURI);
 
         vm.prank(testContract);
         engine.removeDocument(documentName);
-        doc = engine.getDocument(testContract, documentName);
+        doc = _doc(engine, testContract, documentName);
         assertEq(doc.lastModified, 0);
     }
 

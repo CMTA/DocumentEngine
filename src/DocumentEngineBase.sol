@@ -174,15 +174,29 @@ abstract contract DocumentEngineBase is IERC1643, IERC1643MultiDocument, Documen
 
     /**
      * @notice ERC-1643 function to get a document for the caller (`_msgSender()`)
+     * @dev Returns the three fields as flat values, matching the ERC-1643 ABI. The `Document`
+     * struct is kept for storage only: returning it would prepend a struct offset word to the
+     * returndata, so a consumer decoding per the ERC-1643 signature would silently mis-decode.
      */
-    function getDocument(bytes32 name_) external view override returns (Document memory) {
+    function getDocument(bytes32 name_)
+        external
+        view
+        override
+        returns (string memory uri, bytes32 documentHash, uint256 lastModified)
+    {
         return _getDocument(_msgSender(), name_);
     }
 
     /**
      * @notice Public function to get a document for a specific contract address
+     * @dev Flat return, see {getDocument(bytes32)}.
      */
-    function getDocument(address subject, bytes32 name_) external view override returns (Document memory) {
+    function getDocument(address subject, bytes32 name_)
+        external
+        view
+        override
+        returns (string memory uri, bytes32 documentHash, uint256 lastModified)
+    {
         return _getDocument(subject, name_);
     }
 
@@ -205,10 +219,15 @@ abstract contract DocumentEngineBase is IERC1643, IERC1643MultiDocument, Documen
     //////////////////////////////////////////////////////////////*/
 
     /**
-     * @dev Internal function to fetch a document
+     * @dev Internal function to fetch a document, as flat values
      */
-    function _getDocument(address subject, bytes32 name_) internal view returns (Document memory) {
-        return _documents[subject][name_];
+    function _getDocument(address subject, bytes32 name_)
+        internal
+        view
+        returns (string memory uri, bytes32 documentHash, uint256 lastModified)
+    {
+        Document storage doc = _documents[subject][name_];
+        return (doc.uri, doc.documentHash, doc.lastModified);
     }
 
     /**

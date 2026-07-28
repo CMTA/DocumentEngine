@@ -14,15 +14,14 @@ abstract contract DocumentEngineInvariant {
     error InvalidInputLength();
     error AdminWithAddressZeroNotAllowed();
 
-    /// @notice Reverts when `setDocument` is called with `name == bytes32(0)`.
-    /// @dev ERC-1643-recommended error name.
-    error ERC1643InvalidName();
-
     /// @notice Reverts when a document is set for the null `subject` (`address(0)`).
-    /// @dev Multi-token extension guard; see IMP.md for the proposed standard note.
+    /// @dev Multi-token extension guard. The multi-subject draft names this condition
+    /// `MultiDocumentInvalidSubject()`; see
+    /// `doc/ERCSpecification/erc-draft_multi_document_management.md` and `ERC_RESULT.md` §4.4.
     error ERC1643InvalidSubject();
 
-    /// @notice Reverts when `removeDocument` targets a document that does not exist.
-    /// @dev ERC-1643-recommended error name.
-    error ERC1643MissingDocument();
+    // `ERC1643InvalidName()` and `ERC1643MissingDocument()` are NOT declared here: since
+    // CMTAT v3.3.0-rc2 they are declared by `IERC1643` itself, and the multi-subject draft
+    // requires a contract implementing both interfaces to obtain each error exactly once
+    // ("MUST NOT declare them twice"). Re-declaring them is a compile error.
 }

@@ -43,16 +43,45 @@ Reference: [keepachangelog.com/en/1.1.0/](https://keepachangelog.com/en/1.1.0/)
 
 ## v0.4.0
 
+Targets **CMTAT `v3.3.0-rc2`** — see the [compatibility matrix](./README.md#version-compatibility)
+for which CMTAT release each version of this engine is built against.
+
+> **Versioning note.** `getDocument` changes shape relative to `v0.3.0`, which the convention above
+> classifies as a MAJOR bump. `MINOR` is used because the project is still in its `0.x` line, where a
+> `1.0.0` would wrongly signal a stable, audited release. Treat this release as breaking for any
+> consumer decoding `getDocument`.
+
 ### Changed
 
 - **Dependencies**
-  - Upgrade CMTAT `v2.5.0-rc0` → `v3.3.0-rc1`
+  - Upgrade CMTAT `v2.5.0-rc0` → [`v3.3.0-rc2`](https://github.com/CMTA/CMTAT/releases/tag/v3.3.0-rc2)
+    (`lib/CMTAT` → `35d8940b40943828c5ea407dc6b22d559d92e4ae`). Development passed through
+    `v3.3.0-rc1`; that interim release is **not** compatible with the code as shipped here, because
+    it declares neither the ERC-1643 errors nor the flat `getDocument` return (see below).
   - Upgrade OpenZeppelin Contracts (and Contracts Upgradeable) `v5.0.2` → `v5.6.1`
   - Add [CMTA/RuleEngine](https://github.com/CMTA/RuleEngine) `v3.0.0-rc4` as a submodule (binding-pattern reference; see [Why not reuse RuleEngine's compliance module?](./README.md#why-not-reuse-ruleengines-erc-3643-compliance-module) — its `ERC3643ComplianceExtendedModule` is not reused)
+  - `foundry.lock` now records every submodule by tag; all five entries had gone stale since `v0.3.0`.
 - **Toolchain**: bump Solidity `0.8.26` → `0.8.34` and `evm_version` `cancun` → `prague` to match CMTAT v3 (CMTAT uses `require(cond, CustomError())`, which needs solc ≥ 0.8.27)
 - **`IERC1643` (CMTAT v3) breaking changes**
-  - `getDocument(bytes32)` now returns a `Document` struct instead of the `(string, bytes32, uint256)` tuple. Both `getDocument` overloads updated accordingly.
-  - The `Document` struct and the `DocumentUpdated`/`DocumentRemoved` events are now provided by `IERC1643`; the duplicate local declarations were removed from `DocumentEngineInvariant`.
+  - `getDocument` keeps returning `(string uri, bytes32 documentHash, uint256 lastModified)` — the
+    flat ERC-1643 ABI — on **both** overloads, `getDocument(bytes32)` and
+    `getDocument(address subject, bytes32)`. CMTAT `v3.3.0-rc1` briefly replaced this with a
+    `Document` struct and `v3.3.0-rc2` reverted it; this engine follows rc2, so relative to `v0.3.0`
+    the external shape is unchanged.
+
+    The distinction is worth recording because it is invisible to interface detection: return types
+    are not part of a function signature, so both shapes share the same selectors and the same
+    `type(IERC1643).interfaceId` (`0xecfecec8`). A consumer built from the specification ABI decodes
+    a struct return as garbage *without reverting* — `uri` becomes binary junk, `documentHash`
+    becomes `0x…60`, and `lastModified` becomes the real hash as a `uint256`. `getDocument` is now
+    covered by `testGetDocumentReturnsFlatErc1643Abi`, which inspects the returndata directly since
+    ERC-165 structurally cannot.
+  - The `Document` struct and the `DocumentUpdated`/`DocumentRemoved` events are now provided by `IERC1643`; the duplicate local declarations were removed from `DocumentEngineInvariant`. The struct is retained internally for storage only.
+  - `ERC1643InvalidName()` / `ERC1643MissingDocument()` are likewise declared by `IERC1643` as of
+    CMTAT `v3.3.0-rc2` and are **not** re-declared here. The multi-subject draft requires a contract
+    implementing both interfaces to obtain each error exactly once ("MUST NOT declare them twice"),
+    and re-declaring is a compile error. Selectors, and hence revert data, are unchanged.
+    `ERC1643InvalidSubject()` stays local, since no interface defines it.
   - Import path moved: `CMTAT/interfaces/engine/draft-IERC1643.sol` → `CMTAT/interfaces/tokenization/draft-IERC1643.sol`.
 
 ### Added
@@ -75,7 +104,7 @@ Aligned the implementation with the updated [ERC-1643](./doc/ERCSpecification/er
 
 - **Emission responsibility.** As a shared, multi-token manager the engine now emits **only** the address-carrying extension events and **no longer** emits the base `DocumentUpdated` / `DocumentRemoved` events (the spec's `MUST NOT` for a shared manager — those events carry no `subject` and belong on the token contract).
 - **Extension events/interface.** Renamed the multi-token events to the standard `DocumentUpdatedForSubject` / `DocumentRemovedForSubject` (parameter `subject`), and introduced the `IERC1643MultiDocument` interface (`src/interfaces/IERC1643MultiDocument.sol`) that the base now implements — the address-scoped `getDocument` / `getAllDocuments` / `setDocument` / `removeDocument`.
-- **Input validation.** `setDocument` now reverts `ERC1643InvalidName()` when `name == bytes32(0)` and `ERC1643InvalidSubject()` when `subject == address(0)` (the multi-token extension's null-namespace guard); `removeDocument` now reverts `ERC1643MissingDocument()` for a non-existent document (previously it silently emitted a spurious removal event). See [`IMP.md`](./IMP.md) for the proposed corresponding ERC-1643 extension note.
+- **Input validation.** `setDocument` now reverts `ERC1643InvalidName()` when `name == bytes32(0)` and `ERC1643InvalidSubject()` when `subject == address(0)` (the multi-token extension's null-namespace guard); `removeDocument` now reverts `ERC1643MissingDocument()` for a non-existent document (previously it silently emitted a spurious removal event). See [`erc-draft_multi_document_management.md`](./doc/ERCSpecification/erc-draft_multi_document_management.md) for the corresponding multi-subject draft.
 - **ERC-165 discovery.** `supportsInterface` now returns `true` for `type(IERC1643).interfaceId` and `type(IERC1643MultiDocument).interfaceId` (both deployments).
 
 ### Added (token binding)
@@ -84,6 +113,17 @@ Aligned the implementation with the updated [ERC-1643](./doc/ERCSpecification/er
 
 ### Notes / bottlenecks
 
+- **Subject-side emission is CMTAT `v3.3.0-rc2` or later.** rc2 made `DocumentEngineModule` re-emit
+  the standard `DocumentUpdated` / `DocumentRemoved` on the **token's own address** after forwarding
+  to the engine, and revert with `CMTAT_DocumentEngineModule_NoDocumentEngine` when no engine is set.
+  Combined with this engine emitting only the address-carrying `*ForSubject` events, the
+  subject-initiated call topology is fully conformant with the multi-subject draft's *Emission
+  Responsibility* rules. The **admin path remains non-conformant by construction** — a write sent
+  straight to the engine has no execution point in the subject, so the subject emits nothing.
+  See [`ERC_RESULT.md`](./ERC_RESULT.md) §4.3.
+- Open conformance gaps are tracked in [`ERC_RESULT.md`](./ERC_RESULT.md): per-`subject`
+  authorization (§4.2), the `ERC1643InvalidSubject` / `MultiDocumentInvalidSubject` naming
+  divergence (§4.4), and enumeration cost (§4.7).
 - CMTAT v3 no longer ships a *standalone* token that consumes an external document engine through its constructor; the standard token stores documents on-chain (`DocumentERC1643Module`). External-engine integration now goes through CMTAT's `DocumentEngineModule` (`setDocumentEngine`). The test suite was updated to exercise this real integration path via a minimal token built on `DocumentEngineModule`.
 
 ## v0.3.0

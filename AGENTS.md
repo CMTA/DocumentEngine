@@ -43,6 +43,15 @@ addressed by a `bytes32` name.
 - **ERC-1643 conformance:** `setDocument` reverts `ERC1643InvalidName()` on
   `name == 0`; `removeDocument` reverts `ERC1643MissingDocument()` on a missing doc;
   `supportsInterface` advertises `IERC1643` + `IERC1643MultiDocument` (both deployments).
+  Both errors are declared by `IERC1643` itself since CMTAT `v3.3.0-rc2` — do **not**
+  re-declare them in `DocumentEngineInvariant` (duplicate declaration = compile error,
+  and the multi-subject draft forbids it).
+- **`getDocument` returns flat values**, `(string uri, bytes32 documentHash,
+  uint256 lastModified)`, never the `Document` struct — the struct is storage-only.
+  A struct return prepends an offset word to the returndata while leaving the selector
+  and `type(IERC1643).interfaceId` unchanged, so the mismatch is invisible to ERC-165
+  and a spec-conformant consumer silently mis-decodes. Pinned by
+  `testGetDocumentReturnsFlatErc1643Abi`; see `ERC_RESULT.md` §4.1.
 - **ERC-2771:** meta-transaction (gasless) support; `_msgSender()` is used everywhere.
 - **Access control:** `DEFAULT_ADMIN_ROLE` implicitly has every role (see the
   `hasRole` override).
@@ -72,9 +81,10 @@ src/
 │                                 #   supportsInterface, constructor
 ├── DocumentEngineOwnable.sol     # Deployment #2: Ownable2Step (single owner) instead of
 │                                 #   roles; document mgmt + binding are owner-only
-├── DocumentEngineInvariant.sol   # Shared errors only (incl. ERC1643InvalidName /
-│                                 #   ERC1643InvalidSubject / ERC1643MissingDocument);
-│                                 #   NO access-control specifics
+├── DocumentEngineInvariant.sol   # Shared errors only (InvalidInputLength,
+│                                 #   AdminWithAddressZeroNotAllowed, ERC1643InvalidSubject);
+│                                 #   ERC1643InvalidName / ERC1643MissingDocument come from
+│                                 #   IERC1643. NO access-control specifics
 ├── interfaces/
 │   ├── IERC8303.sol              # ERC-8303 "Contract Version" interface (id 0x54fd4d50)
 │   ├── IERC1643MultiDocument.sol # Multi-token ERC-1643 extension (address-scoped fns +
@@ -118,12 +128,18 @@ Other important files:
 - `CHANGELOG.md` — semver history; update on every release (current: `v0.4.0`).
 - `ERC-1643-proposition.md` — proposed optional multi-token events / extension.
 - `README.md` — full documentation and Surya schema.
-- `doc/` — Surya diagrams/reports (`doc/script/`), Slither report, coverage.
+- `doc/` — Surya diagrams/reports (`doc/script/`), coverage, and
+  `doc/audits/` — the security overview (`AUDIT_OVERVIEW.md`) plus versioned
+  static-analysis output under `doc/audits/tools/vX.Y.Z/<tool>/`, each with a
+  `*-report.md` (summary table prepended) and a `*-report-feedback.md` triaging
+  every finding. Aderyn was run for `v0.4.0`; Slither has never been run here.
+- `ERC_RESULT.md` — conformance analysis against both ERC specifications; the
+  open items live in its §7.
 - `lib/` — submodules: `CMTAT`, `RuleEngine`, `openzeppelin-contracts(-upgradeable)`, `forge-std`.
 
 ## Dependencies (tested versions)
 
-- CMTAT `v3.3.0-rc1`, RuleEngine `v3.0.0-rc4` (binding-pattern reference only; compliance module not reused)
+- CMTAT `v3.3.0-rc2`, RuleEngine `v3.0.0-rc4` (binding-pattern reference only; compliance module not reused)
 - OpenZeppelin Contracts / Contracts Upgradeable `v5.6.1`
 - Solidity `0.8.34`, Foundry
 

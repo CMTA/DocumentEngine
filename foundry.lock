@@ -1,20 +1,32 @@
 {
   "lib/CMTAT": {
-    "rev": "e8048d43b0299afd83f150d3725ab299994b4271"
+    "tag": {
+      "name": "v3.3.0-rc2",
+      "rev": "35d8940b40943828c5ea407dc6b22d559d92e4ae"
+    }
   },
   "lib/RuleEngine": {
     "tag": {
-      "name": "v2.1.0",
-      "rev": "461d32fca6cf501d6c15f3aed5f18855b2a6581c"
+      "name": "v3.0.0-rc4",
+      "rev": "66fcf2aafebd1f9d9de8a81dec92b88da071c9b3"
     }
   },
   "lib/forge-std": {
-    "rev": "1714bee72e286e73f76e320d110e0eaf5c4e649d"
+    "tag": {
+      "name": "v1.7.1",
+      "rev": "f73c73d2018eb6a111f35e4dae7b4f27401e9421"
+    }
   },
   "lib/openzeppelin-contracts": {
-    "rev": "dbb6104ce834628e473d2173bbc9d47f81a9eec3"
+    "tag": {
+      "name": "v5.6.1",
+      "rev": "5fd1781b1454fd1ef8e722282f86f9293cacf256"
+    }
   },
   "lib/openzeppelin-contracts-upgradeable": {
-    "rev": "723f8cab09cdae1aca9ec9cc1cfa040c2d4b06c1"
+    "tag": {
+      "name": "v5.6.1",
+      "rev": "7bf4727aacdbfaa0f36cbd664654d0c9e1dc52bf"
+    }
   }
 }
