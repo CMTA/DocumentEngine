@@ -18,7 +18,7 @@ operator, a caret pragma, PUSH0, revert-in-loop, storage-writes-in-loop) and one
 
 The one result worth keeping in view is **L-5 at `DocumentEngineBase.sol:238`**, which is not a batch
 loop but the linear scan in `_removeDocumentName`. Aderyn reached it from the "costly operation in a
-loop" heuristic; it happens to land on the same code as `ERC_RESULT.md` §4.7, which flags the O(n)
+loop" heuristic; it happens to land on the same code as `IMPROVEMENT.md` item 4, which flags the O(n)
 removal against the multi-subject draft's expectation of "index tracking to support O(1) removals".
 That is a scalability item, not a vulnerability — a subject with a large document set makes
 `removeDocument` progressively more expensive, and `batchRemoveDocuments` compounds it to O(n·m).
@@ -30,16 +30,16 @@ CMTAT upgrade.
 
 | ID | Detector | Sev | Instances | Disposition | Reason (verified against the cited lines) |
 | --- | --- | --- | --- | --- | --- |
-| L-1 | Centralization Risk | Low | 2 | **By design** | `DocumentEngine.sol:24`, `DocumentEngineOwnable.sol:24`. The whole premise of the contract is that a trusted operator manages documents for a fleet of subjects; `DOCUMENT_MANAGER_ROLE` (and `owner`) are that operator. Documented in the README and analysed in `ERC_RESULT.md` §4.2, which argues the privilege should be *narrowed to per-subject*, not removed. Aderyn cannot express that distinction. |
+| L-1 | Centralization Risk | Low | 2 | **By design** | `DocumentEngine.sol:24`, `DocumentEngineOwnable.sol:24`. The whole premise of the contract is that a trusted operator manages documents for a fleet of subjects; `DOCUMENT_MANAGER_ROLE` (and `owner`) are that operator. Documented in the README and analysed in `IMPROVEMENT.md` item 1, which argues the privilege should be *narrowed to per-subject*, not removed. Aderyn cannot express that distinction. |
 | L-2 | Unspecific Solidity Pragma | Low | 9 | **By design** | Every file uses `pragma solidity ^0.8.20;`. The caret is intentional so the sources stay consumable as a library by projects on a different `0.8.x`; the compiler actually used for the deployed bytecode is pinned to `0.8.34` in `foundry.toml`, and `foundry.lock` pins every dependency. Verified: no file uses a construct that behaves differently across the allowed range. |
 | L-3 | PUSH0 Opcode | Low | 9 | **Environment** | Consequence of `^0.8.20` plus `evm_version = prague`: the compiler emits `PUSH0`, which is unavailable on chains that have not adopted Shanghai. Not a source defect. A deployer targeting such a chain must lower `evm_version` in `foundry.toml` — but CMTAT v3 itself requires `prague`, so that configuration is out of scope for this engine. |
 | L-4 | Loop Contains `require`/`revert` | Low | 4 | **By design** | `DocumentEngineBase.sol:124, 142, 156, 170` — the four batch loops. The reverts are raised inside `_setDocument` / `_removeDocument` (`ERC1643InvalidName`, `MultiDocumentInvalidSubject`, `ERC1643MissingDocument`). Batch operations are deliberately **all-or-nothing**: a batch containing one bad entry must not half-apply, since partial application would leave the operator unable to tell which documents were written without re-reading every entry. Skipping bad entries instead would silently drop them. |
-| L-5 | Costly operations inside loop | Low | 5 | **By design** ×4, **known item** ×1 | Four instances (`:124, 142, 156, 170`) are storage writes in the batch loops — unavoidable, and the reason the batch functions exist is to amortise the 21 000-gas transaction overhead across those writes. The fifth (`:238`) is `_removeDocumentName`'s linear scan with swap-and-pop; see the triage note above and `ERC_RESULT.md` §4.7. |
+| L-5 | Costly operations inside loop | Low | 5 | **By design** ×4, **known item** ×1 | Four instances (`:124, 142, 156, 170`) are storage writes in the batch loops — unavoidable, and the reason the batch functions exist is to amortise the 21 000-gas transaction overhead across those writes. The fifth (`:238`) is `_removeDocumentName`'s linear scan with swap-and-pop; see the triage note above and `IMPROVEMENT.md` item 4. |
 | L-6 | Unchecked Return | Low | 1 | **False positive** | `DocumentEngine.sol:35`, `_grantRole(DEFAULT_ADMIN_ROLE, admin);`. OpenZeppelin's `_grantRole` returns `false` only when the account already holds the role. This call is in the constructor of a freshly deployed contract, where no role has been granted yet, so it always returns `true`; `admin == address(0)` is already rejected on the preceding lines. There is no state to check and no recovery path to take. |
 
 ## Delta
 
-This report was regenerated after the `ERC_RESULT.md` §7 items 3 and 6 fixes (error renaming and
+This report was regenerated after the error-naming and token-binding fixes (error renaming and
 relocation; `bindToken`/`unbindToken` null-address rejection and idempotence). **Nothing moved**:
 the same six detectors fire with the same instance counts, and every cited line is unchanged. nSLOC
 rose 298 → 307 for the added guard and its NatSpec.

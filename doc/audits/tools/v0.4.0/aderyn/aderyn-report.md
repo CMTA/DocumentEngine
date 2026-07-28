@@ -6,7 +6,7 @@
 > | Tool version | `aderyn 0.6.5` |
 > | Scope | `src/` only — 9 files, 307 nSLOC. **Mocks/tests excluded** (this project has no `src/mocks`; its mocks live in `test/`, which Aderyn does not scan). |
 > | Result | **0 High · 6 Low · 0 Info** |
-> | Verdict | **Nothing to fix.** No finding is exploitable. One (L-5 at `DocumentEngineBase.sol:238`) independently corroborates a known gas/scalability item already tracked as [`ERC_RESULT.md`](../../../../ERC_RESULT.md) §4.7. |
+> | Verdict | **Nothing to fix.** No finding is exploitable. One (L-5 at `DocumentEngineBase.sol:238`) independently corroborates a known gas/scalability item already tracked as [`IMPROVEMENT.md`](../../../../IMPROVEMENT.md) item 4. |
 >
 > | ID | Detector | Sev | Instances | Assessment |
 > | --- | --- | --- | --- | --- |

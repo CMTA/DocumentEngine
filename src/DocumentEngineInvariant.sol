@@ -14,14 +14,12 @@ abstract contract DocumentEngineInvariant {
     error InvalidInputLength();
     error AdminWithAddressZeroNotAllowed();
 
-    /// @notice Reverts when a document is set for the null `subject` (`address(0)`).
-    /// @dev Multi-token extension guard. The multi-subject draft names this condition
-    /// `MultiDocumentInvalidSubject()`; see
-    /// `doc/ERCSpecification/erc-draft_multi_document_management.md` and `ERC_RESULT.md` §4.4.
-    error ERC1643InvalidSubject();
-
-    // `ERC1643InvalidName()` and `ERC1643MissingDocument()` are NOT declared here: since
-    // CMTAT v3.3.0-rc2 they are declared by `IERC1643` itself, and the multi-subject draft
-    // requires a contract implementing both interfaces to obtain each error exactly once
-    // ("MUST NOT declare them twice"). Re-declaring them is a compile error.
+    // Only errors that no interface defines belong here. Every specification error is declared by
+    // the interface that defines its condition, so that an ABI generated from the interface carries
+    // it and a contract implementing several interfaces obtains each error exactly once — the
+    // multi-subject draft's "MUST NOT declare them twice", which the compiler also enforces:
+    //   - `ERC1643InvalidName()` / `ERC1643MissingDocument()` → `IERC1643` (since CMTAT v3.3.0-rc2)
+    //   - `MultiDocumentInvalidSubject()`                     → `IERC1643MultiDocument`
+    //   - `NotBoundToken(address)`                            → `ITokenBinding`
+    //   - `TokenBindingInvalidToken()`                        → `ITokenBinding`
 }

@@ -26,7 +26,7 @@ Out of scope: `lib/` (CMTAT, RuleEngine, OpenZeppelin — audited, or not, upstr
 | --- | --- | --- | --- |
 | Aderyn `0.6.5` | `v0.4.0` | [report](./tools/v0.4.0/aderyn/aderyn-report.md) | [feedback](./tools/v0.4.0/aderyn/aderyn-report-feedback.md) |
 | Slither | — | not run | — |
-| ERC conformance analysis (AI-assisted) | `v0.4.0` | [`ERC_RESULT.md`](../../ERC_RESULT.md) | — |
+| ERC conformance analysis (AI-assisted) | `v0.4.0` | open items: [`IMPROVEMENT.md`](../../IMPROVEMENT.md) | — |
 
 ## Static-analysis results
 
@@ -39,7 +39,7 @@ Aderyn reports no Medium or Info categories; it classifies only High and Low.
 
 ## Substantive findings fixed in `v0.4.0`
 
-From the ERC conformance analysis ([`ERC_RESULT.md`](../../ERC_RESULT.md)) rather than from the
+From the ERC conformance analysis (open items: [`IMPROVEMENT.md`](../../IMPROVEMENT.md)) rather than from the
 static analyzers — neither tool can see these, since both are ABI- and specification-level:
 
 | Finding | Severity | Status |
@@ -52,14 +52,15 @@ static analyzers — neither tool can see these, since both are ABI- and specifi
 ## Known open items
 
 Not defects in the sense of being exploitable, but tracked deviations from the specifications. Full
-detail in [`ERC_RESULT.md`](../../ERC_RESULT.md) §7.
+detail, with a recommendation for each, in [`IMPROVEMENT.md`](../../IMPROVEMENT.md).
 
 | Item | Severity | Where |
 | --- | --- | --- |
-| Authorization is not per-`subject`, and `_authorizeDocumentManagement()` takes no `subject`, so a deployment cannot make it per-subject by overriding the hook | High | §4.2 |
-| Admin write path has no execution point in the subject, so an ERC-1643 subject emits nothing for writes sent straight to the engine | Medium | §4.3 |
-| `_removeDocumentName` is O(n); no paginated enumeration | Low | §4.7 — also surfaced by Aderyn L-5 |
-| The ERC-2771 trusted forwarder can act as any bound subject and is immutable | Info | §4.9 |
+| Authorization is not per-`subject`, and `_authorizeDocumentManagement()` takes no `subject`, so a deployment cannot make it per-subject by overriding the hook | High | item 1 |
+| Admin write path has no execution point in the subject, so an ERC-1643 subject emits nothing for writes sent straight to the engine | Medium | item 2 |
+| Engine advertises `IERC1643` but its base functions are `_msgSender()`-scoped, so it is not a usable endpoint for an external consumer | Low | item 3 |
+| `_removeDocumentName` is O(n); no paginated enumeration | Low | item 4 — also surfaced by Aderyn L-5 |
+| The ERC-2771 trusted forwarder can act as any bound subject and is immutable | Info | item 5 |
 
 ## Reporting a vulnerability
 

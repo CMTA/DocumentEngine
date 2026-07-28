@@ -62,7 +62,7 @@ addressed by a `bytes32` name.
   A struct return prepends an offset word to the returndata while leaving the selector
   and `type(IERC1643).interfaceId` unchanged, so the mismatch is invisible to ERC-165
   and a spec-conformant consumer silently mis-decodes. Pinned by
-  `testGetDocumentReturnsFlatErc1643Abi`; see `ERC_RESULT.md` §4.1.
+  `testGetDocumentReturnsFlatErc1643Abi`.
 - **ERC-2771:** meta-transaction (gasless) support; `_msgSender()` is used everywhere.
 - **Access control:** `DEFAULT_ADMIN_ROLE` implicitly has every role (see the
   `hasRole` override).
@@ -145,8 +145,10 @@ Other important files:
   static-analysis output under `doc/audits/tools/vX.Y.Z/<tool>/`, each with a
   `*-report.md` (summary table prepended) and a `*-report-feedback.md` triaging
   every finding. Aderyn was run for `v0.4.0`; Slither has never been run here.
-- `ERC_RESULT.md` — conformance analysis against both ERC specifications; the
-  open items live in its §7.
+- `IMPROVEMENT.md` — the open items: deviations from the two ERC specifications,
+  with severity, effort and a recommendation for each. Update it when an item is
+  fixed (move the record to `CHANGELOG.md` and `doc/audits/AUDIT_OVERVIEW.md`)
+  or when review surfaces a new one.
 - `lib/` — submodules: `CMTAT`, `RuleEngine`, `openzeppelin-contracts(-upgradeable)`, `forge-std`.
 
 ## Dependencies (tested versions)

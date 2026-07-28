@@ -265,7 +265,7 @@ abstract contract DocumentEngineBase is IERC1643, IERC1643MultiDocument, Documen
         // Multi-token guard: `subject` must be a real contract address, never the
         // null namespace. (The bound-token path passes `_msgSender()`, never zero.)
         if (subject == address(0)) {
-            revert ERC1643InvalidSubject();
+            revert MultiDocumentInvalidSubject();
         }
         // ERC-1643: reject the null name (ambiguous / default key)
         if (name_ == bytes32(0)) {

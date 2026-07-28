@@ -13,12 +13,21 @@ pragma solidity ^0.8.20;
  */
 interface ITokenBinding {
     /// @notice Emitted when a token is bound (`bound = true`) or unbound (`bound = false`).
+    /// @dev Emitted only when the binding actually changes, so the event stream contains no
+    /// no-op entries and an indexer can replay it as a sequence of transitions.
     event TokenBindingSet(address indexed token, bool bound);
 
+    /// @notice Thrown when a binding operation targets the null address.
+    error TokenBindingInvalidToken();
+
     /// @notice Binds `token`, allowing it to manage its own documents.
+    /// @dev Idempotent: binding an already-bound token succeeds and emits nothing.
+    /// Reverts {TokenBindingInvalidToken} when `token` is the null address.
     function bindToken(address token) external;
 
     /// @notice Unbinds `token`.
+    /// @dev Idempotent: unbinding a token that is not bound succeeds and emits nothing.
+    /// Reverts {TokenBindingInvalidToken} when `token` is the null address.
     function unbindToken(address token) external;
 
     /// @notice Returns whether `token` is currently bound.

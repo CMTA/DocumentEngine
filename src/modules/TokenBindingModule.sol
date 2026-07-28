@@ -32,8 +32,7 @@ abstract contract TokenBindingModule is DocumentEngineBase, ITokenBinding {
      */
     function bindToken(address token) external virtual override {
         _authorizeDocumentManagement();
-        _boundTokens[token] = true;
-        emit TokenBindingSet(token, true);
+        _setTokenBinding(token, true);
     }
 
     /**
@@ -42,8 +41,30 @@ abstract contract TokenBindingModule is DocumentEngineBase, ITokenBinding {
      */
     function unbindToken(address token) external virtual override {
         _authorizeDocumentManagement();
-        _boundTokens[token] = false;
-        emit TokenBindingSet(token, false);
+        _setTokenBinding(token, false);
+    }
+
+    /**
+     * @dev Shared bind/unbind implementation.
+     *
+     * Rejects the null address: `address(0)` can never call the engine, so binding it grants
+     * nothing, but it would still emit a {TokenBindingSet} that off-chain indexers key on — the
+     * same data-integrity argument the multi-subject draft makes for rejecting a null `subject`.
+     *
+     * Writing and emitting only on an actual change makes both functions idempotent and keeps the
+     * event stream free of no-op entries, so an indexer can treat every {TokenBindingSet} as a real
+     * transition rather than having to de-duplicate. The repeated call still succeeds, since the
+     * caller's intent — "this token is (not) bound" — already holds.
+     */
+    function _setTokenBinding(address token, bool bound) internal {
+        if (token == address(0)) {
+            revert TokenBindingInvalidToken();
+        }
+        if (_boundTokens[token] == bound) {
+            return;
+        }
+        _boundTokens[token] = bound;
+        emit TokenBindingSet(token, bound);
     }
 
     /// @inheritdoc ITokenBinding
