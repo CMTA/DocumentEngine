@@ -23,7 +23,7 @@ tracked separately under [`doc/audits/tools/`](./doc/audits/tools).
 
 | # | Item | Severity | Effort | Kind |
 | --- | --- | --- | --- | --- |
-| [1](#1--authorization-is-not-per-subject-and-the-hook-cannot-express-it) | Authorization is not per-`subject`, and the hook cannot express it | **High** | Medium | Spec `MUST` |
+| [1](#1--authorization-granularity-is-fixed-at-compile-time-the-hook-cannot-express-per-subject-rules) | Authorization granularity is fixed at compile time; the hook cannot express per-`subject` rules | Low¹ | Medium | Extensibility |
 | [2](#2--the-admin-path-bypasses-subject-side-erc-1643-emission) | Admin path bypasses subject-side ERC-1643 emission | **Medium** | Small–Medium | Spec `SHOULD` |
 | [3](#3--the-engine-advertises-ierc1643-but-is-not-a-usable-erc-1643-endpoint) | Engine advertises `IERC1643` but is not a usable ERC-1643 endpoint | Low | Trivial | Docs |
 | [4](#4--enumeration-cost-and-removal-complexity) | Enumeration cost and removal complexity | Low | Medium | Gas |
@@ -31,72 +31,109 @@ tracked separately under [`doc/audits/tools/`](./doc/audits/tools).
 | [6](#6--_removedocument-emits-before-the-state-change) | `_removeDocument` emits before the state change | Info | Trivial | Cosmetic |
 | [7](#7--upstream-imultidocumentsubject-manager-discovery) | Upstream: `IMultiDocumentSubject` manager discovery | Info | — | Upstream |
 
-Item 1 is the only one that changes what the contract can express; everything else is documentation,
-gas, or cosmetic. Item 1 is also **source-compatible** for existing deployments — the default hook
-bodies would ignore the new argument — so it does not have to wait for a breaking release.
+¹ Low for the single-issuer fleet this engine targets, which is the model the draft sets out to
+support. **Medium** only for a deployment shared by unrelated issuers — see item 1 for why that
+configuration is not supportable today.
+
+**Item 2 is the most severe open item.** Item 1 is the only one that changes what the contract can
+*express*, and it is source-compatible for existing deployments (the default hook bodies would ignore
+the new argument), so it need not wait for a breaking release. Everything else is documentation, gas,
+or cosmetic.
 
 ---
 
-## 1 — Authorization is not per-`subject`, and the hook cannot express it
+## 1 — Authorization granularity is fixed at compile time; the hook cannot express per-`subject` rules
 
-**Severity:** High · **Effort:** Medium · **Kind:** deviation from a specification `MUST`
+**Severity:** Low — **Medium** for a deployment shared across unrelated issuers · **Effort:** Medium
+· **Kind:** extensibility + deployment guidance
 
-**Where:** `src/DocumentEngineBase.sol:56`, `:71-84`, `:111-186`; `src/DocumentEngine.sol:46-48`;
+**Where:** `src/DocumentEngineBase.sol:56`, `:111-186`; `src/DocumentEngine.sol:46-48`;
 `src/DocumentEngineOwnable.sol:39-41`
 
-> Implementations **MUST** authorize writes per `subject`, so that a caller cannot create, update, or
-> remove documents for a `subject` it is not permitted to manage.
+### This is not a conformance failure
+
+The draft's requirement is:
+
+> Implementations MUST authorize writes per `subject`, so that a caller cannot create, update, or
+> remove documents for a `subject` **it is not permitted to manage**.
 > — draft §Authorization
 
-`DOCUMENT_MANAGER_ROLE` is a single global permission: every holder may write for *every* subject.
-`DocumentEngineOwnable` is the same with `owner`. This is precisely the risk the draft's Security
-Considerations open with — "a management contract holds the document sets of unrelated subjects
-behind a single address" — and the engine's design is, by default, the unmitigated case.
+The operative words are "not permitted to manage", and what a caller is permitted to manage is
+defined by the deployment's own access control. `DOCUMENT_MANAGER_ROLE` is a specific, granted role
+whose permission covers every subject the engine serves — so there is no subject its holder is *not*
+permitted to manage, and the clause is satisfied. Same for `owner` in `DocumentEngineOwnable`.
 
-That alone might be defensible as a deployment choice, since the project's stated model is a single
-operator managing a fleet it owns. The structural problem is that the escape hatch does not work:
+This is the case the draft explicitly sets out to support:
+
+> An issuer operating many tokens, funds, or vaults typically maintains one document library and
+> **one set of operators**, and duplicating that storage and access-control logic into every subject
+> contract is redundant and expensive.
+> — draft §Motivation
+
+A single global operator role over a fleet one issuer controls is that design, not a departure from
+it. The draft's test case — "A caller not authorized for a subject failing to create, update, or
+remove that subject's documents" — is covered by `testCannotNonAdminSetDocument` and its siblings: an
+account without the role is authorized for no subject, and its write reverts.
+
+### What is actually open
+
+The draft's Security Consideration is about **unrelated** subjects:
+
+> If writes are not authorized per `subject`, any caller permitted to write for one subject can
+> modify another subject's legal or operational references.
+
+That bites only when one engine instance is shared by parties that do not trust each other — two
+issuers, or a service operator hosting documents for external clients. In that deployment a global
+role does breach the property, and **this engine cannot currently express the alternative**, because
+the authorization hook receives no subject:
 
 ```solidity
 function _authorizeDocumentManagement() internal view virtual;   // no subject parameter
 ```
 
-A deployment cannot override this hook to implement per-subject rules, because at the point it runs
-the subject is not available. In the batch functions the situation is worse — the modifier fires
-**once** for the whole call, before any element is read, so even a subject-aware hook would be
-bypassed for `batchSetDocuments` / `batchRemoveDocuments`.
+So a deployer cannot subclass their way to per-subject rules; they would have to edit
+`DocumentEngineBase`. Two consequences:
 
-Consequently the draft's own test case —
+1. **A multi-tenant deployment is not supportable today.** The only conformant option is one engine
+   instance per trust domain — which is fine, and cheap, but is a deployment constraint that should
+   be written down rather than discovered.
+2. **It contradicts the project's own advertised extension model.** The README and `CLAUDE.md`
+   promise that a deployment changes *who* is authorized by overriding a hook, "not by editing the
+   management functions". That holds for swapping roles for an owner; it does not hold for making the
+   decision depend on the subject. The hook is the documented seam, and this is the one axis it
+   cannot turn.
 
-> A caller not authorized for a subject failing to create, update, or remove that subject's documents.
+Related detail, relevant only if the hook ever gains a subject: in the batch functions the modifier
+fires **once** for the whole call, before any element is read, so a subject-aware hook would have to
+be invoked inside the loops rather than via the modifier.
 
-— is untestable against this codebase, and is indeed absent from the suite. The existing
-`testNonAdmin*` tests cover the globally-unauthorized case only.
+### Recommendation
 
-**Mitigating factor.** The **bound-token path is already per-subject** and cannot be escaped: the
-namespace is `_msgSender()`, structurally. A deployment that overrides
-`_authorizeDocumentManagement()` to always revert is fully conformant today — but that removes the
-admin path entirely rather than scoping it.
+Low priority, and **not** required for the single-issuer model this engine targets. Two options:
 
-**Recommendation.** Change the hook signature and call it per subject:
+- *Documentation only* (sufficient today): state in the README that one engine instance serves one
+  trust domain, and that unrelated issuers should each deploy their own rather than share one.
+- *Enable the axis*, if multi-tenant support is ever wanted:
 
-```solidity
-function _authorizeDocumentManagement(address subject) internal view virtual;
+  ```solidity
+  function _authorizeDocumentManagement(address subject) internal view virtual;
 
-function batchSetDocuments(address[] calldata subjects, ...) external {
-    for (uint256 i = 0; i < length; ++i) {
-        _authorizeDocumentManagement(subjects[i]);
-        _setDocument(subjects[i], names[i], uris[i], hashes[i]);
-    }
-}
-```
+  function batchSetDocuments(address[] calldata subjects, ...) external {
+      for (uint256 i = 0; i < length; ++i) {
+          _authorizeDocumentManagement(subjects[i]);
+          _setDocument(subjects[i], names[i], uris[i], hashes[i]);
+      }
+  }
+  ```
 
-The default implementations stay exactly as they are (`_checkRole(DOCUMENT_MANAGER_ROLE)` /
-`_checkOwner()`, ignoring `subject`), so behaviour and gas are effectively unchanged, but a
-deployment gains the ability to be conformant — for example a per-subject role
-`keccak256("DOCUMENT_MANAGER", subject)`. Token binding needs a separate hook
-(`_authorizeTokenBinding()`), since binding has no subject.
+  The default implementations stay exactly as they are (`_checkRole(DOCUMENT_MANAGER_ROLE)` /
+  `_checkOwner()`, ignoring `subject`), so behaviour and gas are unchanged and no existing deployment
+  is affected — a subclass simply gains the option of a per-subject rule such as
+  `keccak256("DOCUMENT_MANAGER", subject)`. Token binding would need a separate hook
+  (`_authorizeTokenBinding()`), since binding has no subject.
 
-Add the draft's missing test case once the hook can express it.
+Note also that the bound-token path is already per-subject and cannot be escaped: the namespace is
+`_msgSender()`, structurally. A subject that manages its own documents is unaffected by any of this.
 
 ## 2 — The admin path bypasses subject-side ERC-1643 emission
 

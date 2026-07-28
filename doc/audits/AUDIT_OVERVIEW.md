@@ -56,7 +56,7 @@ detail, with a recommendation for each, in [`IMPROVEMENT.md`](../../IMPROVEMENT.
 
 | Item | Severity | Where |
 | --- | --- | --- |
-| Authorization is not per-`subject`, and `_authorizeDocumentManagement()` takes no `subject`, so a deployment cannot make it per-subject by overriding the hook | High | item 1 |
+| `_authorizeDocumentManagement()` takes no `subject`, so a deployment cannot make authorization per-subject by overriding the hook. Conformant for the single-issuer fleet the engine targets — `DOCUMENT_MANAGER_ROLE` is permitted to manage every subject — but it means one instance serves one trust domain | Low (Medium if shared across unrelated issuers) | item 1 |
 | Admin write path has no execution point in the subject, so an ERC-1643 subject emits nothing for writes sent straight to the engine | Medium | item 2 |
 | Engine advertises `IERC1643` but its base functions are `_msgSender()`-scoped, so it is not a usable endpoint for an external consumer | Low | item 3 |
 | `_removeDocumentName` is O(n); no paginated enumeration | Low | item 4 — also surfaced by Aderyn L-5 |

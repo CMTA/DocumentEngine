@@ -140,8 +140,8 @@ Aligned the implementation with the updated [ERC-1643](./doc/ERCSpecification/er
   Responsibility* rules. The **admin path remains non-conformant by construction** — a write sent
   straight to the engine has no execution point in the subject, so the subject emits nothing.
   See [`IMPROVEMENT.md`](./IMPROVEMENT.md) item 2.
-- Open conformance gaps are tracked in [`IMPROVEMENT.md`](./IMPROVEMENT.md): per-`subject`
-  authorization (item 1), admin-path call topology (item 2), and enumeration cost (item 4).
+- Open items are tracked in [`IMPROVEMENT.md`](./IMPROVEMENT.md): the most severe is admin-path call
+  topology (item 2); also authorization granularity (item 1) and enumeration cost (item 4).
 - CMTAT v3 no longer ships a *standalone* token that consumes an external document engine through its constructor; the standard token stores documents on-chain (`DocumentERC1643Module`). External-engine integration now goes through CMTAT's `DocumentEngineModule` (`setDocumentEngine`). The test suite was updated to exercise this real integration path via a minimal token built on `DocumentEngineModule`.
 
 ## v0.3.0

@@ -2,6 +2,12 @@
 
 > This project has not been audited yet, please use at your own risk. For any questions, please contact [admin@cmta.ch](mailto:admin@cmta.ch).
 >
+> **Known open items** are tracked in **[`IMPROVEMENT.md`](./IMPROVEMENT.md)**. None is an
+> exploitable vulnerability, but integrators should read it before relying on the engine — in
+> particular item 2 (a write sent straight to the engine leaves an ERC-1643 subject's own events
+> unemitted) and item 1 (one engine instance serves **one trust domain**: `DOCUMENT_MANAGER_ROLE`
+> covers every subject, so unrelated issuers should each deploy their own engine rather than share
+> one).
 
 The `DocumentEngine` is an external contract to manage documents through [*ERC-1643*](https://github.com/ethereum/EIPs/issues/1643), a standard proposition to manage document on-chain. This standard is notably used by [ERC-1400](https://github.com/ethereum/eips/issues/1411) from Polymath. 
 
@@ -364,7 +370,7 @@ slither . --checklist --filter-paths "node_modules,test,forge-std,CMTAT,openzepp
 
 > **Static-analysis output is leads, not findings.** Every dismissal in the feedback files was
 > verified against the cited `file:line`, and neither tool can see the specification-level issues
-> that matter most here — those are in [`ERC_RESULT.md`](./ERC_RESULT.md).
+> that matter most here — those are in [`IMPROVEMENT.md`](./IMPROVEMENT.md).
 
 ### Surya
 
