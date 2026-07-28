@@ -46,6 +46,8 @@ static analyzers — neither tool can see these, since both are ABI- and specifi
 | --- | --- | --- |
 | `getDocument` returned a `Document` struct where ERC-1643 mandates three flat values. Same selector and same `type(IERC1643).interfaceId` either way, so ERC-165 detection could not distinguish them and a spec-conformant consumer silently decoded corrupt values | High | **Fixed** — flat return on both overloads, pinned by `testGetDocumentReturnsFlatErc1643Abi`, which inspects the returndata directly |
 | `ERC1643InvalidName` / `ERC1643MissingDocument` declared both locally and by `IERC1643`, which the multi-subject draft forbids and the compiler rejects | Blocker | **Fixed** — local declarations removed |
+| Null-subject error named `ERC1643InvalidSubject`, after a standard in which the condition cannot occur, and declared on an abstract contract rather than an interface | Low | **Fixed** — renamed `MultiDocumentInvalidSubject` and moved to `IERC1643MultiDocument`; every specification error now sits on the interface defining its condition |
+| `bindToken(address(0))` accepted, and bind/unbind emitted `TokenBindingSet` even when the binding did not change | Low | **Fixed** — null address rejected with `TokenBindingInvalidToken()`; both are now idempotent and emit only on a real transition |
 
 ## Known open items
 
@@ -56,9 +58,7 @@ detail in [`ERC_RESULT.md`](../../ERC_RESULT.md) §7.
 | --- | --- | --- |
 | Authorization is not per-`subject`, and `_authorizeDocumentManagement()` takes no `subject`, so a deployment cannot make it per-subject by overriding the hook | High | §4.2 |
 | Admin write path has no execution point in the subject, so an ERC-1643 subject emits nothing for writes sent straight to the engine | Medium | §4.3 |
-| `ERC1643InvalidSubject` vs the draft's `MultiDocumentInvalidSubject` naming | Low | §4.4 |
 | `_removeDocumentName` is O(n); no paginated enumeration | Low | §4.7 — also surfaced by Aderyn L-5 |
-| `bindToken(address(0))` accepted; bind/unbind emit unconditionally | Low | §4.8 |
 | The ERC-2771 trusted forwarder can act as any bound subject and is immutable | Info | §4.9 |
 
 ## Reporting a vulnerability

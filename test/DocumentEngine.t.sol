@@ -58,6 +58,7 @@ contract DocumentEngineTest is Test, DocumentEngineInvariant, AccessControl {
     // Local copies of the extension events, so `vm.expectEmit` can emit and match them.
     event DocumentUpdatedForSubject(address indexed subject, bytes32 indexed name, string uri, bytes32 documentHash);
     event DocumentRemovedForSubject(address indexed subject, bytes32 indexed name, string uri, bytes32 documentHash);
+    event TokenBindingSet(address indexed token, bool bound);
     // Base ERC-1643 event signatures (this shared engine must NOT emit them).
     bytes32 internal constant BASE_UPDATED_SIG = keccak256("DocumentUpdated(bytes32,string,bytes32)");
     bytes32 internal constant BASE_REMOVED_SIG = keccak256("DocumentRemoved(bytes32,string,bytes32)");
@@ -254,6 +255,60 @@ contract DocumentEngineTest is Test, DocumentEngineInvariant, AccessControl {
 
         vm.prank(admin);
         documentEngine.unbindToken(testContract);
+        assertFalse(documentEngine.isTokenBound(testContract));
+    }
+
+    function testCannotBindZeroAddress() public {
+        vm.prank(admin);
+        vm.expectRevert(abi.encodeWithSelector(ITokenBinding.TokenBindingInvalidToken.selector));
+        documentEngine.bindToken(AddressZero);
+
+        vm.prank(admin);
+        vm.expectRevert(abi.encodeWithSelector(ITokenBinding.TokenBindingInvalidToken.selector));
+        documentEngine.unbindToken(AddressZero);
+
+        assertFalse(documentEngine.isTokenBound(AddressZero));
+    }
+
+    /**
+     * @dev Binding is idempotent: the repeated call succeeds, because the caller's intent already
+     * holds, but emits nothing — so every {TokenBindingSet} in the log is a real transition and an
+     * indexer never has to de-duplicate.
+     */
+    function testBindTokenIsIdempotentAndDoesNotReEmit() public {
+        vm.prank(admin);
+        vm.expectEmit(true, false, false, true);
+        emit TokenBindingSet(testContract, true);
+        documentEngine.bindToken(testContract);
+
+        // second bind: succeeds, changes nothing, emits nothing
+        vm.recordLogs();
+        vm.prank(admin);
+        documentEngine.bindToken(testContract);
+        assertEq(vm.getRecordedLogs().length, 0, "re-binding must not emit");
+        assertTrue(documentEngine.isTokenBound(testContract));
+    }
+
+    function testUnbindTokenIsIdempotentAndDoesNotReEmit() public {
+        // unbinding a token that was never bound: succeeds, emits nothing
+        vm.recordLogs();
+        vm.prank(admin);
+        documentEngine.unbindToken(testContract);
+        assertEq(vm.getRecordedLogs().length, 0, "unbinding an unbound token must not emit");
+        assertFalse(documentEngine.isTokenBound(testContract));
+
+        vm.prank(admin);
+        documentEngine.bindToken(testContract);
+
+        vm.prank(admin);
+        vm.expectEmit(true, false, false, true);
+        emit TokenBindingSet(testContract, false);
+        documentEngine.unbindToken(testContract);
+
+        vm.recordLogs();
+        vm.prank(admin);
+        documentEngine.unbindToken(testContract);
+        assertEq(vm.getRecordedLogs().length, 0, "re-unbinding must not emit");
         assertFalse(documentEngine.isTokenBound(testContract));
     }
 
@@ -765,7 +820,7 @@ contract DocumentEngineTest is Test, DocumentEngineInvariant, AccessControl {
 
     function testCannotSetDocumentForZeroSubject() public {
         vm.prank(admin);
-        vm.expectRevert(abi.encodeWithSelector(ERC1643InvalidSubject.selector));
+        vm.expectRevert(abi.encodeWithSelector(IERC1643MultiDocument.MultiDocumentInvalidSubject.selector));
         documentEngine.setDocument(AddressZero, documentName, documentURI, documentHash);
     }
 
@@ -780,7 +835,7 @@ contract DocumentEngineTest is Test, DocumentEngineInvariant, AccessControl {
         hashes[0] = documentHash;
 
         vm.prank(admin);
-        vm.expectRevert(abi.encodeWithSelector(ERC1643InvalidSubject.selector));
+        vm.expectRevert(abi.encodeWithSelector(IERC1643MultiDocument.MultiDocumentInvalidSubject.selector));
         documentEngine.batchSetDocuments(subjects, names, uris, hashes);
     }
 

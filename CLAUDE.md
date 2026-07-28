@@ -40,6 +40,17 @@ addressed by a `bytes32` name.
   **not** the base `DocumentUpdated` / `DocumentRemoved` (those carry no address and
   are the token contract's responsibility). Extension declared in
   `src/interfaces/IERC1643MultiDocument.sol`; rationale in `ERC-1643-proposition.md`.
+- **Errors live on interfaces, not on `DocumentEngineInvariant`.** Each specification
+  error is declared by the interface defining its condition — `ERC1643InvalidName` /
+  `ERC1643MissingDocument` on `IERC1643`, `MultiDocumentInvalidSubject` on
+  `IERC1643MultiDocument`, `TokenBindingInvalidToken` on `ITokenBinding` — so an ABI
+  generated from an interface carries its errors and each is obtained exactly once
+  (the multi-subject draft's "MUST NOT declare them twice", also a compile error).
+  `DocumentEngineInvariant` keeps only errors no interface defines.
+- **Token binding is idempotent and rejects `address(0)`:** `bindToken` / `unbindToken`
+  write and emit `TokenBindingSet` only on an actual change, so every event is a real
+  transition; a repeat call succeeds silently. `address(0)` reverts
+  `TokenBindingInvalidToken()`.
 - **ERC-1643 conformance:** `setDocument` reverts `ERC1643InvalidName()` on
   `name == 0`; `removeDocument` reverts `ERC1643MissingDocument()` on a missing doc;
   `supportsInterface` advertises `IERC1643` + `IERC1643MultiDocument` (both deployments).
@@ -81,16 +92,17 @@ src/
 │                                 #   supportsInterface, constructor
 ├── DocumentEngineOwnable.sol     # Deployment #2: Ownable2Step (single owner) instead of
 │                                 #   roles; document mgmt + binding are owner-only
-├── DocumentEngineInvariant.sol   # Shared errors only (InvalidInputLength,
-│                                 #   AdminWithAddressZeroNotAllowed, ERC1643InvalidSubject);
-│                                 #   ERC1643InvalidName / ERC1643MissingDocument come from
-│                                 #   IERC1643. NO access-control specifics
+├── DocumentEngineInvariant.sol   # Non-specification errors ONLY (InvalidInputLength,
+│                                 #   AdminWithAddressZeroNotAllowed). Every spec error is
+│                                 #   declared by its own interface — see the note below.
+│                                 #   NO access-control specifics
 ├── interfaces/
 │   ├── IERC8303.sol              # ERC-8303 "Contract Version" interface (id 0x54fd4d50)
 │   ├── IERC1643MultiDocument.sol # Multi-token ERC-1643 extension (address-scoped fns +
-│   │                             #   DocumentUpdatedForSubject / DocumentRemovedForSubject)
+│   │                             #   DocumentUpdatedForSubject / DocumentRemovedForSubject +
+│   │                             #   MultiDocumentInvalidSubject)
 │   └── ITokenBinding.sol         # Shared binding surface: bindToken / unbindToken /
-│                                 #   isTokenBound + TokenBindingSet (both deployments)
+│                                 #   isTokenBound + TokenBindingSet + TokenBindingInvalidToken
 └── modules/
     ├── VersionModule.sol         # Version module: implements ERC-8303 version() + ERC-165,
     │                             #   holds the VERSION constant (currently "0.4.0")

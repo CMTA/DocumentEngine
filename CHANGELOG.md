@@ -81,8 +81,27 @@ for which CMTAT release each version of this engine is built against.
     CMTAT `v3.3.0-rc2` and are **not** re-declared here. The multi-subject draft requires a contract
     implementing both interfaces to obtain each error exactly once ("MUST NOT declare them twice"),
     and re-declaring is a compile error. Selectors, and hence revert data, are unchanged.
-    `ERC1643InvalidSubject()` stays local, since no interface defines it.
+    The same principle was applied to every other error: `MultiDocumentInvalidSubject()` moved to
+    `IERC1643MultiDocument` and `TokenBindingInvalidToken()` is declared on `ITokenBinding`, so an
+    ABI generated from an interface carries its errors. `DocumentEngineInvariant` now holds only
+    `InvalidInputLength` and `AdminWithAddressZeroNotAllowed`, which no interface defines.
   - Import path moved: `CMTAT/interfaces/engine/draft-IERC1643.sol` → `CMTAT/interfaces/tokenization/draft-IERC1643.sol`.
+
+- **`ERC1643InvalidSubject()` renamed to `MultiDocumentInvalidSubject()`** and moved from
+  `DocumentEngineInvariant` to `IERC1643MultiDocument`, matching the multi-subject draft. **This
+  changes the error selector**, so integrators decoding this revert must update.
+
+  The draft's rule is that an error is prefixed by the proposal that *defines* its condition, not by
+  the one it sits next to. The null-`subject` condition cannot arise in ERC-1643 at all — its
+  `setDocument` has no `subject` argument, so the subject is implicitly the contract itself, which is
+  never the null address — so borrowing the `ERC1643` prefix named the error after a standard in
+  which it is unreachable. The two genuinely-shared errors keep their prefix for the opposite reason.
+- **Token binding rejects `address(0)` and is idempotent.** `bindToken` / `unbindToken` now revert
+  `TokenBindingInvalidToken()` on the null address — which can never call the engine, so binding it
+  granted nothing while still emitting an event indexers key on — and write plus emit
+  `TokenBindingSet` **only when the binding actually changes**. A repeated call still succeeds, since
+  the caller's intent already holds, but emits nothing, so every event in the log is a real
+  transition and an indexer never has to de-duplicate.
 
 ### Added
 
@@ -104,7 +123,7 @@ Aligned the implementation with the updated [ERC-1643](./doc/ERCSpecification/er
 
 - **Emission responsibility.** As a shared, multi-token manager the engine now emits **only** the address-carrying extension events and **no longer** emits the base `DocumentUpdated` / `DocumentRemoved` events (the spec's `MUST NOT` for a shared manager — those events carry no `subject` and belong on the token contract).
 - **Extension events/interface.** Renamed the multi-token events to the standard `DocumentUpdatedForSubject` / `DocumentRemovedForSubject` (parameter `subject`), and introduced the `IERC1643MultiDocument` interface (`src/interfaces/IERC1643MultiDocument.sol`) that the base now implements — the address-scoped `getDocument` / `getAllDocuments` / `setDocument` / `removeDocument`.
-- **Input validation.** `setDocument` now reverts `ERC1643InvalidName()` when `name == bytes32(0)` and `ERC1643InvalidSubject()` when `subject == address(0)` (the multi-token extension's null-namespace guard); `removeDocument` now reverts `ERC1643MissingDocument()` for a non-existent document (previously it silently emitted a spurious removal event). See [`erc-draft_multi_document_management.md`](./doc/ERCSpecification/erc-draft_multi_document_management.md) for the corresponding multi-subject draft.
+- **Input validation.** `setDocument` now reverts `ERC1643InvalidName()` when `name == bytes32(0)` and `MultiDocumentInvalidSubject()` when `subject == address(0)` (the multi-subject draft's null-namespace guard); `removeDocument` now reverts `ERC1643MissingDocument()` for a non-existent document (previously it silently emitted a spurious removal event). See [`erc-draft_multi_document_management.md`](./doc/ERCSpecification/erc-draft_multi_document_management.md) for the corresponding multi-subject draft.
 - **ERC-165 discovery.** `supportsInterface` now returns `true` for `type(IERC1643).interfaceId` and `type(IERC1643MultiDocument).interfaceId` (both deployments).
 
 ### Added (token binding)
@@ -122,8 +141,7 @@ Aligned the implementation with the updated [ERC-1643](./doc/ERCSpecification/er
   straight to the engine has no execution point in the subject, so the subject emits nothing.
   See [`ERC_RESULT.md`](./ERC_RESULT.md) §4.3.
 - Open conformance gaps are tracked in [`ERC_RESULT.md`](./ERC_RESULT.md): per-`subject`
-  authorization (§4.2), the `ERC1643InvalidSubject` / `MultiDocumentInvalidSubject` naming
-  divergence (§4.4), and enumeration cost (§4.7).
+  authorization (§4.2), admin-path call topology (§4.3), and enumeration cost (§4.7).
 - CMTAT v3 no longer ships a *standalone* token that consumes an external document engine through its constructor; the standard token stores documents on-chain (`DocumentERC1643Module`). External-engine integration now goes through CMTAT's `DocumentEngineModule` (`setDocumentEngine`). The test suite was updated to exercise this real integration path via a minimal token built on `DocumentEngineModule`.
 
 ## v0.3.0
