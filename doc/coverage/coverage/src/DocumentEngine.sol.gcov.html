@@ -31,27 +31,18 @@
             <td class="headerValue">lcov.info</td>
             <td></td>
             <td class="headerItem">Lines:</td>
-            <td class="headerCovTableEntry">51</td>
-            <td class="headerCovTableEntry">52</td>
-            <td class="headerCovTableEntryHi">98.1 %</td>
+            <td class="headerCovTableEntry">17</td>
+            <td class="headerCovTableEntry">19</td>
+            <td class="headerCovTableEntryMed">89.5 %</td>
           </tr>
           <tr>
             <td class="headerItem">Date:</td>
-            <td class="headerValue">2024-09-09 15:02:57</td>
+            <td class="headerValue">2026-08-17 11:57:58</td>
             <td></td>
             <td class="headerItem">Functions:</td>
-            <td class="headerCovTableEntry">12</td>
-            <td class="headerCovTableEntry">14</td>
+            <td class="headerCovTableEntry">6</td>
+            <td class="headerCovTableEntry">7</td>
             <td class="headerCovTableEntryMed">85.7 %</td>
-          </tr>
-          <tr>
-            <td></td>
-            <td></td>
-            <td></td>
-            <td class="headerItem">Branches:</td>
-            <td class="headerCovTableEntry">13</td>
-            <td class="headerCovTableEntry">14</td>
-            <td class="headerCovTableEntryHi">92.9 %</td>
           </tr>
           <tr><td><img src="../glass.png" width=3 height=3 alt=""></td></tr>
         </table>
@@ -67,304 +58,174 @@
     </tr>
     <tr>
       <td>
-<pre class="sourceHeading">           Branch data     Line data    Source code</pre>
+<pre class="sourceHeading">          Line data    Source code</pre>
 <pre class="source">
-<a name="1"><span class="lineNum">       1 </span>                :            : //SPDX-License-Identifier: MPL-2.0</a>
-<a name="2"><span class="lineNum">       2 </span>                :            : pragma solidity ^0.8.20;</a>
-<a name="3"><span class="lineNum">       3 </span>                :            : </a>
-<a name="4"><span class="lineNum">       4 </span>                :            : import &quot;OZ/access/AccessControl.sol&quot;;</a>
-<a name="5"><span class="lineNum">       5 </span>                :            : import &quot;OZ/metatx/ERC2771Context.sol&quot;;</a>
-<a name="6"><span class="lineNum">       6 </span>                :            : import &quot;CMTAT/interfaces/engine/draft-IERC1643.sol&quot;;</a>
-<a name="7"><span class="lineNum">       7 </span>                :            : import &quot;./DocumentEngineInvariant.sol&quot;;</a>
-<a name="8"><span class="lineNum">       8 </span>                :            : </a>
-<a name="9"><span class="lineNum">       9 </span>                :            : /**</a>
-<a name="10"><span class="lineNum">      10 </span>                :            :  * @title DocumentEngine</a>
-<a name="11"><span class="lineNum">      11 </span>                :            :  * @notice contract to manage documents on-chain through ERC-1643</a>
-<a name="12"><span class="lineNum">      12 </span>                :            :  */</a>
-<a name="13"><span class="lineNum">      13 </span>                :            : contract DocumentEngine is</a>
-<a name="14"><span class="lineNum">      14 </span>                :            :     IERC1643,</a>
-<a name="15"><span class="lineNum">      15 </span>                :            :     DocumentEngineInvariant,</a>
-<a name="16"><span class="lineNum">      16 </span>                :            :     AccessControl,</a>
-<a name="17"><span class="lineNum">      17 </span>                :            :     ERC2771Context</a>
-<a name="18"><span class="lineNum">      18 </span>                :            : {</a>
-<a name="19"><span class="lineNum">      19 </span>                :            :     /**</a>
-<a name="20"><span class="lineNum">      20 </span>                :            :      * @notice</a>
-<a name="21"><span class="lineNum">      21 </span>                :            :      * Get the current version of the smart contract</a>
-<a name="22"><span class="lineNum">      22 </span>                :            :      */</a>
-<a name="23"><span class="lineNum">      23 </span>                :            :     string public constant VERSION = &quot;0.3.0&quot;;</a>
-<a name="24"><span class="lineNum">      24 </span>                :            :     // Mapping from contract addresses to document names to their corresponding Document structs</a>
-<a name="25"><span class="lineNum">      25 </span>                :            :     mapping(address =&gt; mapping(bytes32 =&gt; Document)) private _documents;</a>
-<a name="26"><span class="lineNum">      26 </span>                :            :     mapping(address =&gt; bytes32[]) private _documentNames;</a>
-<a name="27"><span class="lineNum">      27 </span>                :            : </a>
-<a name="28"><span class="lineNum">      28 </span>                :            :     // Constructor to initialize the admin role</a>
-<a name="29"><span class="lineNum">      29 </span>                :            :     constructor(</a>
-<a name="30"><span class="lineNum">      30 </span>                :            :         address admin,</a>
-<a name="31"><span class="lineNum">      31 </span>                :            :         address forwarderIrrevocable</a>
-<a name="32"><span class="lineNum">      32 </span>                :            :     ) ERC2771Context(forwarderIrrevocable) {</a>
-<a name="33"><span class="lineNum">      33 </span>                :            :         if (admin == address(0)) {</a>
-<a name="34"><span class="lineNum">      34 </span>                :            :             revert AdminWithAddressZeroNotAllowed();</a>
-<a name="35"><span class="lineNum">      35 </span>                :            :         }</a>
-<a name="36"><span class="lineNum">      36 </span>                :            :         _grantRole(DEFAULT_ADMIN_ROLE, admin);</a>
-<a name="37"><span class="lineNum">      37 </span>                :            :     }</a>
-<a name="38"><span class="lineNum">      38 </span>                :            : </a>
-<a name="39"><span class="lineNum">      39 </span>                :            :     /*//////////////////////////////////////////////////////////////</a>
-<a name="40"><span class="lineNum">      40 </span>                :            :                             PUBLIC/EXTERNAL FUNCTIONS</a>
-<a name="41"><span class="lineNum">      41 </span>                :            :     //////////////////////////////////////////////////////////////*/</a>
-<a name="42"><span class="lineNum">      42 </span>                :            : </a>
-<a name="43"><span class="lineNum">      43 </span>                :            :     /**</a>
-<a name="44"><span class="lineNum">      44 </span>                :            :      * @notice Restricted function to set or update a document</a>
-<a name="45"><span class="lineNum">      45 </span>                :            :      */</a>
-<a name="46"><span class="lineNum">      46 </span>                :            :     function setDocument(</a>
-<a name="47"><span class="lineNum">      47 </span>                :            :         address smartContract,</a>
-<a name="48"><span class="lineNum">      48 </span>                :            :         bytes32 name_,</a>
-<a name="49"><span class="lineNum">      49 </span>                :            :         string memory uri_,</a>
-<a name="50"><span class="lineNum">      50 </span>                :            :         bytes32 documentHash_</a>
-<a name="51"><span class="lineNum">      51 </span>                :            :     ) public onlyRole(DOCUMENT_MANAGER_ROLE) {</a>
-<a name="52"><span class="lineNum">      52 </span>                :<span class="lineCov">         54 :         _setDocument(smartContract, name_, uri_, documentHash_);</span></a>
-<a name="53"><span class="lineNum">      53 </span>                :            :     }</a>
-<a name="54"><span class="lineNum">      54 </span>                :            : </a>
-<a name="55"><span class="lineNum">      55 </span>                :            :     /**</a>
-<a name="56"><span class="lineNum">      56 </span>                :            :      * @notice Restricted function to remove a document for a given smart contract and name</a>
-<a name="57"><span class="lineNum">      57 </span>                :            :      */</a>
-<a name="58"><span class="lineNum">      58 </span>                :            :     function removeDocument(</a>
-<a name="59"><span class="lineNum">      59 </span>                :            :         address smartContract,</a>
-<a name="60"><span class="lineNum">      60 </span>                :            :         bytes32 name_</a>
-<a name="61"><span class="lineNum">      61 </span>                :            :     ) external onlyRole(DOCUMENT_MANAGER_ROLE) {</a>
-<a name="62"><span class="lineNum">      62 </span>                :<span class="lineCov">          2 :         _removeDocument(smartContract, name_);</span></a>
-<a name="63"><span class="lineNum">      63 </span>                :            :     }</a>
-<a name="64"><span class="lineNum">      64 </span>                :            : </a>
-<a name="65"><span class="lineNum">      65 </span>                :            :     /**</a>
-<a name="66"><span class="lineNum">      66 </span>                :            :      * @notice Batch version of setDocument to handle multiple documents at once</a>
-<a name="67"><span class="lineNum">      67 </span>                :            :      */</a>
-<a name="68"><span class="lineNum">      68 </span>                :            :     function batchSetDocuments(</a>
-<a name="69"><span class="lineNum">      69 </span>                :            :         address[] calldata smartContracts,</a>
-<a name="70"><span class="lineNum">      70 </span>                :            :         bytes32[] calldata names,</a>
-<a name="71"><span class="lineNum">      71 </span>                :            :         string[] calldata uris,</a>
-<a name="72"><span class="lineNum">      72 </span>                :            :         bytes32[] calldata hashes</a>
-<a name="73"><span class="lineNum">      73 </span>                :            :     ) external onlyRole(DOCUMENT_MANAGER_ROLE) {</a>
-<a name="74"><span class="lineNum">      74 </span>        [<span class="branchCov" title="Branch 0 was taken 3 times"> + </span><span class="branchCov" title="Branch 1 was taken 4 times"> + </span>]:            :         if (</a>
-<a name="75"><span class="lineNum">      75 </span>                :<span class="lineCov">         35 :             smartContracts.length == 0 ||</span></a>
-<a name="76"><span class="lineNum">      76 </span>                :<span class="lineCov">         12 :             smartContracts.length != names.length ||</span></a>
-<a name="77"><span class="lineNum">      77 </span>                :<span class="lineCov">         10 :             names.length != uris.length ||</span></a>
-<a name="78"><span class="lineNum">      78 </span>                :<span class="lineCov">          8 :             uris.length != hashes.length</span></a>
-<a name="79"><span class="lineNum">      79 </span>                :            :         ) {</a>
-<a name="80"><span class="lineNum">      80 </span>                :<span class="lineCov">          6 :             revert InvalidInputLength();</span></a>
-<a name="81"><span class="lineNum">      81 </span>                :            :         }</a>
-<a name="82"><span class="lineNum">      82 </span>                :<span class="lineCov">         28 :         for (uint256 i = 0; i &lt; smartContracts.length; i++) {</span></a>
-<a name="83"><span class="lineNum">      83 </span>                :<span class="lineCov">         16 :             _setDocument(smartContracts[i], names[i], uris[i], hashes[i]);</span></a>
-<a name="84"><span class="lineNum">      84 </span>                :            :         }</a>
-<a name="85"><span class="lineNum">      85 </span>                :            :     }</a>
-<a name="86"><span class="lineNum">      86 </span>                :            : </a>
-<a name="87"><span class="lineNum">      87 </span>                :            :     /**</a>
-<a name="88"><span class="lineNum">      88 </span>                :            :      * @notice Batch version of setDocument to handle multiple documents at once</a>
-<a name="89"><span class="lineNum">      89 </span>                :            :      */</a>
-<a name="90"><span class="lineNum">      90 </span>                :            :     function batchSetDocuments(</a>
-<a name="91"><span class="lineNum">      91 </span>                :            :         address smartContract,</a>
-<a name="92"><span class="lineNum">      92 </span>                :            :         bytes32[] calldata names,</a>
-<a name="93"><span class="lineNum">      93 </span>                :            :         string[] calldata uris,</a>
-<a name="94"><span class="lineNum">      94 </span>                :            :         bytes32[] calldata hashes</a>
-<a name="95"><span class="lineNum">      95 </span>                :            :     ) external onlyRole(DOCUMENT_MANAGER_ROLE) {</a>
-<a name="96"><span class="lineNum">      96 </span>        [<span class="branchCov" title="Branch 0 was taken 2 times"> + </span><span class="branchCov" title="Branch 1 was taken 2 times"> + </span>]:            :         if (</a>
-<a name="97"><span class="lineNum">      97 </span>                :<span class="lineCov">         16 :             names.length == 0 ||</span></a>
-<a name="98"><span class="lineNum">      98 </span>                :<span class="lineCov">          6 :             names.length != uris.length ||</span></a>
-<a name="99"><span class="lineNum">      99 </span>                :<span class="lineCov">          4 :             uris.length != hashes.length</span></a>
-<a name="100"><span class="lineNum">     100 </span>                :            :         ) {</a>
-<a name="101"><span class="lineNum">     101 </span>                :<span class="lineCov">          4 :             revert InvalidInputLength();</span></a>
-<a name="102"><span class="lineNum">     102 </span>                :            :         }</a>
-<a name="103"><span class="lineNum">     103 </span>                :<span class="lineCov">         14 :         for (uint256 i = 0; i &lt; names.length; ++i) {</span></a>
-<a name="104"><span class="lineNum">     104 </span>                :<span class="lineCov">          8 :             _setDocument(smartContract, names[i], uris[i], hashes[i]);</span></a>
-<a name="105"><span class="lineNum">     105 </span>                :            :         }</a>
-<a name="106"><span class="lineNum">     106 </span>                :            :     }</a>
-<a name="107"><span class="lineNum">     107 </span>                :            : </a>
-<a name="108"><span class="lineNum">     108 </span>                :            :     /**</a>
-<a name="109"><span class="lineNum">     109 </span>                :            :      * @notice Batch version of removeDocument to handle multiple documents at once</a>
-<a name="110"><span class="lineNum">     110 </span>                :            :      */</a>
-<a name="111"><span class="lineNum">     111 </span>                :            :     function batchRemoveDocuments(</a>
-<a name="112"><span class="lineNum">     112 </span>                :            :         address[] calldata smartContracts,</a>
-<a name="113"><span class="lineNum">     113 </span>                :            :         bytes32[] calldata names</a>
-<a name="114"><span class="lineNum">     114 </span>                :            :     ) external onlyRole(DOCUMENT_MANAGER_ROLE) {</a>
-<a name="115"><span class="lineNum">     115 </span>        [<span class="branchCov" title="Branch 0 was taken 2 times"> + </span><span class="branchCov" title="Branch 1 was taken 1 time"> + </span>]:            :         if (</a>
-<a name="116"><span class="lineNum">     116 </span>                :<span class="lineCov">          9 :             smartContracts.length == 0 ||</span></a>
-<a name="117"><span class="lineNum">     117 </span>                :            :             (smartContracts.length != names.length)</a>
-<a name="118"><span class="lineNum">     118 </span>                :            :         ) {</a>
-<a name="119"><span class="lineNum">     119 </span>                :<span class="lineCov">          4 :             revert InvalidInputLength();</span></a>
-<a name="120"><span class="lineNum">     120 </span>                :            :         }</a>
-<a name="121"><span class="lineNum">     121 </span>                :            : </a>
-<a name="122"><span class="lineNum">     122 </span>                :<span class="lineCov">          7 :         for (uint256 i = 0; i &lt; smartContracts.length; ++i) {</span></a>
-<a name="123"><span class="lineNum">     123 </span>                :<span class="lineCov">          4 :             _removeDocument(smartContracts[i], names[i]);</span></a>
-<a name="124"><span class="lineNum">     124 </span>                :            :         }</a>
-<a name="125"><span class="lineNum">     125 </span>                :            :     }</a>
-<a name="126"><span class="lineNum">     126 </span>                :            : </a>
-<a name="127"><span class="lineNum">     127 </span>                :            :     /**</a>
-<a name="128"><span class="lineNum">     128 </span>                :            :      * @notice Batch version of removeDocument to handle multiple documents at once</a>
-<a name="129"><span class="lineNum">     129 </span>                :            :      */</a>
-<a name="130"><span class="lineNum">     130 </span>                :            :     function batchRemoveDocuments(</a>
-<a name="131"><span class="lineNum">     131 </span>                :            :         address smartContract,</a>
-<a name="132"><span class="lineNum">     132 </span>                :            :         bytes32[] calldata names</a>
-<a name="133"><span class="lineNum">     133 </span>                :            :     ) external onlyRole(DOCUMENT_MANAGER_ROLE) {</a>
-<a name="134"><span class="lineNum">     134 </span>        [<span class="branchCov" title="Branch 0 was taken 1 time"> + </span><span class="branchCov" title="Branch 1 was taken 1 time"> + </span>]:<span class="lineCov">          4 :         if (names.length == 0) {</span></a>
-<a name="135"><span class="lineNum">     135 </span>                :<span class="lineCov">          2 :             revert InvalidInputLength();</span></a>
-<a name="136"><span class="lineNum">     136 </span>                :            :         }</a>
-<a name="137"><span class="lineNum">     137 </span>                :            : </a>
-<a name="138"><span class="lineNum">     138 </span>                :<span class="lineCov">          7 :         for (uint256 i = 0; i &lt; names.length; ++i) {</span></a>
-<a name="139"><span class="lineNum">     139 </span>                :<span class="lineCov">          4 :             _removeDocument(smartContract, names[i]);</span></a>
-<a name="140"><span class="lineNum">     140 </span>                :            :         }</a>
-<a name="141"><span class="lineNum">     141 </span>                :            :     }</a>
-<a name="142"><span class="lineNum">     142 </span>                :            : </a>
-<a name="143"><span class="lineNum">     143 </span>                :            :     /**</a>
-<a name="144"><span class="lineNum">     144 </span>                :            :      * @notice Public function to get a document from msg.sender</a>
-<a name="145"><span class="lineNum">     145 </span>                :            :      */</a>
-<a name="146"><span class="lineNum">     146 </span>                :            :     function getDocument(</a>
-<a name="147"><span class="lineNum">     147 </span>                :            :         bytes32 name_</a>
-<a name="148"><span class="lineNum">     148 </span>                :            :     ) external view override returns (string memory, bytes32, uint256) {</a>
-<a name="149"><span class="lineNum">     149 </span>                :<span class="lineCov">          3 :         return _getDocument(msg.sender, name_);</span></a>
-<a name="150"><span class="lineNum">     150 </span>                :            :     }</a>
-<a name="151"><span class="lineNum">     151 </span>                :            : </a>
-<a name="152"><span class="lineNum">     152 </span>                :            :     /**</a>
-<a name="153"><span class="lineNum">     153 </span>                :            :      * @notice Public function to get a document for a specific contract address</a>
-<a name="154"><span class="lineNum">     154 </span>                :            :      */</a>
-<a name="155"><span class="lineNum">     155 </span>                :            :     function getDocument(</a>
-<a name="156"><span class="lineNum">     156 </span>                :            :         address smartContract,</a>
-<a name="157"><span class="lineNum">     157 </span>                :            :         bytes32 name_</a>
-<a name="158"><span class="lineNum">     158 </span>                :            :     ) external view returns (string memory, bytes32, uint256) {</a>
-<a name="159"><span class="lineNum">     159 </span>                :<span class="lineCov">         57 :         return _getDocument(smartContract, name_);</span></a>
-<a name="160"><span class="lineNum">     160 </span>                :            :     }</a>
-<a name="161"><span class="lineNum">     161 </span>                :            : </a>
-<a name="162"><span class="lineNum">     162 </span>                :            :     /**</a>
-<a name="163"><span class="lineNum">     163 </span>                :            :      * @notice Get all document names for msg.sender</a>
-<a name="164"><span class="lineNum">     164 </span>                :            :      */</a>
-<a name="165"><span class="lineNum">     165 </span>                :            :     function getAllDocuments()</a>
-<a name="166"><span class="lineNum">     166 </span>                :            :         external</a>
-<a name="167"><span class="lineNum">     167 </span>                :            :         view</a>
-<a name="168"><span class="lineNum">     168 </span>                :            :         override</a>
-<a name="169"><span class="lineNum">     169 </span>                :            :         returns (bytes32[] memory)</a>
-<a name="170"><span class="lineNum">     170 </span>                :            :     {</a>
-<a name="171"><span class="lineNum">     171 </span>                :<span class="lineCov">          2 :         return _documentNames[msg.sender];</span></a>
-<a name="172"><span class="lineNum">     172 </span>                :            :     }</a>
-<a name="173"><span class="lineNum">     173 </span>                :            : </a>
-<a name="174"><span class="lineNum">     174 </span>                :            :     /**</a>
-<a name="175"><span class="lineNum">     175 </span>                :            :      * @notice Get all document names for a specific smart contract</a>
-<a name="176"><span class="lineNum">     176 </span>                :            :      */</a>
-<a name="177"><span class="lineNum">     177 </span>                :            :     function getAllDocuments(</a>
-<a name="178"><span class="lineNum">     178 </span>                :            :         address smartContract</a>
-<a name="179"><span class="lineNum">     179 </span>                :            :     ) external view returns (bytes32[] memory) {</a>
-<a name="180"><span class="lineNum">     180 </span>                :<span class="lineCov">         14 :         return _documentNames[smartContract];</span></a>
-<a name="181"><span class="lineNum">     181 </span>                :            :     }</a>
-<a name="182"><span class="lineNum">     182 </span>                :            : </a>
-<a name="183"><span class="lineNum">     183 </span>                :            :     /* ============ ACCESS CONTROL ============ */</a>
-<a name="184"><span class="lineNum">     184 </span>                :            :     /*</a>
-<a name="185"><span class="lineNum">     185 </span>                :            :      * @dev Returns `true` if `account` has been granted `role`.</a>
-<a name="186"><span class="lineNum">     186 </span>                :            :      */</a>
-<a name="187"><span class="lineNum">     187 </span>                :            :     function hasRole(</a>
-<a name="188"><span class="lineNum">     188 </span>                :            :         bytes32 role,</a>
-<a name="189"><span class="lineNum">     189 </span>                :            :         address account</a>
-<a name="190"><span class="lineNum">     190 </span>                :            :     ) public view virtual override returns (bool) {</a>
-<a name="191"><span class="lineNum">     191 </span>                :            :         // The Default Admin has all roles</a>
-<a name="192"><span class="lineNum">     192 </span>        [<span class="branchCov" title="Branch 0 was taken 44 times"> + </span><span class="branchCov" title="Branch 1 was taken 6 times"> + </span>]:<span class="lineCov">        100 :         if (AccessControl.hasRole(DEFAULT_ADMIN_ROLE, account)) {</span></a>
-<a name="193"><span class="lineNum">     193 </span>                :<span class="lineCov">         88 :             return true;</span></a>
-<a name="194"><span class="lineNum">     194 </span>                :            :         }</a>
-<a name="195"><span class="lineNum">     195 </span>                :<span class="lineCov">         18 :         return AccessControl.hasRole(role, account);</span></a>
-<a name="196"><span class="lineNum">     196 </span>                :            :     }</a>
-<a name="197"><span class="lineNum">     197 </span>                :            : </a>
-<a name="198"><span class="lineNum">     198 </span>                :            :     /*//////////////////////////////////////////////////////////////</a>
-<a name="199"><span class="lineNum">     199 </span>                :            :                             INTERNAL FUNCTIONS</a>
-<a name="200"><span class="lineNum">     200 </span>                :            :     //////////////////////////////////////////////////////////////*/</a>
-<a name="201"><span class="lineNum">     201 </span>                :            : </a>
-<a name="202"><span class="lineNum">     202 </span>                :            :     /**</a>
-<a name="203"><span class="lineNum">     203 </span>                :            :      * @dev Internal function to fetch a document</a>
-<a name="204"><span class="lineNum">     204 </span>                :            :      */</a>
-<a name="205"><span class="lineNum">     205 </span>                :            :     function _getDocument(</a>
-<a name="206"><span class="lineNum">     206 </span>                :            :         address smartContract,</a>
-<a name="207"><span class="lineNum">     207 </span>                :            :         bytes32 name_</a>
-<a name="208"><span class="lineNum">     208 </span>                :            :     ) internal view returns (string memory, bytes32, uint256) {</a>
-<a name="209"><span class="lineNum">     209 </span>                :<span class="lineCov">         40 :         Document memory doc = _documents[smartContract][name_];</span></a>
-<a name="210"><span class="lineNum">     210 </span>                :<span class="lineCov">         40 :         return (doc.uri, doc.documentHash, doc.lastModified);</span></a>
-<a name="211"><span class="lineNum">     211 </span>                :            :     }</a>
-<a name="212"><span class="lineNum">     212 </span>                :            : </a>
-<a name="213"><span class="lineNum">     213 </span>                :            :     /**</a>
-<a name="214"><span class="lineNum">     214 </span>                :            :      * @dev Internal helper to remove the document name from the list of document names</a>
-<a name="215"><span class="lineNum">     215 </span>                :            :      */</a>
-<a name="216"><span class="lineNum">     216 </span>                :            :     function _removeDocumentName(</a>
-<a name="217"><span class="lineNum">     217 </span>                :            :         address smartContract,</a>
-<a name="218"><span class="lineNum">     218 </span>                :            :         bytes32 name_</a>
-<a name="219"><span class="lineNum">     219 </span>                :            :     ) internal {</a>
-<a name="220"><span class="lineNum">     220 </span>                :<span class="lineCov">         10 :         uint256 length = _documentNames[smartContract].length;</span></a>
-<a name="221"><span class="lineNum">     221 </span>                :<span class="lineCov">         15 :         for (uint256 i = 0; i &lt; length; ++i) {</span></a>
-<a name="222"><span class="lineNum">     222 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchCov" title="Branch 1 was taken 5 times"> + </span>]:<span class="lineCov">         10 :             if (_documentNames[smartContract][i] == name_) {</span></a>
-<a name="223"><span class="lineNum">     223 </span>                :<span class="lineCov">         10 :                 _documentNames[smartContract][i] = _documentNames[</span></a>
-<a name="224"><span class="lineNum">     224 </span>                :            :                     smartContract</a>
-<a name="225"><span class="lineNum">     225 </span>                :            :                 ][length - 1];</a>
-<a name="226"><span class="lineNum">     226 </span>                :<span class="lineCov">         10 :                 _documentNames[smartContract].pop();</span></a>
-<a name="227"><span class="lineNum">     227 </span>                :<span class="lineCov">         10 :                 break;</span></a>
-<a name="228"><span class="lineNum">     228 </span>                :            :             }</a>
-<a name="229"><span class="lineNum">     229 </span>                :            :         }</a>
-<a name="230"><span class="lineNum">     230 </span>                :            :     }</a>
-<a name="231"><span class="lineNum">     231 </span>                :            : </a>
-<a name="232"><span class="lineNum">     232 </span>                :            :     function _removeDocument(address smartContract, bytes32 name_) internal {</a>
-<a name="233"><span class="lineNum">     233 </span>                :<span class="lineCov">         10 :         Document memory doc = _documents[smartContract][name_];</span></a>
-<a name="234"><span class="lineNum">     234 </span>                :<span class="lineCov">         10 :         emit DocumentRemoved(smartContract, name_, doc.uri, doc.documentHash);</span></a>
-<a name="235"><span class="lineNum">     235 </span>                :            : </a>
-<a name="236"><span class="lineNum">     236 </span>                :<span class="lineCov">         10 :         delete _documents[smartContract][name_];</span></a>
-<a name="237"><span class="lineNum">     237 </span>                :<span class="lineCov">         10 :         _removeDocumentName(smartContract, name_);</span></a>
-<a name="238"><span class="lineNum">     238 </span>                :            :     }</a>
-<a name="239"><span class="lineNum">     239 </span>                :            : </a>
-<a name="240"><span class="lineNum">     240 </span>                :            :     function _setDocument(</a>
-<a name="241"><span class="lineNum">     241 </span>                :            :         address smartContract,</a>
-<a name="242"><span class="lineNum">     242 </span>                :            :         bytes32 name_,</a>
-<a name="243"><span class="lineNum">     243 </span>                :            :         string memory uri_,</a>
-<a name="244"><span class="lineNum">     244 </span>                :            :         bytes32 documentHash_</a>
-<a name="245"><span class="lineNum">     245 </span>                :            :     ) internal {</a>
-<a name="246"><span class="lineNum">     246 </span>                :<span class="lineCov">         78 :         Document storage doc = _documents[smartContract][name_];</span></a>
-<a name="247"><span class="lineNum">     247 </span>        [<span class="branchCov" title="Branch 0 was taken 30 times"> + </span><span class="branchCov" title="Branch 1 was taken 39 times"> + </span>]:<span class="lineCov">         78 :         if (doc.lastModified == 0) {</span></a>
-<a name="248"><span class="lineNum">     248 </span>                :            :             // new document</a>
-<a name="249"><span class="lineNum">     249 </span>                :<span class="lineCov">         60 :             _documentNames[smartContract].push(name_);</span></a>
-<a name="250"><span class="lineNum">     250 </span>                :            :         }</a>
-<a name="251"><span class="lineNum">     251 </span>                :<span class="lineCov">         78 :         doc.uri = uri_;</span></a>
-<a name="252"><span class="lineNum">     252 </span>                :<span class="lineCov">         78 :         doc.documentHash = documentHash_;</span></a>
-<a name="253"><span class="lineNum">     253 </span>                :<span class="lineCov">         78 :         doc.lastModified = block.timestamp;</span></a>
-<a name="254"><span class="lineNum">     254 </span>                :<span class="lineCov">         78 :         emit DocumentUpdated(smartContract, name_, uri_, documentHash_);</span></a>
-<a name="255"><span class="lineNum">     255 </span>                :            :     }</a>
-<a name="256"><span class="lineNum">     256 </span>                :            : </a>
-<a name="257"><span class="lineNum">     257 </span>                :            :     /*//////////////////////////////////////////////////////////////</a>
-<a name="258"><span class="lineNum">     258 </span>                :            :                            ERC2771</a>
-<a name="259"><span class="lineNum">     259 </span>                :            :     //////////////////////////////////////////////////////////////*/</a>
-<a name="260"><span class="lineNum">     260 </span>                :            : </a>
-<a name="261"><span class="lineNum">     261 </span>                :            :     /**</a>
-<a name="262"><span class="lineNum">     262 </span>                :            :      * @dev This surcharge is not necessary if you do not use ERC2771</a>
-<a name="263"><span class="lineNum">     263 </span>                :            :      */</a>
-<a name="264"><span class="lineNum">     264 </span>                :            :     function _msgSender()</a>
-<a name="265"><span class="lineNum">     265 </span>                :            :         internal</a>
-<a name="266"><span class="lineNum">     266 </span>                :            :         view</a>
-<a name="267"><span class="lineNum">     267 </span>                :            :         override(ERC2771Context, Context)</a>
-<a name="268"><span class="lineNum">     268 </span>                :            :         returns (address sender)</a>
-<a name="269"><span class="lineNum">     269 </span>                :            :     {</a>
-<a name="270"><span class="lineNum">     270 </span>                :<span class="lineCov">        150 :         return ERC2771Context._msgSender();</span></a>
-<a name="271"><span class="lineNum">     271 </span>                :            :     }</a>
-<a name="272"><span class="lineNum">     272 </span>                :            : </a>
-<a name="273"><span class="lineNum">     273 </span>                :            :     /**</a>
-<a name="274"><span class="lineNum">     274 </span>                :            :      * @dev This surcharge is not necessary if you do not use ERC2771</a>
-<a name="275"><span class="lineNum">     275 </span>                :            :      */</a>
-<a name="276"><span class="lineNum">     276 </span>                :            :     function _msgData()</a>
-<a name="277"><span class="lineNum">     277 </span>                :            :         internal</a>
-<a name="278"><span class="lineNum">     278 </span>                :            :         view</a>
-<a name="279"><span class="lineNum">     279 </span>                :            :         override(ERC2771Context, Context)</a>
-<a name="280"><span class="lineNum">     280 </span>                :            :         returns (bytes calldata)</a>
-<a name="281"><span class="lineNum">     281 </span>                :            :     {</a>
-<a name="282"><span class="lineNum">     282 </span>                :<span class="lineNoCov">          0 :         return ERC2771Context._msgData();</span></a>
-<a name="283"><span class="lineNum">     283 </span>                :            :     }</a>
-<a name="284"><span class="lineNum">     284 </span>                :            : </a>
-<a name="285"><span class="lineNum">     285 </span>                :            :     /**</a>
-<a name="286"><span class="lineNum">     286 </span>                :            :      * @dev This surcharge is not necessary if you do not use the MetaTxModule</a>
-<a name="287"><span class="lineNum">     287 </span>                :            :      */</a>
-<a name="288"><span class="lineNum">     288 </span>                :            :     function _contextSuffixLength()</a>
-<a name="289"><span class="lineNum">     289 </span>                :            :         internal</a>
-<a name="290"><span class="lineNum">     290 </span>                :            :         view</a>
-<a name="291"><span class="lineNum">     291 </span>                :            :         override(ERC2771Context, Context)</a>
-<a name="292"><span class="lineNum">     292 </span>                :            :         returns (uint256)</a>
-<a name="293"><span class="lineNum">     293 </span>                :            :     {</a>
-<a name="294"><span class="lineNum">     294 </span>                :<span class="lineCov">        150 :         return ERC2771Context._contextSuffixLength();</span></a>
-<a name="295"><span class="lineNum">     295 </span>                :            :     }</a>
-<a name="296"><span class="lineNum">     296 </span>                :            : }</a>
+<a name="1"><span class="lineNum">       1 </span>            : //SPDX-License-Identifier: MPL-2.0</a>
+<a name="2"><span class="lineNum">       2 </span>            : pragma solidity ^0.8.24;</a>
+<a name="3"><span class="lineNum">       3 </span>            : </a>
+<a name="4"><span class="lineNum">       4 </span>            : import {AccessControl} from &quot;OZ/access/AccessControl.sol&quot;;</a>
+<a name="5"><span class="lineNum">       5 </span>            : import {AccessControlEnumerable} from &quot;OZ/access/extensions/AccessControlEnumerable.sol&quot;;</a>
+<a name="6"><span class="lineNum">       6 </span>            : import {IAccessControl} from &quot;OZ/access/IAccessControl.sol&quot;;</a>
+<a name="7"><span class="lineNum">       7 </span>            : import {Context} from &quot;OZ/utils/Context.sol&quot;;</a>
+<a name="8"><span class="lineNum">       8 </span>            : import {ERC2771Context} from &quot;OZ/metatx/ERC2771Context.sol&quot;;</a>
+<a name="9"><span class="lineNum">       9 </span>            : import {IERC1643} from &quot;CMTAT/interfaces/tokenization/draft-IERC1643.sol&quot;;</a>
+<a name="10"><span class="lineNum">      10 </span>            : import {IERC1643MultiDocument} from &quot;./interfaces/IERC1643MultiDocument.sol&quot;;</a>
+<a name="11"><span class="lineNum">      11 </span>            : import {ITokenBinding} from &quot;./interfaces/ITokenBinding.sol&quot;;</a>
+<a name="12"><span class="lineNum">      12 </span>            : import {TokenBindingModule} from &quot;./modules/TokenBindingModule.sol&quot;;</a>
+<a name="13"><span class="lineNum">      13 </span>            : import {VersionModule} from &quot;./modules/VersionModule.sol&quot;;</a>
+<a name="14"><span class="lineNum">      14 </span>            : </a>
+<a name="15"><span class="lineNum">      15 </span>            : /**</a>
+<a name="16"><span class="lineNum">      16 </span>            :  * @title DocumentEngine</a>
+<a name="17"><span class="lineNum">      17 </span>            :  * @notice Deployment contract to manage documents on-chain through ERC-1643.</a>
+<a name="18"><span class="lineNum">      18 </span>            :  * @dev Wires the document-management logic ({DocumentEngineBase}) with a</a>
+<a name="19"><span class="lineNum">      19 </span>            :  * concrete access-control implementation. The authorization hooks are defined</a>
+<a name="20"><span class="lineNum">      20 </span>            :  * here (role-based `AccessControlEnumerable`, which additionally allows</a>
+<a name="21"><span class="lineNum">      21 </span>            :  * enumerating role members), keeping the access control separate from the</a>
+<a name="22"><span class="lineNum">      22 </span>            :  * document-management logic (CMTAT / CMTA-RuleEngine pattern). The contract</a>
+<a name="23"><span class="lineNum">      23 </span>            :  * version is exposed through the {VersionModule} (ERC-8303), and it also wires</a>
+<a name="24"><span class="lineNum">      24 </span>            :  * the ERC-2771 (gasless) meta-transaction support.</a>
+<a name="25"><span class="lineNum">      25 </span>            :  */</a>
+<a name="26"><span class="lineNum">      26 </span>            : contract DocumentEngine is TokenBindingModule, VersionModule, AccessControlEnumerable, ERC2771Context {</a>
+<a name="27"><span class="lineNum">      27 </span>            :     /**</a>
+<a name="28"><span class="lineNum">      28 </span>            :      * @notice Role allowed to manage documents on behalf of any smart contract, and to</a>
+<a name="29"><span class="lineNum">      29 </span>            :      * bind/unbind tokens (admin path).</a>
+<a name="30"><span class="lineNum">      30 </span>            :      * @dev Token binding uses the shared allowlist in {TokenBindingModule}, not a dedicated role.</a>
+<a name="31"><span class="lineNum">      31 </span>            :      */</a>
+<a name="32"><span class="lineNum">      32 </span>            :     bytes32 public constant DOCUMENT_MANAGER_ROLE = keccak256(&quot;DOCUMENT_MANAGER_ROLE&quot;);</a>
+<a name="33"><span class="lineNum">      33 </span>            : </a>
+<a name="34"><span class="lineNum">      34 </span>            :     /**</a>
+<a name="35"><span class="lineNum">      35 </span>            :      * @notice Deploys the engine and grants `admin` the default admin role.</a>
+<a name="36"><span class="lineNum">      36 </span>            :      * @param admin address granted `DEFAULT_ADMIN_ROLE`; must not be the null address</a>
+<a name="37"><span class="lineNum">      37 </span>            :      * @param forwarderIrrevocable address of the ERC-2771 forwarder (gasless support)</a>
+<a name="38"><span class="lineNum">      38 </span>            :      */</a>
+<a name="39"><span class="lineNum">      39 </span><span class="lineCov">         64 :     constructor(address admin, address forwarderIrrevocable) ERC2771Context(forwarderIrrevocable) {</span></a>
+<a name="40"><span class="lineNum">      40 </span><span class="lineCov">         64 :         if (admin == address(0)) {</span></a>
+<a name="41"><span class="lineNum">      41 </span><span class="lineCov">          1 :             revert AdminWithAddressZeroNotAllowed();</span></a>
+<a name="42"><span class="lineNum">      42 </span>            :         }</a>
+<a name="43"><span class="lineNum">      43 </span><span class="lineCov">         63 :         _grantRole(DEFAULT_ADMIN_ROLE, admin);</span></a>
+<a name="44"><span class="lineNum">      44 </span>            :     }</a>
+<a name="45"><span class="lineNum">      45 </span>            : </a>
+<a name="46"><span class="lineNum">      46 </span>            :     /*//////////////////////////////////////////////////////////////</a>
+<a name="47"><span class="lineNum">      47 </span>            :                         ACCESS CONTROL (public surface)</a>
+<a name="48"><span class="lineNum">      48 </span>            :     //////////////////////////////////////////////////////////////*/</a>
+<a name="49"><span class="lineNum">      49 </span>            : </a>
+<a name="50"><span class="lineNum">      50 </span>            :     /**</a>
+<a name="51"><span class="lineNum">      51 </span>            :      * @notice Returns whether `account` holds `role`.</a>
+<a name="52"><span class="lineNum">      52 </span>            :      * @dev Returns `true` if `account` has been granted `role`. The default admin</a>
+<a name="53"><span class="lineNum">      53 </span>            :      * (`DEFAULT_ADMIN_ROLE`) is treated as holding **every** role.</a>
+<a name="54"><span class="lineNum">      54 </span>            :      *</a>
+<a name="55"><span class="lineNum">      55 </span>            :      * Note: this virtual &quot;admin has all roles&quot; behavior is NOT reflected by</a>
+<a name="56"><span class="lineNum">      56 </span>            :      * {AccessControlEnumerable} enumeration. `getRoleMember` / `getRoleMemberCount`</a>
+<a name="57"><span class="lineNum">      57 </span>            :      * report only explicit grants, so a `DEFAULT_ADMIN_ROLE` holder satisfies</a>
+<a name="58"><span class="lineNum">      58 </span>            :      * `hasRole(anyRole, admin)` yet does not appear in `getRoleMember(anyRole, ...)`.</a>
+<a name="59"><span class="lineNum">      59 </span>            :      *</a>
+<a name="60"><span class="lineNum">      60 </span>            :      * WARNING: the same short-circuit makes a role **unrevokable from the default admin**.</a>
+<a name="61"><span class="lineNum">      61 </span>            :      * `revokeRole(someRole, admin)` succeeds and emits `RoleRevoked` — the explicit grant is</a>
+<a name="62"><span class="lineNum">      62 </span>            :      * genuinely removed, and `getRoleMemberCount` drops — but this function still answers</a>
+<a name="63"><span class="lineNum">      63 </span>            :      * `true`, so the admin keeps the access the caller believed it had just removed. Only</a>
+<a name="64"><span class="lineNum">      64 </span>            :      * revoking `DEFAULT_ADMIN_ROLE` itself actually withdraws it. This is inherent to the</a>
+<a name="65"><span class="lineNum">      65 </span>            :      * &quot;admin has all roles&quot; model rather than a defect (an admin can always re-grant itself</a>
+<a name="66"><span class="lineNum">      66 </span>            :      * any role), but the success of the call is misleading. Pinned by</a>
+<a name="67"><span class="lineNum">      67 </span>            :      * `testRevokingRoleFromDefaultAdminDoesNotRemoveAccess`.</a>
+<a name="68"><span class="lineNum">      68 </span>            :      * @param role The role identifier to check.</a>
+<a name="69"><span class="lineNum">      69 </span>            :      * @param account The account to check.</a>
+<a name="70"><span class="lineNum">      70 </span>            :      * @return True when `account` holds `role`, or holds `DEFAULT_ADMIN_ROLE`.</a>
+<a name="71"><span class="lineNum">      71 </span>            :      */</a>
+<a name="72"><span class="lineNum">      72 </span><span class="lineCov">         68 :     function hasRole(bytes32 role, address account)</span></a>
+<a name="73"><span class="lineNum">      73 </span>            :         public</a>
+<a name="74"><span class="lineNum">      74 </span>            :         view</a>
+<a name="75"><span class="lineNum">      75 </span>            :         virtual</a>
+<a name="76"><span class="lineNum">      76 </span>            :         override(AccessControl, IAccessControl)</a>
+<a name="77"><span class="lineNum">      77 </span>            :         returns (bool)</a>
+<a name="78"><span class="lineNum">      78 </span>            :     {</a>
+<a name="79"><span class="lineNum">      79 </span>            :         // The Default Admin has all roles</a>
+<a name="80"><span class="lineNum">      80 </span><span class="lineCov">        952 :         if (super.hasRole(DEFAULT_ADMIN_ROLE, account)) {</span></a>
+<a name="81"><span class="lineNum">      81 </span><span class="lineCov">        882 :             return true;</span></a>
+<a name="82"><span class="lineNum">      82 </span>            :         }</a>
+<a name="83"><span class="lineNum">      83 </span><span class="lineCov">         70 :         return super.hasRole(role, account);</span></a>
+<a name="84"><span class="lineNum">      84 </span>            :     }</a>
+<a name="85"><span class="lineNum">      85 </span>            : </a>
+<a name="86"><span class="lineNum">      86 </span>            :     /*//////////////////////////////////////////////////////////////</a>
+<a name="87"><span class="lineNum">      87 </span>            :                            ERC165</a>
+<a name="88"><span class="lineNum">      88 </span>            :     //////////////////////////////////////////////////////////////*/</a>
+<a name="89"><span class="lineNum">      89 </span>            : </a>
+<a name="90"><span class="lineNum">      90 </span>            :     /**</a>
+<a name="91"><span class="lineNum">      91 </span>            :      * @notice Returns whether this contract implements `interfaceId`.</a>
+<a name="92"><span class="lineNum">      92 </span>            :      * @dev ERC-165 discovery: advertises ERC-1643 and its multi-subject extension, the token-binding</a>
+<a name="93"><span class="lineNum">      93 </span>            :      * surface, the version module (ERC-8303) and `AccessControlEnumerable`.</a>
+<a name="94"><span class="lineNum">      94 </span>            :      *</a>
+<a name="95"><span class="lineNum">      95 </span>            :      * `type(IERC1643).interfaceId` is advertised because the engine does implement the base</a>
+<a name="96"><span class="lineNum">      96 </span>            :      * single-argument functions, which is exactly what the draft conditions the id on. Its audience</a>
+<a name="97"><span class="lineNum">      97 </span>            :      * is a **token wiring itself to this engine**: before calling `setDocumentEngine(engine)`, or</a>
+<a name="98"><span class="lineNum">      98 </span>            :      * before forwarding `setDocument(name, uri, hash)` to it, a token can confirm through ERC-165</a>
+<a name="99"><span class="lineNum">      99 </span>            :      * that the single-argument ERC-1643 endpoints exist here, rather than finding out from a failed</a>
+<a name="100"><span class="lineNum">     100 </span>            :      * call. `type(ITokenBinding).interfaceId` answers the complementary question — whether this</a>
+<a name="101"><span class="lineNum">     101 </span>            :      * engine has a binding surface at all — and `isTokenBound(address(this))` whether that</a>
+<a name="102"><span class="lineNum">     102 </span>            :      * particular token may use it.</a>
+<a name="103"><span class="lineNum">     103 </span>            :      *</a>
+<a name="104"><span class="lineNum">     104 </span>            :      * It is **not** an invitation to read documents from this address. The base functions are</a>
+<a name="105"><span class="lineNum">     105 </span>            :      * `_msgSender()`-scoped, so a consumer calling `getDocument(name)` here reads its own, empty</a>
+<a name="106"><span class="lineNum">     106 </span>            :      * namespace, and this engine emits only the address-carrying `*ForSubject` events. Point</a>
+<a name="107"><span class="lineNum">     107 </span>            :      * document consumers at the **subject**, or use the address-scoped `getDocument(subject, name)`.</a>
+<a name="108"><span class="lineNum">     108 </span>            :      *</a>
+<a name="109"><span class="lineNum">     109 </span>            :      * See {IERC165-supportsInterface}.</a>
+<a name="110"><span class="lineNum">     110 </span>            :      * @param interfaceId The ERC-165 interface identifier to query.</a>
+<a name="111"><span class="lineNum">     111 </span>            :      * @return True when `interfaceId` is one of the advertised interfaces or is supported by a base</a>
+<a name="112"><span class="lineNum">     112 </span>            :      * contract.</a>
+<a name="113"><span class="lineNum">     113 </span>            :      */</a>
+<a name="114"><span class="lineNum">     114 </span><span class="lineCov">          8 :     function supportsInterface(bytes4 interfaceId)</span></a>
+<a name="115"><span class="lineNum">     115 </span>            :         public</a>
+<a name="116"><span class="lineNum">     116 </span>            :         view</a>
+<a name="117"><span class="lineNum">     117 </span>            :         virtual</a>
+<a name="118"><span class="lineNum">     118 </span>            :         override(VersionModule, AccessControlEnumerable)</a>
+<a name="119"><span class="lineNum">     119 </span>            :         returns (bool)</a>
+<a name="120"><span class="lineNum">     120 </span>            :     {</a>
+<a name="121"><span class="lineNum">     121 </span><span class="lineCov">          8 :         return interfaceId == type(IERC1643).interfaceId || interfaceId == type(IERC1643MultiDocument).interfaceId</span></a>
+<a name="122"><span class="lineNum">     122 </span><span class="lineCov">          5 :             || interfaceId == type(ITokenBinding).interfaceId || super.supportsInterface(interfaceId);</span></a>
+<a name="123"><span class="lineNum">     123 </span>            :     }</a>
+<a name="124"><span class="lineNum">     124 </span>            : </a>
+<a name="125"><span class="lineNum">     125 </span>            :     /*//////////////////////////////////////////////////////////////</a>
+<a name="126"><span class="lineNum">     126 </span>            :                         ACCESS CONTROL (implementation)</a>
+<a name="127"><span class="lineNum">     127 </span>            :     //////////////////////////////////////////////////////////////*/</a>
+<a name="128"><span class="lineNum">     128 </span>            : </a>
+<a name="129"><span class="lineNum">     129 </span>            :     /**</a>
+<a name="130"><span class="lineNum">     130 </span>            :      * @dev Authorization for the admin document-management path.</a>
+<a name="131"><span class="lineNum">     131 </span>            :      * The caller must hold `DOCUMENT_MANAGER_ROLE`. Override to customize.</a>
+<a name="132"><span class="lineNum">     132 </span>            :      */</a>
+<a name="133"><span class="lineNum">     133 </span><span class="lineCov">        882 :     function _authorizeDocumentManagement() internal view virtual override {</span></a>
+<a name="134"><span class="lineNum">     134 </span><span class="lineCov">        882 :         _checkRole(DOCUMENT_MANAGER_ROLE);</span></a>
+<a name="135"><span class="lineNum">     135 </span>            :     }</a>
+<a name="136"><span class="lineNum">     136 </span>            : </a>
+<a name="137"><span class="lineNum">     137 </span>            :     /*//////////////////////////////////////////////////////////////</a>
+<a name="138"><span class="lineNum">     138 </span>            :                            ERC2771</a>
+<a name="139"><span class="lineNum">     139 </span>            :     //////////////////////////////////////////////////////////////*/</a>
+<a name="140"><span class="lineNum">     140 </span>            : </a>
+<a name="141"><span class="lineNum">     141 </span>            :     /**</a>
+<a name="142"><span class="lineNum">     142 </span>            :      * @dev This surcharge is not necessary if you do not use ERC2771</a>
+<a name="143"><span class="lineNum">     143 </span>            :      * @return sender The transaction sender, unwrapped from the ERC-2771 calldata suffix when the</a>
+<a name="144"><span class="lineNum">     144 </span>            :      * call came through the trusted forwarder.</a>
+<a name="145"><span class="lineNum">     145 </span>            :      */</a>
+<a name="146"><span class="lineNum">     146 </span><span class="lineCov">        966 :     function _msgSender() internal view virtual override(ERC2771Context, Context) returns (address sender) {</span></a>
+<a name="147"><span class="lineNum">     147 </span><span class="lineCov">        966 :         return ERC2771Context._msgSender();</span></a>
+<a name="148"><span class="lineNum">     148 </span>            :     }</a>
+<a name="149"><span class="lineNum">     149 </span>            : </a>
+<a name="150"><span class="lineNum">     150 </span>            :     /**</a>
+<a name="151"><span class="lineNum">     151 </span>            :      * @dev This surcharge is not necessary if you do not use ERC2771</a>
+<a name="152"><span class="lineNum">     152 </span>            :      * @return The calldata, stripped of the ERC-2771 sender suffix when the call came through the</a>
+<a name="153"><span class="lineNum">     153 </span>            :      * trusted forwarder.</a>
+<a name="154"><span class="lineNum">     154 </span>            :      */</a>
+<a name="155"><span class="lineNum">     155 </span><span class="lineNoCov">          0 :     function _msgData() internal view virtual override(ERC2771Context, Context) returns (bytes calldata) {</span></a>
+<a name="156"><span class="lineNum">     156 </span><span class="lineNoCov">          0 :         return ERC2771Context._msgData();</span></a>
+<a name="157"><span class="lineNum">     157 </span>            :     }</a>
+<a name="158"><span class="lineNum">     158 </span>            : </a>
+<a name="159"><span class="lineNum">     159 </span>            :     /**</a>
+<a name="160"><span class="lineNum">     160 </span>            :      * @dev This surcharge is not necessary if you do not use the MetaTxModule</a>
+<a name="161"><span class="lineNum">     161 </span>            :      * @return The length of the ERC-2771 calldata suffix holding the sender address.</a>
+<a name="162"><span class="lineNum">     162 </span>            :      */</a>
+<a name="163"><span class="lineNum">     163 </span><span class="lineCov">        966 :     function _contextSuffixLength() internal view virtual override(ERC2771Context, Context) returns (uint256) {</span></a>
+<a name="164"><span class="lineNum">     164 </span><span class="lineCov">        966 :         return ERC2771Context._contextSuffixLength();</span></a>
+<a name="165"><span class="lineNum">     165 </span>            :     }</a>
+<a name="166"><span class="lineNum">     166 </span>            : }</a>
 </pre>
       </td>
     </tr>

@@ -35,7 +35,11 @@ Reference: [keepachangelog.com/en/1.1.0/](https://keepachangelog.com/en/1.1.0/)
 > forge fmt
 
 - Documentation
-  - Perform a code coverage and update the files in the corresponding directory [./doc/general/test/coverage](./doc/general/test/coverage)
+  - Perform a code coverage and update the files in the corresponding directory [./doc/coverage](./doc/coverage)
+    (`forge coverage --report lcov --report-file /tmp/lcov-full.info`, then
+    `lcov --extract /tmp/lcov-full.info 'src/*' -o doc/coverage/lcov.info` and
+    `genhtml doc/coverage/lcov.info --output-directory doc/coverage/coverage`; the `src/*` filter keeps
+    `test/` and `script/` out of the published figure)
   - Perform an audit with several audit tools (Aderyn and Slither), update the report in the corresponding directory  [./doc/audits/tools](./doc/audits/tools)
   - Update surya doc by running the 3 scripts in [./doc/script](./doc/script)
   
