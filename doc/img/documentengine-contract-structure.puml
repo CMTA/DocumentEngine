@@ -1,0 +1,66 @@
+@startuml
+title Contract structure — two deployments over one shared base
+
+skinparam shadowing false
+skinparam linetype ortho
+skinparam class {
+  BackgroundColor #FDFDFD
+  BorderColor #666666
+}
+hide empty members
+hide circle
+
+abstract class DocumentEngineBase <<abstract>> #EEF5FF {
+  document storage + all ERC-1643 logic
+  --
+  {abstract} _authorizeDocumentManagement()
+  {abstract} _authorizeBoundTokenDocumentManagement()
+}
+
+abstract class TokenBindingModule <<abstract>> #EEF5FF {
+  binding allowlist (ITokenBinding)
+  --
+  implements _authorizeBoundTokenDocumentManagement()
+}
+
+abstract class VersionModule <<abstract>> #EEF5FF {
+  ERC-8303 version()
+}
+
+class DocumentEngine #FFF7E6 {
+  DOCUMENT_MANAGER_ROLE
+  --
+  implements _authorizeDocumentManagement()
+}
+
+class DocumentEngineOwnable #FFF7E6 {
+  owner
+  --
+  implements _authorizeDocumentManagement()
+}
+
+together {
+  class AccessControlEnumerable
+  class Ownable2Step
+  class ERC2771Context
+}
+
+DocumentEngineBase <|-- TokenBindingModule
+
+TokenBindingModule <|-- DocumentEngine
+VersionModule <|-- DocumentEngine
+AccessControlEnumerable <|-- DocumentEngine
+ERC2771Context <|-- DocumentEngine
+
+TokenBindingModule <|-- DocumentEngineOwnable
+VersionModule <|-- DocumentEngineOwnable
+Ownable2Step <|-- DocumentEngineOwnable
+ERC2771Context <|-- DocumentEngineOwnable
+
+legend bottom
+  blue = shared by both deployments   ·   orange = the deployment itself   ·   white = OpenZeppelin
+  A deployment supplies **only** the access-control hook (_authorizeDocumentManagement),
+  which is the single point where the two differ.
+endlegend
+
+@enduml

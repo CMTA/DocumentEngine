@@ -2,12 +2,9 @@
 
 > This project has not been audited yet, please use at your own risk. For any questions, please contact [admin@cmta.ch](mailto:admin@cmta.ch).
 
-This is the complete reference. For a short introduction — what the engine is, how to wire it to a
-CMTAT token, and how to deploy it — start at the [root `README.md`](../README.md).
+The `DocumentEngine` is an external contract to manage documents through [*ERC-1643*](https://github.com/ethereum/EIPs/issues/1643), a proposed standard for managing documents on-chain. [ERC-1400](https://github.com/ethereum/eips/issues/1411) from Polymath builds on it.
 
-The `DocumentEngine` is an external contract to manage documents through [*ERC-1643*](https://github.com/ethereum/EIPs/issues/1643), a standard proposition to manage document on-chain. This standard is notably used by [ERC-1400](https://github.com/ethereum/eips/issues/1411) from Polymath. 
-
-The documentEngine is planned to be used by other smart contract,e.g CMTAT token, to store documents on their behalf.
+The DocumentEngine is meant to be used by other smart contracts, e.g. a CMTAT token, to store documents on their behalf.
 
 The ERC-1643 defines a document with three attributes:
 
@@ -34,10 +31,10 @@ interface IERC1643 {
 
 > **Note — `getDocument` returns flat values.** CMTAT `v3.3.0-rc1` briefly returned a `Document`
 > struct here; `v3.3.0-rc2` restored the three flat return values mandated by the ERC-1643 ABI, and
-> this engine follows. The distinction matters because return types are not part of a function
-> signature: both shapes have the same selector and the same `type(IERC1643).interfaceId`, so a
-> struct return is undetectable through ERC-165 and a consumer built from the specification ABI
-> would silently decode it as garbage. The `Document` struct is kept internally for storage only.
+> this engine follows. Return types are not part of a function signature, so both shapes share the
+> same selector and the same `type(IERC1643).interfaceId`: a struct return is undetectable through
+> ERC-165, and a consumer built from the specification ABI decodes it as garbage without reverting.
+> The `Document` struct is kept internally for storage only, and
 > `testGetDocumentReturnsFlatErc1643Abi` pins the wire format.
 
 Using an external contract for your smart contract provides two advantages:
@@ -174,16 +171,28 @@ constructor. To use this engine, a CMTAT token relies on the
 `DocumentEngineModule` and is wired at runtime with `setDocumentEngine(engine)`;
 reads/writes are then forwarded to the engine keyed by the token address.
 
-#### Architecture
+#### Topology
 
 One engine serves a whole fleet of tokens. Each token keeps its own document
 namespace, keyed by its address, and can never reach another token's:
 
-![DocumentEngine architecture with CMTAT tokens](./img/cmtat-integration-architecture.png)
+![Topology: one engine, many subjects](./img/cmtat-integration-architecture.png)
 
 _Diagram source: `doc/img/cmtat-integration-architecture.puml`._
 
-#### Wiring and call flow
+#### Writing a document
+
+![Writing a document through a CMTAT token](./img/cmtat-write-simple.png)
+
+_Diagram source: `doc/img/cmtat-write-simple.puml`._
+
+#### Reading a document
+
+![Reading a document from a CMTAT token or the engine](./img/cmtat-read-simple.png)
+
+_Diagram source: `doc/img/cmtat-read-simple.puml`._
+
+#### Wiring and the full call flow
 
 Two independent steps wire a token to the engine, and they are easy to get half
 right: `bindToken(token)` on the **engine** authorises the token to use the
@@ -192,8 +201,9 @@ single-argument ERC-1643 functions, while `setDocumentEngine(engine)` on the
 nowhere to send; wire without binding and the forwarded call reverts
 `NotBoundToken`.
 
-The diagram below also shows the emission split that makes the pair conformant —
-and the one case where it does not hold, the admin path:
+The diagram below expands the two above with the wiring steps, every revert
+branch, and the admin path — the one case where the emission split does not
+hold:
 
 ![DocumentEngine and CMTAT call sequence](./img/cmtat-integration-sequence.png)
 
@@ -224,6 +234,10 @@ namespace isolation that goes with it.
 ## Architecture
 
 The engine is split into two contracts (CMTAT module/deployment pattern):
+
+![Contract structure: two deployments over one shared base](./img/documentengine-contract-structure.png)
+
+_Diagram source: `doc/img/documentengine-contract-structure.puml`._
 
 - **`DocumentEngineBase`** (abstract) — holds the document storage and all the
   ERC-1643 document-management functions, plus the `onlyDocumentManager` /

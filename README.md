@@ -16,7 +16,7 @@ Why use an external engine rather than storing documents in the token:
 - lets one operator manage documents for many tokens;
 - documents can be updated without touching the token.
 
-**Full documentation: [`doc/DOCUMENTATION.md`](./doc/DOCUMENTATION.md).**
+**Full documentation: [`doc/README.md`](./doc/README.md).**
 
 ## Quick start
 
@@ -85,7 +85,7 @@ token.setDocument(bytes32("prospectus"), "ipfs://...", keccak256(bytes(content))
 ![Reading a document from a CMTAT token or the engine](./doc/img/cmtat-read-simple.png)
 
 For the full flow — the wiring steps, every revert branch, and the admin path — see
-[the detailed sequence](./doc/DOCUMENTATION.md#integration-with-cmtat) in the documentation.
+[the detailed sequence](./doc/README.md#integration-with-cmtat) in the documentation.
 
 ## Two things integrators must know
 
@@ -119,7 +119,7 @@ Use a keystore or hardware wallet for real deployments, not a raw private key.
 
 | | |
 | --- | --- |
-| Full documentation | [`doc/DOCUMENTATION.md`](./doc/DOCUMENTATION.md) |
+| Full documentation | [`doc/README.md`](./doc/README.md) |
 | Security overview & open items | [`doc/audits/AUDIT_OVERVIEW.md`](./doc/audits/AUDIT_OVERVIEW.md) |
 | Static analysis & code-quality reports | [`doc/audits/tools/`](./doc/audits/tools) |
 | Release history | [`CHANGELOG.md`](./CHANGELOG.md) |
@@ -127,7 +127,7 @@ Use a keystore or hardware wallet for real deployments, not a raw private key.
 | Diagrams (Surya, PlantUML) | [`doc/surya/`](./doc/surya), [`doc/img/`](./doc/img) |
 
 Current version `0.4.0`, built against CMTAT `v3.3.0-rc3` and OpenZeppelin `v5.7.0` — see the
-[version compatibility matrix](./doc/DOCUMENTATION.md#version-compatibility), since this engine is
+[version compatibility matrix](./doc/README.md#version-compatibility), since this engine is
 supported only against the CMTAT release it was built for.
 
 ## Intellectual property

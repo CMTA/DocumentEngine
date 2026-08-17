@@ -47,7 +47,7 @@ Reference: [keepachangelog.com/en/1.1.0/](https://keepachangelog.com/en/1.1.0/)
 
 ## v0.4.0
 
-Targets **CMTAT `v3.3.0-rc3`** — see the [compatibility matrix](./doc/DOCUMENTATION.md#version-compatibility)
+Targets **CMTAT `v3.3.0-rc3`** — see the [compatibility matrix](./doc/README.md#version-compatibility)
 for which CMTAT release each version of this engine is built against.
 
 > **Versioning note.** `getDocument` changes shape relative to `v0.3.0`, which the convention above
@@ -74,7 +74,7 @@ for which CMTAT release each version of this engine is built against.
     (8436 bytes; only the CBOR metadata trailer moves, because the source text of
     `AccessControlEnumerable.sol` changed), and `DocumentEngineOwnable`'s bytecode is unchanged
     including metadata.
-  - Add [CMTA/RuleEngine](https://github.com/CMTA/RuleEngine) [`v3.0.0-rc5`](https://github.com/CMTA/RuleEngine/releases/tag/v3.0.0-rc5) as a submodule (binding-pattern reference; see [Why not reuse RuleEngine's compliance module?](./doc/DOCUMENTATION.md#why-not-reuse-ruleengines-erc-3643-compliance-module) — its `ERC3643ComplianceExtendedModule` is not reused)
+  - Add [CMTA/RuleEngine](https://github.com/CMTA/RuleEngine) [`v3.0.0-rc5`](https://github.com/CMTA/RuleEngine/releases/tag/v3.0.0-rc5) as a submodule (binding-pattern reference; see [Why not reuse RuleEngine's compliance module?](./doc/README.md#why-not-reuse-ruleengines-erc-3643-compliance-module) — its `ERC3643ComplianceExtendedModule` is not reused)
   - `foundry.lock` now records every submodule by tag; all five entries had gone stale since `v0.3.0`.
 - **Toolchain**: bump Solidity `0.8.26` → `0.8.34` and `evm_version` `cancun` → `prague` to match CMTAT v3 (CMTAT uses `require(cond, CustomError())`, which needs solc ≥ 0.8.27)
 - **Code-quality review** (`doc/audits/tools/v0.4.0/claude/CLAUDE_ANALYSIS.md`) — 14 findings, none a vulnerability.
