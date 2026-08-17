@@ -6,7 +6,7 @@
 > | Tool version | `aderyn 0.6.5` |
 > | Scope | `src/` only — 9 files, 307 nSLOC. **Mocks/tests excluded** (this project has no `src/mocks`; its mocks live in `test/`, which Aderyn does not scan). |
 > | Result | **0 High · 6 Low · 0 Info** |
-> | Verdict | **Nothing to fix.** No finding is exploitable. One (L-5 at `DocumentEngineBase.sol:238`) independently corroborates a known gas/scalability item already tracked as `IMPROVEMENT.md` item 4. |
+> | Verdict | **Nothing to fix.** No finding is exploitable. One (L-5 at `DocumentEngineBase.sol:265`) independently corroborates a known gas/scalability item already tracked as `OPEN-4` in `AUDIT_OVERVIEW.md`. |
 >
 > | ID | Detector | Sev | Instances | Assessment |
 > | --- | --- | --- | --- | --- |
@@ -14,7 +14,7 @@
 > | L-2 | Unspecific Solidity Pragma | Low | 9 | **By design** — the caret is deliberate; the deployed compiler is pinned in `foundry.toml`. Now `^0.8.24`, the true `src/` floor |
 > | L-3 | PUSH0 Opcode | Low | 9 | **Environment** — `evm_version = prague`; only relevant on chains without PUSH0 |
 > | L-4 | Loop Contains `require`/`revert` | Low | 4 | **By design** — batch operations are deliberately all-or-nothing |
-> | L-5 | Costly operations inside loop | Low | 5 | **By design** (4 batch loops) + **1 known item** — `_removeDocumentName` is O(n), see `IMPROVEMENT.md` item 4 |
+> | L-5 | Costly operations inside loop | Low | 5 | **By design** (4 batch loops) + **1 known item** — `_removeDocumentName` is O(n), see `OPEN-4` in `AUDIT_OVERVIEW.md` |
 > | L-6 | Unchecked Return | Low | 1 | **False positive** — `_grantRole` in a constructor on a fresh contract cannot return `false` |
 >
 > Re-run after the code-quality review (`../claude/CLAUDE_ANALYSIS.md`). **Unchanged**: same six

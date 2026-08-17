@@ -1,13 +1,6 @@
 # DocumentEngine  (ERC-1643)
 
 > This project has not been audited yet, please use at your own risk. For any questions, please contact [admin@cmta.ch](mailto:admin@cmta.ch).
->
-> **Known open items** are tracked in **[`IMPROVEMENT.md`](./IMPROVEMENT.md)**. None is an
-> exploitable vulnerability, but integrators should read it before relying on the engine — in
-> particular item 2 (a write sent straight to the engine leaves an ERC-1643 subject's own events
-> unemitted) and item 1 (one engine instance serves **one trust domain**: `DOCUMENT_MANAGER_ROLE`
-> covers every subject, so unrelated issuers should each deploy their own engine rather than share
-> one).
 
 The `DocumentEngine` is an external contract to manage documents through [*ERC-1643*](https://github.com/ethereum/EIPs/issues/1643), a standard proposition to manage document on-chain. This standard is notably used by [ERC-1400](https://github.com/ethereum/eips/issues/1411) from Polymath. 
 
@@ -148,12 +141,13 @@ not honor, enlarging the ABI and inviting integrators to wire it where a real
 compliance contract is expected.
 
 The binding concept we actually need is tiny — "is this caller a token allowed to
-manage its own documents?" — so we implement just that: a `TOKEN_CONTRACT_ROLE`
-in the role-based `DocumentEngine` (exactly the RuleEngine *binding* mechanism,
-which is role-based, not the compliance module) and an owner-managed allowlist in
-`DocumentEngineOwnable`. This keeps the engine's surface honest and minimal while
-still mirroring the RuleEngine binding pattern. The RuleEngine submodule is kept
-as a reference for that pattern.
+manage its own documents?" — so we implement just that: a **single allowlist** in
+`TokenBindingModule`, shared by both deployments and gated by each one's
+document-management hook. It is deliberately **not** a role: there is no
+`TOKEN_CONTRACT_ROLE`, and `DocumentEngineOwnable` uses the same allowlist rather
+than a separate owner-managed one. This keeps the engine's surface honest and
+minimal while still mirroring the RuleEngine binding pattern; the RuleEngine
+submodule is kept as a reference for that pattern.
 
 ### Events
 
@@ -176,6 +170,51 @@ Since CMTAT v3, the shipped standalone tokens store documents on-chain
 constructor. To use this engine, a CMTAT token relies on the
 `DocumentEngineModule` and is wired at runtime with `setDocumentEngine(engine)`;
 reads/writes are then forwarded to the engine keyed by the token address.
+
+#### Architecture
+
+One engine serves a whole fleet of tokens. Each token keeps its own document
+namespace, keyed by its address, and can never reach another token's:
+
+![DocumentEngine architecture with CMTAT tokens](./doc/img/cmtat-integration-architecture.png)
+
+_Diagram source: `doc/img/cmtat-integration-architecture.puml`._
+
+#### Wiring and call flow
+
+Two independent steps wire a token to the engine, and they are easy to get half
+right: `bindToken(token)` on the **engine** authorises the token to use the
+single-argument ERC-1643 functions, while `setDocumentEngine(engine)` on the
+**token** tells it where to forward. Bind without wiring and the token has
+nowhere to send; wire without binding and the forwarded call reverts
+`NotBoundToken`.
+
+The diagram below also shows the emission split that makes the pair conformant —
+and the one case where it does not hold, the admin path:
+
+![DocumentEngine and CMTAT call sequence](./doc/img/cmtat-integration-sequence.png)
+
+_Diagram source: `doc/img/cmtat-integration-sequence.puml`._
+
+A minimal integration:
+
+```solidity
+// 1. authorise the token on the engine (engine's document manager)
+documentEngine.bindToken(address(token));
+
+// 2. point the token at the engine (token's document manager)
+token.setDocumentEngine(documentEngine);
+
+// 3. the token now manages its own documents through the standard ERC-1643 calls,
+//    and reads are forwarded to the engine keyed by the token address
+token.setDocument(bytes32("prospectus"), "ipfs://...", keccak256(bytes(content)));
+```
+
+Both halves are covered by the test suite against real CMTAT code:
+`testCanReturnCMTATDocument` wires `CMTATDocumentEngineMock` (built on CMTAT's
+`DocumentEngineModule`) with `setDocumentEngine` and reads through it, and
+`testBoundTokenCanManageOwnDocument` exercises the bound-token write and the
+namespace isolation that goes with it.
 
 
 
@@ -487,7 +526,8 @@ slither . --checklist --filter-paths "node_modules,lib,test,forge-std,mocks" \
 
 > **Static-analysis output is leads, not findings.** Every dismissal in the feedback files was
 > verified against the cited `file:line`, and neither tool can see the specification-level issues
-> that matter most here — those are in [`IMPROVEMENT.md`](./IMPROVEMENT.md).
+> that matter most here — those are tracked under *Known open items* in
+> [`AUDIT_OVERVIEW.md`](./doc/audits/AUDIT_OVERVIEW.md).
 
 ### Surya
 

@@ -1,0 +1,74 @@
+@startuml
+title DocumentEngine — architecture with CMTAT tokens\nOne engine stores documents for many subjects
+
+skinparam componentStyle rectangle
+skinparam shadowing false
+skinparam defaultTextAlignment center
+skinparam linetype ortho
+skinparam component {
+  BackgroundColor #FDFDFD
+  BorderColor #666666
+}
+skinparam database {
+  BackgroundColor #EEF5FF
+  BorderColor #666666
+}
+
+package "Token side — one contract per issuance" as TokenSide {
+  component "CMTAT token A\n<size:11>(subject)</size>" as TokenA
+  component "CMTAT token B\n<size:11>(subject)</size>" as TokenB
+}
+
+package "Engine side — one deployment serves the whole fleet" as EngineSide {
+  component "**DocumentEngine**\n<size:11>AccessControlEnumerable</size>" as Engine
+  component "**DocumentEngineOwnable**\n<size:11>Ownable2Step</size>" as EngineOwnable
+
+  package "shared modules" as Modules {
+    component "DocumentEngineBase\n<size:11>document logic + storage</size>" as Base
+    component "TokenBindingModule\n<size:11>binding allowlist</size>" as Binding
+    component "VersionModule\n<size:11>ERC-8303 version()</size>" as Version
+  }
+
+  database "**_documents**\n<size:11>[subject][name] -> Document</size>\n**_documentNames**\n<size:11>[subject] -> bytes32[]</size>" as Store
+}
+
+actor "Document manager" as Operator
+
+Engine -[hidden]right- EngineOwnable
+
+TokenA --> Engine : **bound-token path**\n<size:10>subject = msg.sender</size>
+TokenB --> Engine
+
+Operator --> Engine : **admin path**\n<size:10>subject is an argument</size>
+
+Engine --|> Base
+Engine --|> Binding
+Engine --|> Version
+EngineOwnable --|> Base
+EngineOwnable --|> Binding
+EngineOwnable --|> Version
+
+Base --> Store : reads / writes\nkeyed by subject
+
+note bottom of TokenSide
+  Each token embeds CMTAT's **DocumentEngineModule**:
+  setDocumentEngine(engine) once, then setDocument /
+  removeDocument / getDocument are **forwarded** to the
+  engine. The token re-emits DocumentUpdated and
+  DocumentRemoved on its **own** address.
+end note
+
+note right of Binding
+  A token may use the single-argument
+  ERC-1643 functions only while bound.
+  Not a role — one allowlist, shared
+  by both deployments.
+end note
+
+note right of Store
+  A subject can only ever touch its own
+  namespace: the bound-token path passes
+  _msgSender() as the subject.
+end note
+
+@enduml

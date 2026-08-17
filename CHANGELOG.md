@@ -178,7 +178,7 @@ for which CMTAT release each version of this engine is built against.
 ### Added
 
 - **Bound-token document management**: implement the now-mandatory `IERC1643.setDocument(name, uri, hash)` and `removeDocument(name)`, gated by the `onlyBoundToken` modifier and scoped to the caller (`_msgSender()`) own namespace. A token bound with `bindToken(token)` (see the shared binding module below) manages its own documents and can never affect another contract's documents. The admin overloads (explicit `address`, `DOCUMENT_MANAGER_ROLE`) are unchanged, so both systems work side by side. (RuleEngine's `ERC3643ComplianceExtendedModule` was evaluated for the binding but intentionally not reused — see the README.)
-- **Optional multi-token events**: alongside the standard `IERC1643` events, the engine now also emits `DocumentUpdatedForContract` / `DocumentRemovedForContract`, which carry the `smartContract` (token) address so off-chain indexers can tell which contract a document belongs to during multi-contract operations. See [`ERC-1643-proposition.md`](./doc/ERCSpecification/ERC-1643-proposition.md) for the proposed optional standard extension.
+- **Optional multi-token events**: alongside the standard `IERC1643` events, the engine now also emits `DocumentUpdatedForContract` / `DocumentRemovedForContract`, which carry the `smartContract` (token) address so off-chain indexers can tell which contract a document belongs to during multi-contract operations. See [`erc-draft_multi_document_management.md`](./doc/ERCSpecification/erc-draft_multi_document_management.md) for the proposed optional standard extension.
 - **Flexible access control (CMTAT / RuleEngine pattern)**: the restricted functions use the `onlyDocumentManager` / `onlyBoundToken` modifiers, which delegate to overridable `internal virtual` authorization hooks `_authorizeDocumentManagement()` / `_authorizeBoundTokenDocumentManagement()`. Each deployment implements the admin hook (`DOCUMENT_MANAGER_ROLE` or `owner`); the bound-token hook is implemented once by `TokenBindingModule` (the shared allowlist). This separates the document-management implementation from the authorization logic.
 - **Split into a base contract and a deployment contract** (CMTAT module/deployment pattern): the document-management logic and storage now live in the new abstract `DocumentEngineBase` (with abstract `_authorize*` hooks), while `DocumentEngine` is the deployment contract that defines the access control (`AccessControl`, the concrete hooks and `hasRole`) and the ERC-2771 wiring. The deployable `DocumentEngine` API and behavior are unchanged.
 - **Version module implementing ERC-8303**: the version is now exposed through a dedicated `VersionModule` (`src/modules/VersionModule.sol`) implementing the `IERC8303` interface (`src/interfaces/IERC8303.sol`). It adds a standard `version()` view function (in addition to the existing public `VERSION` constant) and advertises ERC-8303 via ERC-165 (`supportsInterface(0x54fd4d50) == true`). `DocumentEngine` combines the module's `supportsInterface` with the access-control base.
@@ -213,9 +213,10 @@ Aligned the implementation with the updated [ERC-1643](./doc/ERCSpecification/er
   subject-initiated call topology is fully conformant with the multi-subject draft's *Emission
   Responsibility* rules. The **admin path remains non-conformant by construction** — a write sent
   straight to the engine has no execution point in the subject, so the subject emits nothing.
-  See [`IMPROVEMENT.md`](./IMPROVEMENT.md) item 2.
-- Open items are tracked in [`IMPROVEMENT.md`](./IMPROVEMENT.md): the most severe is admin-path call
-  topology (item 2); also authorization granularity (item 1) and enumeration cost (item 4).
+  See `OPEN-2` in [`AUDIT_OVERVIEW.md`](./doc/audits/AUDIT_OVERVIEW.md).
+- Open items are tracked under *Known open items* in
+  [`AUDIT_OVERVIEW.md`](./doc/audits/AUDIT_OVERVIEW.md): the most severe is admin-path call topology
+  (`OPEN-2`); also authorization granularity (`OPEN-1`) and enumeration cost (`OPEN-4`).
 - CMTAT v3 no longer ships a *standalone* token that consumes an external document engine through its constructor; the standard token stores documents on-chain (`DocumentERC1643Module`). External-engine integration now goes through CMTAT's `DocumentEngineModule` (`setDocumentEngine`). The test suite was updated to exercise this real integration path via a minimal token built on `DocumentEngineModule`.
 
 ## v0.3.0

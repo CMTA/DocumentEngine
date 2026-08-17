@@ -1,0 +1,100 @@
+@startuml
+title DocumentEngine + CMTAT — wiring, writes, and who emits what
+
+skinparam shadowing false
+skinparam sequenceMessageAlign left
+skinparam ParticipantPadding 12
+skinparam BoxPadding 12
+
+actor "Engine\ndocument manager" as Operator
+actor "Token\ndocument manager" as TokenAdmin
+participant "CMTAT token\n<size:11>DocumentEngineModule</size>" as Token
+participant "DocumentEngine\n<size:11>DocumentEngineBase</size>\n<size:11>+ TokenBindingModule</size>" as Engine
+
+== 1. Wiring (once) ==
+
+Operator -> Engine : bindToken(token)
+activate Engine
+Engine -> Engine : _authorizeDocumentManagement()
+Engine -> Engine : _setTokenBinding(token, true)
+Engine --> Operator : emit **TokenBindingSet**(token, true)\n<size:10>on the engine — only on a real change</size>
+deactivate Engine
+
+TokenAdmin -> Token : setDocumentEngine(engine)
+activate Token
+Token --> TokenAdmin : emit **DocumentEngine**(engine)\n<size:10>on the token</size>
+deactivate Token
+
+note over Token, Engine
+  Both steps are required and are independent.
+  Binding without setDocumentEngine → the token has nowhere to forward to.
+  setDocumentEngine without binding → the forwarded call reverts **NotBoundToken**.
+end note
+
+== 2. Bound-token write — the path integrators use ==
+
+TokenAdmin -> Token : setDocument(name, uri, hash)
+activate Token
+Token -> Token : _authorizeDocumentManagement()\n<size:10>token-side access control</size>
+
+alt no engine configured
+  Token --> TokenAdmin : revert **CMTAT_DocumentEngineModule_NoDocumentEngine**
+else engine configured
+  Token -> Engine : setDocument(name, uri, hash)\n<size:10>msg.sender = token</size>
+  activate Engine
+  Engine -> Engine : _checkTokenBound()
+
+  alt token not bound
+    Engine --> Token : revert **NotBoundToken**(token)
+  else name == 0
+    Engine --> Token : revert **ERC1643InvalidName**()
+  else accepted
+    Engine -> Engine : _setDocument(subject = _msgSender(), ...)\n<size:10>writes _documents[token][name]</size>
+    Engine --> Engine : emit **DocumentUpdatedForSubject**(token, name, uri, hash)\n<size:10>on the ENGINE — carries the subject address</size>
+  end
+  deactivate Engine
+
+  Token --> TokenAdmin : emit **DocumentUpdated**(name, uri, hash)\n<size:10>on the TOKEN — the address ERC-1643 consumers watch</size>
+end
+deactivate Token
+
+note over Token, Engine #EEF5FF
+  **Emission responsibility.** The engine is a shared multi-subject manager, so it emits
+  only the address-carrying `*ForSubject` events — the base ERC-1643 events carry no
+  address and could not say which subject changed. The token re-emits the base event on
+  its own address. Together the pair is conformant.
+end note
+
+== 3. Admin write — same storage, one event short ==
+
+Operator -> Engine : setDocument(**subject**, name, uri, hash)
+activate Engine
+Engine -> Engine : _authorizeDocumentManagement()
+Engine -> Engine : _setDocument(subject, ...)
+Engine --> Operator : emit **DocumentUpdatedForSubject**(subject, ...)
+deactivate Engine
+
+note over Token, Engine #FDEEEE
+  The subject is **never called**, so it emits nothing: anyone subscribed to the token's
+  address sees no change. Tracked as **OPEN-2** in AUDIT_OVERVIEW.md. Use the bound-token
+  path when consumers watch the token; use the admin path for bulk/backfill operations.
+end note
+
+== 4. Read ==
+
+participant "Consumer" as Consumer
+Consumer -> Token : getDocument(name)
+activate Token
+Token -> Engine : getDocument(name)\n<size:10>msg.sender = token</size>
+Engine --> Token : (uri, hash, lastModified)\n<size:10>from _documents[token][name]</size>
+Token --> Consumer : (uri, hash, lastModified)
+deactivate Token
+
+note over Consumer, Engine
+  Read through the **token**, or use the engine's address-scoped
+  getDocument(subject, name). Calling the engine's single-argument
+  getDocument(name) directly reads the **caller's own** namespace —
+  empty, with no revert.
+end note
+
+@enduml

@@ -135,7 +135,7 @@ Measured on a subject holding 20 documents, toggled in place, same harness both 
 | target at index 19 (full scan) | 87 250 | 85 050 | **−2200** |
 | target at index 0 (early exit) | 28 397 | 28 002 | −395 |
 
-≈116 gas per iteration. This is the function `IMPROVEMENT.md` item 4 already flags as the O(n)
+≈116 gas per iteration. This is the function `OPEN-4` in `AUDIT_OVERVIEW.md` already flags as the O(n)
 scalability hotspot, and `batchRemoveDocuments` compounds it to O(n·m), so the saving multiplies.
 
 **Verdict: implemented.** Note this does not change the complexity — it lowers the constant. The
@@ -204,7 +204,7 @@ and a future refactor should preserve it.
 
 `DocumentEngine.sol:39` / `DocumentEngineOwnable.sol:31` pass `forwarderIrrevocable` to
 `ERC2771Context` and emit nothing, so a log-only indexer never sees the value. That matters more than
-usual here because the forwarder can act as any bound subject (`IMPROVEMENT.md` item 5).
+usual here because the forwarder can act as any bound subject (`OPEN-5` in `AUDIT_OVERVIEW.md`).
 
 Against that: the value is `immutable`, so it can never change and there is no sequence to
 reconstruct; it is publicly readable — `trustedForwarder()` (`0x7da0a877`) and
