@@ -384,19 +384,20 @@ The toolchain includes the following components, where the versions are the late
 
 ### Version compatibility
 
-Each release of this engine is built and tested against one CMTAT release. CMTAT's `IERC1643` is not stable across its own release candidates, so pairing a version of this engine with a different CMTAT than the one below is not supported.
+Each release of this engine is tested against one CMTAT release and is supported across a **verified, bounded range** of them. The range is deliberately closed at both ends rather than written as `≥ minimum`: CMTAT's `IERC1643` has changed shape *within* a single minor line — `getDocument` returned a `Document` struct in `v3.0.0`, `v3.1.0`, `v3.2.0` and `v3.3.0-rc1`, and only became the three flat values at `v3.3.0-rc2` — so a future CMTAT release cannot be assumed compatible until it has been built and tested against.
 
-| DocumentEngine | CMTAT | Solidity / `evm_version` | OpenZeppelin | `getDocument` returns |
-| -------------- | ----- | ------------------------ | ------------ | --------------------- |
-| **v0.4.0** (current) | [v3.3.0-rc3](https://github.com/CMTA/CMTAT/releases/tag/v3.3.0-rc3) | `0.8.34` / `prague` | v5.7.0 | `(string, bytes32, uint256)` |
-| v0.3.0 | [v2.5.0-rc0](https://github.com/CMTA/CMTAT/releases/tag/v2.5.0-rc0) | `0.8.26` / `cancun` | v5.0.2 | `(string, bytes32, uint256)` |
-| v0.2.0 | [v2.5.0-rc0](https://github.com/CMTA/CMTAT/releases/tag/v2.5.0-rc0) | `0.8.26` / `cancun` | v5.0.2 | `(string, bytes32, uint256)` |
-| v0.1.0 | [v2.5.0-rc0](https://github.com/CMTA/CMTAT/releases/tag/v2.5.0-rc0) | `0.8.26` / `cancun` | v5.0.2 | `(string, bytes32, uint256)` |
+| DocumentEngine | Compatible CMTAT | Tested against | Solidity / `evm_version` | OpenZeppelin | `getDocument` returns |
+| -------------- | ---------------- | -------------- | ------------------------ | ------------ | --------------------- |
+| **v0.4.0** (current) | `v3.3.0-rc2` – [`v3.3.0-rc3`](https://github.com/CMTA/CMTAT/releases/tag/v3.3.0-rc3) | v3.3.0-rc3 | `0.8.34` / `prague` | v5.7.0 | `(string, bytes32, uint256)` |
+| v0.3.0 | [v2.5.0-rc0](https://github.com/CMTA/CMTAT/releases/tag/v2.5.0-rc0) (range not established) | v2.5.0-rc0 | `0.8.26` / `cancun` | v5.0.2 | `(string, bytes32, uint256)` |
+| v0.2.0 | [v2.5.0-rc0](https://github.com/CMTA/CMTAT/releases/tag/v2.5.0-rc0) (range not established) | v2.5.0-rc0 | `0.8.26` / `cancun` | v5.0.2 | `(string, bytes32, uint256)` |
+| v0.1.0 | [v2.5.0-rc0](https://github.com/CMTA/CMTAT/releases/tag/v2.5.0-rc0) (range not established) | v2.5.0-rc0 | `0.8.26` / `cancun` | v5.0.2 | `(string, bytes32, uint256)` |
 
 Notes on the CMTAT v2 → v3 jump at `v0.4.0`:
 
-- **CMTAT `v3.3.0-rc1` is not supported.** It is the one release in which `IERC1643.getDocument` returns a `Document` struct rather than the three flat values; `v3.3.0-rc2` reverted that and `v3.3.0-rc3` keeps the flat return. rc1 also does not declare `ERC1643InvalidName` / `ERC1643MissingDocument` on the interface. Building this engine against rc1 fails to compile.
-- **`v3.3.0-rc2` → `v3.3.0-rc3` is a no-op for this engine.** The only change to the document surface (`draft-IERC1643.sol`, `IDocumentEngine.sol`, `DocumentEngineModule.sol`, `DocumentERC1643Module.sol`) is a pragma bump from `^0.8.20` to `^0.8.24`; the interface, the errors and the `getDocument` return shape are unchanged.
+- **No CMTAT below `v3.3.0-rc2` is supported, including the v3.0–v3.2 finals.** `v3.0.0`, `v3.1.0` and `v3.2.0` return a `Document` struct from `IERC1643.getDocument` and declare neither `ERC1643InvalidName` nor `ERC1643MissingDocument` on the interface, so this engine does not compile against them; they also predate CMTAT's token-side `DocumentEngineModule`, which first appears at `v3.3.0-rc1`, so a token on those versions has no supported way to consume an external engine at all.
+- **CMTAT `v3.3.0-rc1` is not supported either.** It is the one release in which `IERC1643.getDocument` returns a `Document` struct rather than the three flat values; `v3.3.0-rc2` reverted that and `v3.3.0-rc3` keeps the flat return. rc1 also does not declare `ERC1643InvalidName` / `ERC1643MissingDocument` on the interface. Building this engine against rc1 fails to compile.
+- **`v3.3.0-rc2` → `v3.3.0-rc3` is a no-op for this engine**, which is why the supported range spans both. The only change to the document surface (`draft-IERC1643.sol`, `IDocumentEngine.sol`, `DocumentEngineModule.sol`, `DocumentERC1643Module.sol`) is a pragma bump from `^0.8.20` to `^0.8.24`; the interface, the errors and the `getDocument` return shape are unchanged. Verified by building and running the full suite against rc2 as well as rc3 — 74/74 in both.
 - The `IERC1643` import path moved in CMTAT v3, from `CMTAT/interfaces/engine/draft-IERC1643.sol` to `CMTAT/interfaces/tokenization/draft-IERC1643.sol`.
 - Document names became `bytes32` in CMTAT v3 (they were `string` up to v2.5.0-rc0).
 - Two different Solidity floors apply from `v0.4.0` on, and the sources declare the lower of them:

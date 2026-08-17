@@ -107,7 +107,14 @@ The forwarder enables ERC-2771 gasless calls and is **immutable**; pass `address
 | Reporting a vulnerability | [`SECURITY.md`](./SECURITY.md) |
 | Diagrams (Surya, PlantUML) | [`doc/surya/`](./doc/surya), [`doc/img/`](./doc/img) |
 
-Current version `0.4.0`, built against CMTAT `v3.3.0-rc3` and OpenZeppelin `v5.7.0` — see the [version compatibility matrix](./doc/README.md#version-compatibility), since this engine is supported only against the CMTAT release it was built for.
+## Compatibility
+
+| DocumentEngine | Compatible CMTAT | Tested against |
+| -------------- | ---------------- | -------------- |
+| **v0.4.0** (current) | `v3.3.0-rc2` – `v3.3.0-rc3` | v3.3.0-rc3 |
+| v0.3.0 and earlier | v2.5.0-rc0 | v2.5.0-rc0 |
+
+The range is closed at both ends on purpose. CMTAT's `IERC1643` changed shape inside a single minor line — `getDocument` returns a `Document` struct up to `v3.3.0-rc1` and the three flat values from `v3.3.0-rc2` — so anything below rc2 does not compile, and a newer CMTAT is not assumed compatible until it has been tested. Full detail, including the Solidity and OpenZeppelin columns: [version compatibility](./doc/README.md#version-compatibility).
 
 ## Intellectual property
 
