@@ -1,7 +1,5 @@
 # DocumentEngine (ERC-1643)
 
-> This project has not been audited yet, please use at your own risk. For any questions, please contact [admin@cmta.ch](mailto:admin@cmta.ch).
-
 A standalone contract that stores **[ERC-1643](https://github.com/ethereum/EIPs/issues/1643) documents on-chain on behalf of other contracts** — typically [CMTAT](https://github.com/CMTA/CMTAT) tokens. One engine serves a whole fleet: each subject gets its own namespace, keyed by its address, and can never reach another's.
 
 A document is `{ string uri, bytes32 documentHash, uint256 lastModified }`, addressed by a `bytes32` name.
@@ -13,6 +11,8 @@ Why use an external engine rather than storing documents in the token:
 - documents can be updated without touching the token.
 
 **Specification and full reference: [`doc/README.md`](./doc/README.md).**
+
+> This project has not been audited yet, please use at your own risk. For any questions, please contact [admin@cmta.ch](mailto:admin@cmta.ch).
 
 ## Quick start
 
@@ -118,4 +118,4 @@ The range is closed at both ends on purpose. CMTAT's `IERC1643` changed shape in
 
 ## Intellectual property
 
-The code is copyright (c) Capital Market and Technology Association, 2018-2024, and is released under [Mozilla Public License 2.0](https://github.com/CMTA/CMTAT/blob/master/LICENSE.md).
+The code is copyright (c) Capital Market and Technology Association, 2018-2026, and is released under [Mozilla Public License 2.0](https://github.com/CMTA/CMTAT/blob/master/LICENSE.md).

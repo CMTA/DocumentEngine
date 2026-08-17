@@ -1,9 +1,15 @@
 # DocumentEngine (ERC-1643) - Specification
 
+
+The `DocumentEngine` is an external contract to manage documents through [*ERC-1643*](https://github.com/ethereum/EIPs/issues/1643), a proposed standard for managing documents on-chain. [ERC-1400](https://github.com/ethereum/eips/issues/1411) from Polymath builds on it.
+
+The DocumentEngine is meant to be used by other smart contracts, e.g. a CMTAT token, to store documents on their behalf.
+
 > This project has not been audited yet, please use at your own risk. For any questions, please contact [admin@cmta.ch](mailto:admin@cmta.ch).
 
 ## Table of contents
 
+- [Introduction](#introduction)
 - [Two ways to manage documents](#two-ways-to-manage-documents)
 - [Flexible access control](#flexible-access-control)
 - [Why not reuse RuleEngine's ERC-3643 compliance module?](#why-not-reuse-ruleengines-erc-3643-compliance-module)
@@ -33,9 +39,7 @@
   - [Foundry](#foundry)
 - [Intellectual property](#intellectual-property)
 
-The `DocumentEngine` is an external contract to manage documents through [*ERC-1643*](https://github.com/ethereum/EIPs/issues/1643), a proposed standard for managing documents on-chain. [ERC-1400](https://github.com/ethereum/eips/issues/1411) from Polymath builds on it.
-
-The DocumentEngine is meant to be used by other smart contracts, e.g. a CMTAT token, to store documents on their behalf.
+## Introduction
 
 The ERC-1643 defines a document with three attributes:
 
@@ -557,4 +561,4 @@ $ cast --help
 
 ## Intellectual property
 
-The code is copyright (c) Capital Market and Technology Association, 2018-2024, and is released under [Mozilla Public License 2.0](https://github.com/CMTA/CMTAT/blob/master/LICENSE.md).
+The code is copyright (c) Capital Market and Technology Association, 2018-2026, and is released under [Mozilla Public License 2.0](https://github.com/CMTA/CMTAT/blob/master/LICENSE.md).
