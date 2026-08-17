@@ -2,6 +2,37 @@
 
 > This project has not been audited yet, please use at your own risk. For any questions, please contact [admin@cmta.ch](mailto:admin@cmta.ch).
 
+## Table of contents
+
+- [Two ways to manage documents](#two-ways-to-manage-documents)
+- [Flexible access control](#flexible-access-control)
+- [Why not reuse RuleEngine's ERC-3643 compliance module?](#why-not-reuse-ruleengines-erc-3643-compliance-module)
+- [Events](#events)
+- [Integration with CMTAT](#integration-with-cmtat)
+  - [Topology](#topology)
+  - [Writing a document](#writing-a-document)
+  - [Reading a document](#reading-a-document)
+  - [Wiring and the full call flow](#wiring-and-the-full-call-flow)
+- [Architecture](#architecture)
+- [Version (ERC-8303)](#version-erc-8303)
+  - [ERC-165: what the engine advertises](#erc-165-what-the-engine-advertises)
+- [Schema](#schema)
+  - [Inheritance](#inheritance)
+  - [Graph](#graph)
+- [Surya Description Report](#surya-description-report)
+  - [Contracts Description Table](#contracts-description-table)
+  - [Interfaces](#interfaces)
+  - [Legend](#legend)
+- [Gasless support (ERC-2771)](#gasless-support-erc-2771)
+- [Dependencies](#dependencies)
+  - [Version compatibility](#version-compatibility)
+- [Tools](#tools)
+  - [Formatting (forge fmt)](#formatting-forge-fmt)
+  - [Static analysis](#static-analysis)
+  - [Surya](#surya)
+  - [Foundry](#foundry)
+- [Intellectual property](#intellectual-property)
+
 The `DocumentEngine` is an external contract to manage documents through [*ERC-1643*](https://github.com/ethereum/EIPs/issues/1643), a proposed standard for managing documents on-chain. [ERC-1400](https://github.com/ethereum/eips/issues/1411) from Polymath builds on it.
 
 The DocumentEngine is meant to be used by other smart contracts, e.g. a CMTAT token, to store documents on their behalf.
@@ -36,7 +67,7 @@ Using an external contract for your smart contract provides two advantages:
 - Reduce code size of your smart contract
 - Allow to manage documents for several different smart contracts
 
-### Two ways to manage documents
+## Two ways to manage documents
 
 The engine supports **two management paths** at the same time:
 
@@ -66,7 +97,7 @@ function removeDocument(bytes32 name_) external;
 
 > This mirrors the RuleEngine *binding* pattern without reusing its `ERC3643ComplianceExtendedModule` — see [Why not reuse RuleEngine's ERC-3643 compliance module?](#why-not-reuse-ruleengines-erc-3643-compliance-module) below.
 
-### Flexible access control
+## Flexible access control
 
 Following the CMTAT / [RuleEngine](https://github.com/CMTA/RuleEngine) pattern, the restricted functions do not hardcode a check. They carry a **modifier** (`onlyDocumentManager` / `onlyBoundToken`) that delegates to an **overridable `internal virtual` authorization hook**:
 
@@ -87,7 +118,7 @@ function _authorizeBoundTokenDocumentManagement() internal view virtual override
 
 This separates the document-management implementation from the authorization logic: a subclass changes *who* is authorized by overriding the hook, never by touching the management functions.
 
-### Why not reuse RuleEngine's ERC-3643 compliance module?
+## Why not reuse RuleEngine's ERC-3643 compliance module?
 
 CMTA's [RuleEngine](https://github.com/CMTA/RuleEngine) (v3) ships an `ERC3643ComplianceExtendedModule` that offers a ready-made token-binding registry (`bindToken` / `unbindToken` / `isTokenBound` / `getTokenBounds`). It is tempting to reuse it for the bound-token path, but we deliberately do **not**, because that module is an **`IERC3643Compliance`** — a *transfer-compliance* contract.
 
@@ -104,15 +135,15 @@ A document engine has **nothing to do with token transfers**, so these would hav
 
 The binding concept we actually need is tiny — "is this caller a token allowed to manage its own documents?" — so we implement just that: a **single allowlist** in `TokenBindingModule`, shared by both deployments and gated by each one's document-management hook. It is deliberately **not** a role: there is no `TOKEN_CONTRACT_ROLE`, and `DocumentEngineOwnable` uses the same allowlist rather than a separate owner-managed one. This keeps the engine's surface honest and minimal while still mirroring the RuleEngine binding pattern; the RuleEngine submodule is kept as a reference for that pattern.
 
-### Events
+## Events
 
 This engine is a **shared, multi-token** document manager, so — per the ERC-1643 ["Emission Responsibility"](./ERCSpecification/erc-1643.md) rules — it emits **only** the address-carrying extension events `DocumentUpdatedForSubject(address indexed subject, …)` / `DocumentRemovedForSubject(…)`, and **not** the base `DocumentUpdated` / `DocumentRemoved` events. The base events carry no address and so cannot identify which token contract a change belongs to; they are the responsibility of the token contract that exposes ERC-1643 to consumers (it re-emits them when delegating). See the [Multi-Subject Document Management draft](./ERCSpecification/erc-draft_multi_document_management.md) and the `IERC1643MultiDocument` extension.
 
-### Integration with CMTAT
+## Integration with CMTAT
 
 Since CMTAT v3, the shipped standalone tokens store documents on-chain (`DocumentERC1643Module`) and do not consume an external engine through their constructor. To use this engine, a CMTAT token relies on the `DocumentEngineModule` and is wired at runtime with `setDocumentEngine(engine)`; reads/writes are then forwarded to the engine keyed by the token address.
 
-#### Topology
+### Topology
 
 One engine serves a whole fleet of tokens. Each token keeps its own document namespace, keyed by its address, and can never reach another token's:
 
@@ -120,19 +151,19 @@ One engine serves a whole fleet of tokens. Each token keeps its own document nam
 
 _Diagram source: `doc/img/cmtat-integration-architecture.puml`._
 
-#### Writing a document
+### Writing a document
 
 ![Writing a document through a CMTAT token](./img/cmtat-write-simple.png)
 
 _Diagram source: `doc/img/cmtat-write-simple.puml`._
 
-#### Reading a document
+### Reading a document
 
 ![Reading a document from a CMTAT token or the engine](./img/cmtat-read-simple.png)
 
 _Diagram source: `doc/img/cmtat-read-simple.puml`._
 
-#### Wiring and the full call flow
+### Wiring and the full call flow
 
 Two independent steps wire a token to the engine, and they are easy to get half right: `bindToken(token)` on the **engine** authorises the token to use the single-argument ERC-1643 functions, while `setDocumentEngine(engine)` on the **token** tells it where to forward. Bind without wiring and the token has nowhere to send; wire without binding and the forwarded call reverts `NotBoundToken`.
 
