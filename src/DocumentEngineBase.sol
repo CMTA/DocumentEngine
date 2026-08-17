@@ -260,11 +260,12 @@ abstract contract DocumentEngineBase is IERC1643, IERC1643MultiDocument, Documen
      * @param name_ The document name to remove from the list.
      */
     function _removeDocumentName(address subject, bytes32 name_) internal {
-        uint256 length = _documentNames[subject].length;
+        bytes32[] storage names = _documentNames[subject];
+        uint256 length = names.length;
         for (uint256 i = 0; i < length; ++i) {
-            if (_documentNames[subject][i] == name_) {
-                _documentNames[subject][i] = _documentNames[subject][length - 1];
-                _documentNames[subject].pop();
+            if (names[i] == name_) {
+                names[i] = names[length - 1];
+                names.pop();
                 break;
             }
         }
@@ -277,7 +278,7 @@ abstract contract DocumentEngineBase is IERC1643, IERC1643MultiDocument, Documen
      * @param name_ The document name.
      */
     function _removeDocument(address subject, bytes32 name_) internal {
-        Document memory doc = _documents[subject][name_];
+        Document storage doc = _documents[subject][name_];
         // ERC-1643: reverts when the named document does not exist
         if (doc.lastModified == 0) {
             revert ERC1643MissingDocument();

@@ -73,6 +73,25 @@ for which CMTAT release each version of this engine is built against.
   - Add [CMTA/RuleEngine](https://github.com/CMTA/RuleEngine) [`v3.0.0-rc5`](https://github.com/CMTA/RuleEngine/releases/tag/v3.0.0-rc5) as a submodule (binding-pattern reference; see [Why not reuse RuleEngine's compliance module?](./README.md#why-not-reuse-ruleengines-erc-3643-compliance-module) — its `ERC3643ComplianceExtendedModule` is not reused)
   - `foundry.lock` now records every submodule by tag; all five entries had gone stale since `v0.3.0`.
 - **Toolchain**: bump Solidity `0.8.26` → `0.8.34` and `evm_version` `cancun` → `prague` to match CMTAT v3 (CMTAT uses `require(cond, CustomError())`, which needs solc ≥ 0.8.27)
+- **Code-quality review** (`doc/audits/CLAUDE_ANALYSIS.md`) — 14 findings, none a vulnerability.
+  Four implemented:
+  - **Gas, `_removeDocumentName`**: the `_documentNames[subject]` mapping slot was re-hashed on every
+    loop iteration; cached as a storage pointer. Measured **−2200 gas** on a 20-entry full scan.
+  - **Gas, `_removeDocument`**: the whole `Document` (URI included) was copied to memory to be read
+    three times; now read through a storage pointer. A further **−645 gas**. Combined, removal is
+    **−2845 gas (−3.3 %)** worst case. The emit must stay ahead of the `delete` — verified by
+    mutating the order and confirming `testRemoveDocumentEmitsForSubjectEvent` fails.
+  - **`hasRole` NatSpec**: documented that a role is **unrevokable from the default admin** —
+    `revokeRole` succeeds, emits `RoleRevoked` and drops `getRoleMemberCount`, yet the admin keeps the
+    access. Not a privilege issue (an admin can re-grant itself anything) but the call misreports.
+    Pinned by the new `testRevokingRoleFromDefaultAdminDoesNotRemoveAccess`.
+  - **`DocumentEngineInvariant`**: the error-location comment misattributed `NotBoundToken(address)`
+    to `ITokenBinding`; it is declared by `TokenBindingModule`.
+
+  Notable non-changes, recorded so they are not re-raised: `unchecked { ++i }` buys **0 gas** on solc
+  0.8.34 (measured); `string calldata` on the admin `setDocument` is **49 gas worse** than `memory`
+  (measured); and the duplicated ERC-2771 context overrides **cannot** be extracted into a shared
+  module — C3 linearization forces each deployment to re-state them, proven by compiler error.
 - **Style pass across `src/` and `script/` — behaviour-preserving.** Brought the sources in line with
   the Solidity style guide: functions reordered by visibility group (external → public → internal,
   `view`/`pure` last within each), so the `_authorize*` hooks and the ERC-2771 context overrides now

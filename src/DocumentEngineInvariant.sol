@@ -20,6 +20,10 @@ abstract contract DocumentEngineInvariant {
     // multi-subject draft's "MUST NOT declare them twice", which the compiler also enforces:
     //   - `ERC1643InvalidName()` / `ERC1643MissingDocument()` → `IERC1643` (since CMTAT v3.3.0-rc2)
     //   - `MultiDocumentInvalidSubject()`                     → `IERC1643MultiDocument`
-    //   - `NotBoundToken(address)`                            → `ITokenBinding`
     //   - `TokenBindingInvalidToken()`                        → `ITokenBinding`
+    //
+    // `NotBoundToken(address)` is the one exception, declared by `TokenBindingModule` rather than by
+    // an interface: it reports that the *caller* is not on the module's allowlist, which is an
+    // implementation detail of how binding is enforced, not a condition any interface specifies.
+    // `ITokenBinding` deliberately declares only `TokenBindingInvalidToken()`.
 }

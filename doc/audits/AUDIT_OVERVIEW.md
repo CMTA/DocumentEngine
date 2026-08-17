@@ -27,6 +27,7 @@ Out of scope: `lib/` (CMTAT, RuleEngine, OpenZeppelin — audited, or not, upstr
 | Aderyn `0.6.5` | `v0.4.0` | [report](./tools/v0.4.0/aderyn/aderyn-report.md) | [feedback](./tools/v0.4.0/aderyn/aderyn-report-feedback.md) |
 | Slither `0.11.5` | `v0.4.0` | [report](./tools/v0.4.0/slither/slither-report.md) | [feedback](./tools/v0.4.0/slither/slither-report-feedback.md) |
 | ERC conformance analysis (AI-assisted) | `v0.4.0` | open items: [`IMPROVEMENT.md`](../../IMPROVEMENT.md) | — |
+| Code-quality review (AI-assisted) | `v0.4.0` | [`CLAUDE_ANALYSIS.md`](./CLAUDE_ANALYSIS.md) — 14 findings, **no vulnerability**; 4 implemented, 2 open decisions | — |
 
 Both tool runs are against CMTAT `v3.3.0-rc3` and OpenZeppelin `v5.7.0`, with mocks and tests
 excluded.

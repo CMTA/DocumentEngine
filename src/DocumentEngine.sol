@@ -56,6 +56,15 @@ contract DocumentEngine is TokenBindingModule, VersionModule, AccessControlEnume
      * {AccessControlEnumerable} enumeration. `getRoleMember` / `getRoleMemberCount`
      * report only explicit grants, so a `DEFAULT_ADMIN_ROLE` holder satisfies
      * `hasRole(anyRole, admin)` yet does not appear in `getRoleMember(anyRole, ...)`.
+     *
+     * WARNING: the same short-circuit makes a role **unrevokable from the default admin**.
+     * `revokeRole(someRole, admin)` succeeds and emits `RoleRevoked` — the explicit grant is
+     * genuinely removed, and `getRoleMemberCount` drops — but this function still answers
+     * `true`, so the admin keeps the access the caller believed it had just removed. Only
+     * revoking `DEFAULT_ADMIN_ROLE` itself actually withdraws it. This is inherent to the
+     * "admin has all roles" model rather than a defect (an admin can always re-grant itself
+     * any role), but the success of the call is misleading. Pinned by
+     * `testRevokingRoleFromDefaultAdminDoesNotRemoveAccess`.
      * @param role The role identifier to check.
      * @param account The account to check.
      * @return True when `account` holds `role`, or holds `DEFAULT_ADMIN_ROLE`.

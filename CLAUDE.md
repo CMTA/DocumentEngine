@@ -160,6 +160,10 @@ Other important files:
   (0 High · 1 Med · 1 Low · 2 Info) were run for `v0.4.0` — nothing to fix in either.
   Slither's dependency filter must be `lib` (Foundry layout); `--filter-paths` fails
   open, so an entry matching nothing silently pulls the vendored tree into scope.
+  `doc/audits/CLAUDE_ANALYSIS.md` is the code-quality review (not a security audit) — read
+  its "left as is" rows before proposing an optimisation: `unchecked {++i}` (0 gas on solc
+  0.8.34), `string calldata` on the admin `setDocument` (49 gas *worse*), and extracting the
+  duplicated ERC-2771 overrides (impossible — C3 linearization) are all measured dead ends.
 - `IMPROVEMENT.md` — the open items: deviations from the two ERC specifications,
   with severity, effort and a recommendation for each. Update it when an item is
   fixed (move the record to `CHANGELOG.md` and `doc/audits/AUDIT_OVERVIEW.md`)

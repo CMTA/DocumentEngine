@@ -116,6 +116,28 @@ contract DocumentEngineTest is Test, DocumentEngineInvariant, AccessControl {
         documentEngine.setDocument(testContract, documentName, documentURI, documentHash);
     }
 
+    /**
+     * @dev Pins the consequence of the "default admin holds every role" {hasRole} override:
+     * `revokeRole` against the default admin SUCCEEDS and emits `RoleRevoked`, yet the admin
+     * keeps the access. The revocation is not silently ignored by mistake — the explicit grant
+     * really is removed (`getRoleMemberCount` drops) — but `hasRole` still answers `true`
+     * because the override short-circuits on `DEFAULT_ADMIN_ROLE`, so the authorization gate
+     * still lets the admin through. Recorded in CLAUDE_ANALYSIS.md (H-1).
+     */
+    function testRevokingRoleFromDefaultAdminDoesNotRemoveAccess() public {
+        assertTrue(documentEngine.hasRole(DOCUMENT_MANAGER_ROLE, admin), "admin implicitly holds the role");
+
+        vm.prank(admin);
+        documentEngine.revokeRole(DOCUMENT_MANAGER_ROLE, admin); // succeeds, no revert
+
+        assertTrue(documentEngine.hasRole(DOCUMENT_MANAGER_ROLE, admin), "revoke does NOT take the role from the admin");
+        assertEq(documentEngine.getRoleMemberCount(DOCUMENT_MANAGER_ROLE), 0, "no explicit grant remains");
+
+        // and the admin still passes the authorization gate
+        vm.prank(admin);
+        documentEngine.setDocument(testContract, documentName, documentURI, documentHash);
+    }
+
     function testCannotNonAdminRemoveDocument() public {
         vm.prank(attacker);
         vm.expectRevert(
