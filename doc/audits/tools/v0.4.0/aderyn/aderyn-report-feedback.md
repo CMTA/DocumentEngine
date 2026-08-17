@@ -8,7 +8,7 @@
 | Scope | `src/` only — 9 files, 307 nSLOC. **Mocks and tests excluded.** This project keeps its mocks (`CMTATDocumentEngineMock`, `OpenDocumentEngine`) inside `test/DocumentEngine.t.sol`, which Aderyn does not scan, so `-x mocks` matched nothing and changed nothing. |
 | Dependencies | CMTAT `v3.3.0-rc3` (`658672f1`), OpenZeppelin `v5.7.0` (`cab19933`) |
 | Result | **0 High · 6 Low** |
-| Companion | [`../slither/slither-report.md`](../slither/slither-report.md) — Slither `0.11.5`, 4 results, also nothing to fix |
+| Companion | [`../slither/slither-report.md`](../slither/slither-report.md) — Slither `0.11.5`, 2 results, also nothing to fix |
 
 ## Executive triage
 
@@ -17,7 +17,7 @@
 Five of the six are the analyzer's standing advisories about deliberate design choices (a privileged
 operator, a caret pragma, PUSH0, revert-in-loop, storage-writes-in-loop) and one is a false positive.
 
-The one result worth keeping in view is **L-5 at `DocumentEngineBase.sol:264`**, which is not a batch
+The one result worth keeping in view is **L-5 at `DocumentEngineBase.sol:265`**, which is not a batch
 loop but the linear scan in `_removeDocumentName`. Aderyn reached it from the "costly operation in a
 loop" heuristic; it happens to land on the same code as `IMPROVEMENT.md` item 4, which flags the O(n)
 removal against the multi-subject draft's expectation of "index tracking to support O(1) removals".
@@ -35,7 +35,7 @@ CMTAT upgrade.
 | L-2 | Unspecific Solidity Pragma | Low | 9 | **By design** | Every file uses a caret pragma, intentionally, so the sources stay consumable as a library by projects on a different `0.8.x`; the compiler actually used for the deployed bytecode is pinned to `0.8.34` in `foundry.toml`, and `foundry.lock` pins every dependency. Verified: no file uses a construct that behaves differently across the allowed range. The floor is now **`^0.8.24`**, raised from `^0.8.20` after the previous run: `^0.8.20` over-promised, because `AccessControlEnumerable.sol` and `EnumerableSet.sol` were already `^0.8.24` and CMTAT `v3.3.0-rc3` moved `draft-IERC1643.sol` there too — no compiler in `0.8.20`–`0.8.23` could build the tree. `0.8.24` is the true `src/` floor; the full project including the CMTAT-importing tests needs `0.8.27`, because `require(cond, CustomError())` is legacy-pipeline-only from that version on. |
 | L-3 | PUSH0 Opcode | Low | 9 | **Environment** | Consequence of the caret pragma plus `evm_version = prague`: the compiler emits `PUSH0`, which is unavailable on chains that have not adopted Shanghai. Not a source defect. A deployer targeting such a chain must lower `evm_version` in `foundry.toml` — but CMTAT v3 itself requires `prague`, so that configuration is out of scope for this engine. |
 | L-4 | Loop Contains `require`/`revert` | Low | 4 | **By design** | `DocumentEngineBase.sol:118, 141, 158, 175` — the four batch loops. The reverts are raised inside `_setDocument` / `_removeDocument` (`ERC1643InvalidName`, `MultiDocumentInvalidSubject`, `ERC1643MissingDocument`). Batch operations are deliberately **all-or-nothing**: a batch containing one bad entry must not half-apply, since partial application would leave the operator unable to tell which documents were written without re-reading every entry. Skipping bad entries instead would silently drop them. |
-| L-5 | Costly operations inside loop | Low | 5 | **By design** ×4, **known item** ×1 | Four instances (`:118, 141, 158, 175`) are storage writes in the batch loops — unavoidable, and the reason the batch functions exist is to amortise the 21 000-gas transaction overhead across those writes. The fifth (`:264`) is `_removeDocumentName`'s linear scan with swap-and-pop; see the triage note above and `IMPROVEMENT.md` item 4. |
+| L-5 | Costly operations inside loop | Low | 5 | **By design** ×4, **known item** ×1 | Four instances (`:118, 141, 158, 175`) are storage writes in the batch loops — unavoidable, and the reason the batch functions exist is to amortise the 21 000-gas transaction overhead across those writes. The fifth (`:265`) is `_removeDocumentName`'s linear scan with swap-and-pop; see the triage note above and `IMPROVEMENT.md` item 4. |
 | L-6 | Unchecked Return | Low | 1 | **False positive** | `DocumentEngine.sol:43`, `_grantRole(DEFAULT_ADMIN_ROLE, admin);`. OpenZeppelin's `_grantRole` returns `false` only when the account already holds the role. This call is in the constructor of a freshly deployed contract, where no role has been granted yet, so it always returns `true`; `admin == address(0)` is already rejected on the preceding lines. There is no state to check and no recovery path to take. |
 
 ## Delta
@@ -78,7 +78,7 @@ Two null results worth recording, because they are easy to misread as "not analy
 None — `v0.4.0` is the **first** release with static analysis recorded. `doc/audits/` did not exist
 before it. Future runs should diff against this one.
 
-**Slither has now been run** (`0.11.5`, 4 results, nothing to fix) — see
+**Slither has now been run** (`0.11.5`, 2 results, nothing to fix) — see
 [`../slither/slither-report-feedback.md`](../slither/slither-report-feedback.md). This closes the
 gap flagged here previously, so the next release can diff both tools. The two disagree on what is
 worth reporting: Slither raised an existence-check equality and two required `_msgData()` overrides

@@ -81,6 +81,9 @@ for which CMTAT release each version of this engine is built against.
     three times; now read through a storage pointer. A further **−645 gas**. Combined, removal is
     **−2845 gas (−3.3 %)** worst case. The emit must stay ahead of the `delete` — verified by
     mutating the order and confirming `testRemoveDocumentEmitsForSubjectEvent` fails.
+    Side effect: Slither's `incorrect-equality` (Medium) and `timestamp` (Low) stopped firing on the
+    unchanged `doc.lastModified == 0`, taking it from 4 results to 2. **Not a fix** — both were
+    already false positives and the detector merely loses the taint through a storage pointer.
   - **`hasRole` NatSpec**: documented that a role is **unrevokable from the default admin** —
     `revokeRole` succeeds, emits `RoleRevoked` and drops `getRoleMemberCount`, yet the admin keeps the
     access. Not a privilege issue (an admin can re-grant itself anything) but the call misreports.

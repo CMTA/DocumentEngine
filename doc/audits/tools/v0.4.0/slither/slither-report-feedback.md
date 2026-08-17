@@ -7,36 +7,57 @@
 | Tool version | `slither 0.11.5` |
 | Scope | `src/` only — 28 contracts analysed with 101 detectors. **Mocks and tests excluded.** This project keeps its mocks (`CMTATDocumentEngineMock`, `OpenDocumentEngine`) inside `test/DocumentEngine.t.sol`, which the `test` filter removes; there is no `src/mocks`, so the `mocks` filter entry matched nothing. |
 | Dependencies | CMTAT `v3.3.0-rc3` (`658672f1`), OpenZeppelin `v5.7.0` (`cab19933`) |
-| Result | **0 High · 1 Medium · 1 Low · 2 Informational** (4 results) |
+| Result | **0 High · 0 Medium · 0 Low · 2 Informational** (2 results) — was 4; see the correction below |
 
 ## Executive triage
 
 **Nothing to fix.** No finding is exploitable, and none blocks the `v0.4.0` release.
 
-All four results reduce to two underlying pieces of code, and both are correct as written:
+Both remaining results are the same thing: **`dead-code` ×2** flags the `_msgData()` overrides.
+These are not dead — Solidity **requires** them. Verified by deleting one and compiling:
+`Error (6480): Derived contract must override function "_msgData". Two or more base classes define
+function with same name and parameter types.`
 
-- **Two detectors (`incorrect-equality`, `timestamp`) fire on the same line** —
-  `DocumentEngineBase.sol:282`, `doc.lastModified == 0`. Both misread an *existence sentinel* as a
-  *time comparison*. See below; neither detector has a notion of "zero means absent".
-- **`dead-code` ×2** flags the `_msgData()` overrides. These are not dead — Solidity **requires**
-  them. Verified by deleting one and compiling: `Error (6480): Derived contract must override
-  function "_msgData". Two or more base classes define function with same name and parameter types.`
+### Correction — two findings disappeared, and not because anything was fixed
 
-The Medium severity on `incorrect-equality` deserves a word, because it is the highest-severity
-result either tool produced for this release and it is worth being explicit that it is not real.
-Slither's detector targets strict equality against a *quantity that can step past the compared
-value* — a balance that can be donated to, or a timestamp compared with `==` where a block can skip
-the exact second. Neither shape applies here: `0` is not a point on a timeline the value passes
-through, it is the default of an unwritten struct.
+The previous run of this report carried two further results, both on
+`_removeDocument`'s `doc.lastModified == 0`:
+
+| ID | Detector | Sev | Status now |
+| --- | --- | --- | --- |
+| (was ID-0) | `incorrect-equality` | Medium | **No longer reported** |
+| (was ID-1) | `timestamp` | Low | **No longer reported** |
+
+They stopped firing when the code-quality review's finding B-2 changed
+`Document memory doc = _documents[subject][name_]` to `Document storage doc = …` — a gas
+optimisation that left the comparison character-for-character identical. Slither's taint tracking
+classifies `lastModified` as timestamp-derived when it arrives via a memory copy of the struct, and
+apparently loses that classification when the field is read through a storage pointer.
+
+**Nothing was fixed.** The original triage (retained below) established both as false positives on
+their merits; their disappearance is a detector artefact, not an improvement, and the same reasoning
+would apply verbatim if a future Slither release started reporting them again. Recorded here rather
+than deleted, because a reader comparing "4 results" against "2 results" across the two runs would
+otherwise conclude a Medium had been remediated.
+
+**The original triage, still the operative reasoning if these ever return.** Slither's
+`incorrect-equality` detector targets strict equality against a *quantity that can step past the
+compared value* — a balance that can be donated to, or a timestamp compared with `==` where a block
+can skip the exact second. Neither shape applies: `0` is not a point on a timeline the value passes
+through, it is the default of an unwritten struct. `lastModified` is only ever assigned
+`block.timestamp`, which is non-zero on every live chain, so a *stored* document can never read back
+as `0`; the comparison is a total existence test, and the ERC-1643 spec requires the
+revert-on-missing behaviour it implements. Covered by `testCannotRemoveMissingDocument`. The
+`timestamp` detector's concern — a validator nudging `block.timestamp` to flip a branch — needs an
+ordering comparison; there is none here, and no achievable manipulation sets `block.timestamp` to
+`0`.
 
 ## Findings
 
 | ID | Detector | Sev | Conf | Instances | Disposition | Reason (verified against the cited lines) |
 | --- | --- | --- | --- | --- | --- | --- |
-| ID-0 | `incorrect-equality` | Medium | High | 1 | **False positive** | `DocumentEngineBase.sol:282`, inside `_removeDocument`: `if (doc.lastModified == 0) revert ERC1643MissingDocument();`. `lastModified` is only ever assigned `block.timestamp` (`:322`), which is non-zero on every live chain, so a *stored* document can never read back as `0`. The comparison is therefore a total existence test — the same idiom `_setDocument` uses at `:316` to detect a new name. The ERC-1643 spec requires the revert-on-missing behaviour this line implements. Making it `<= 0` or a range check, as the detector suggests, would change nothing and read worse. Covered by `testCannotRemoveMissingDocument` (`test/DocumentEngine.t.sol:450`). |
-| ID-1 | `timestamp` | Low | Medium | 1 | **False positive** | Same line as ID-0. The detector flags any use of a timestamp in a comparison, on the theory that a validator can nudge `block.timestamp` by a few seconds and flip a branch. There is no ordering comparison here — no `<`, `>`, or deadline — only equality against the `0` sentinel. A validator cannot set `block.timestamp` to `0`, so no achievable manipulation changes which branch is taken. The stored value is metadata surfaced by `getDocument`; nothing in the engine makes a decision based on how recent it is. |
-| ID-2 | `dead-code` | Info | Medium | 1 | **False positive — required override** | `DocumentEngine.sol:146-148`, `_msgData()`. `DocumentEngine` inherits `Context` through two paths (`AccessControlEnumerable` → `AccessControl` → `Context`, and `ERC2771Context` → `Context`), and `ERC2771Context` overrides `_msgData()`. Solidity therefore demands an explicit `override(ERC2771Context, Context)` in the derived contract. **Verified empirically:** removing the function fails to compile with `Error (6480): Derived contract must override function "_msgData"`. Slither reports it "never used" because nothing in this project calls `_msgData()` directly — but it is what makes ERC-2771 calldata handling correct for any inherited code that does. |
-| ID-3 | `dead-code` | Info | Medium | 1 | **False positive — required override** | `DocumentEngineOwnable.sol:82-84`. Identical to ID-2, via `Ownable2Step` → `Ownable` → `Context` and `ERC2771Context` → `Context`. |
+| ID-0 | `dead-code` | Info | Medium | 1 | **False positive — required override** | `DocumentEngine.sol:155-157`, `_msgData()`. `DocumentEngine` inherits `Context` through two paths (`AccessControlEnumerable` → `AccessControl` → `Context`, and `ERC2771Context` → `Context`), and `ERC2771Context` overrides `_msgData()`. Solidity therefore demands an explicit `override(ERC2771Context, Context)` in the derived contract. **Verified empirically:** removing the function fails to compile with `Error (6480): Derived contract must override function "_msgData"`. Slither reports it "never used" because nothing in this project calls `_msgData()` directly — but it is what makes ERC-2771 calldata handling correct for any inherited code that does. |
+| ID-1 | `dead-code` | Info | Medium | 1 | **False positive — required override** | `DocumentEngineOwnable.sol:82-84`. Identical to ID-0, via `Ownable2Step` → `Ownable` → `Context` and `ERC2771Context` → `Context`. |
 
 ## What Slither did *not* flag
 

@@ -37,7 +37,7 @@ excluded.
 | Tool | High | Medium | Low | Info | Anything to fix? |
 | --- | --- | --- | --- | --- | --- |
 | Aderyn `0.6.5` | 0 | — | 6 | 0 | **No.** 4 by design, 1 environment, 1 false positive; 1 of the "by design" instances overlaps a known scalability item (§4.7) |
-| Slither `0.11.5` | 0 | 1 | 1 | 2 | **No.** All 4 are false positives, reducing to two pieces of code: an existence check (`doc.lastModified == 0`) read as a timestamp comparison, and two `_msgData()` overrides read as dead code |
+| Slither `0.11.5` | 0 | 0 | 0 | 2 | **No.** Both are false positives — required `_msgData()` overrides read as dead code. (Was 4 results; the `incorrect-equality`/`timestamp` pair stopped firing when B-2 switched a memory copy to a storage pointer. Nothing was fixed — see the Slither triage.) |
 
 Aderyn reports no Medium or Info categories; it classifies only High and Low.
 
@@ -48,6 +48,8 @@ disagree only on what is worth reporting: Slither's highest result (`incorrect-e
 one Aderyn ignores, and Aderyn's loop advisories draw nothing from Slither. Each dismissal was
 verified against the cited line; the `_msgData()` "dead code" was verified by deleting it and
 confirming the compile fails (`Error (6480): Derived contract must override function "_msgData"`).
+Slither's highest result at the time was `incorrect-equality` (Medium); it no longer fires, but as a
+detector artefact rather than a fix — the triage explains why.
 
 Note the standing limitation: neither tool can see the specification-level issues that matter most
 for this engine — those are tracked as open items below.

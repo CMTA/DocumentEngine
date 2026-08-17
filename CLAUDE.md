@@ -170,7 +170,7 @@ Other important files:
   `*-report.md` (summary table prepended) and a `*-report-feedback.md` triaging
   every finding, plus a `claude/` section holding the AI-assisted code-quality review.
  Both Aderyn `0.6.5` (0 High · 6 Low) and Slither `0.11.5`
-  (0 High · 1 Med · 1 Low · 2 Info) were run for `v0.4.0` — nothing to fix in either.
+  (0 High · 0 Med · 0 Low · 2 Info) were run for `v0.4.0` — nothing to fix in either.
   Slither's dependency filter must be `lib` (Foundry layout); `--filter-paths` fails
   open, so an entry matching nothing silently pulls the vendored tree into scope.
   `doc/audits/tools/v0.4.0/claude/CLAUDE_ANALYSIS.md` is the code-quality review (not a security audit) — read

@@ -466,7 +466,7 @@ finding against the source. The security overview is
 | Release | Tool | Result | Report | Triage |
 | ------- | ---- | ------ | ------ | ------ |
 | v0.4.0 | Aderyn `0.6.5` | 0 High · 6 Low — **nothing to fix** | [report](./doc/audits/tools/v0.4.0/aderyn/aderyn-report.md) | [feedback](./doc/audits/tools/v0.4.0/aderyn/aderyn-report-feedback.md) |
-| v0.4.0 | Slither `0.11.5` | 0 High · 1 Medium · 1 Low · 2 Info — **nothing to fix** | [report](./doc/audits/tools/v0.4.0/slither/slither-report.md) | [feedback](./doc/audits/tools/v0.4.0/slither/slither-report-feedback.md) |
+| v0.4.0 | Slither `0.11.5` | 0 High · 0 Medium · 0 Low · 2 Info — **nothing to fix** | [report](./doc/audits/tools/v0.4.0/slither/slither-report.md) | [feedback](./doc/audits/tools/v0.4.0/slither/slither-report-feedback.md) |
 | v0.4.0 | Claude Code (code quality) | 14 findings, **no vulnerability** — 6 implemented, 8 deliberately left | [report](./doc/audits/tools/v0.4.0/claude/CLAUDE_ANALYSIS.md) | (triage is in the report) |
 
 ```bash

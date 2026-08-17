@@ -31,15 +31,15 @@
 | B-1 | Mapping slot re-hashed every iteration in `_removeDocumentName` | ✅ fixed, **−2200 gas** | `DocumentEngineBase.sol:263` |
 | B-2 | `_removeDocument` copied the whole `Document` (incl. the URI) to memory | ✅ fixed, **−645 gas** | `DocumentEngineBase.sol:281` |
 | C-1 | Every event has exactly one emit site | ⬜ nothing to do — verified good | — |
-| C-2 | Trusted forwarder set at construction without an event | ⬜ left as is | `DocumentEngine.sol:40` |
-| D-1 | ERC-2771 trio duplicated byte-for-byte across both deployments | ⬜ left as is — **extraction proven impossible** | `DocumentEngine.sol:137`, `DocumentEngineOwnable.sol:73` |
+| C-2 | Trusted forwarder set at construction without an event | ⬜ left as is | `DocumentEngine.sol:39` |
+| D-1 | ERC-2771 trio duplicated byte-for-byte across both deployments | ⬜ left as is — **extraction proven impossible** | `DocumentEngine.sol:146`, `DocumentEngineOwnable.sol:73` |
 | E-1 | `virtual` coverage inconsistent between the two modules | ✅ fixed — all 12 internal functions now `virtual` | `DocumentEngineBase.sol`, `TokenBindingModule.sol`, both deployments |
-| F-1 | ERC-165 interface IDs — no inherited-selector trap | ⬜ nothing to do — verified correct | `DocumentEngine.sol:115` |
+| F-1 | ERC-165 interface IDs — no inherited-selector trap | ⬜ nothing to do — verified correct | `DocumentEngine.sol:114` |
 | G-1 | `DocumentEngineInvariant` comment misattributes `NotBoundToken` | ✅ fixed | `DocumentEngineInvariant.sol` |
 | G-2 | Contracts point at documentation paths that have already moved once | ✅ fixed — all 3 pointers removed, comments got *shorter* | `DocumentEngineBase.sol`, `IERC1643MultiDocument.sol` |
 | G-3 | NatSpec block-length distribution is healthy | ⬜ nothing to do — measured | — |
-| H-1 | A role cannot be revoked from the default admin, but the call succeeds | ✅ documented + regression test | `DocumentEngine.sol:73` |
-| H-2 | Caller-scoped reads return an empty namespace instead of reverting | ⬜ left as is — already documented and tested | `DocumentEngineBase.sol:186` |
+| H-1 | A role cannot be revoked from the default admin, but the call succeeds | ✅ documented + regression test | `DocumentEngine.sol:72` |
+| H-2 | Caller-scoped reads return an empty namespace instead of reverting | ⬜ left as is — already documented and tested | `DocumentEngineBase.sol:190` |
 
 Rows: 14. Fixed: 6. Left deliberately: 8. Open decisions: none.
 
@@ -170,6 +170,15 @@ The guard is real. Ordering restored, 73/73 passing.
 **Verdict: implemented.** Storage layout re-checked from the compiled artifacts afterwards
 (`--extra-output storageLayout`, 5 non-empty entries per deployment, unchanged).
 
+**Side effect worth flagging, because it is easy to misread as a win.** Re-running Slither after this
+change, its two highest findings — `incorrect-equality` (Medium) and `timestamp` (Low), both on this
+exact line — **stopped firing**, taking its total from 4 results to 2. Nothing was fixed: the
+comparison is character-for-character identical, and both were already triaged as false positives on
+their merits. Slither classifies `lastModified` as timestamp-derived when it arrives via a memory
+copy of the struct and loses that classification through a storage pointer. The Slither triage
+records this as a detector artefact rather than a remediation, so nobody later reads the drop as a
+Medium having been closed.
+
 ## C. Events
 
 ### C-1. Single emit site per event — verified, nothing to do
@@ -193,7 +202,7 @@ and a future refactor should preserve it.
 
 ### C-2. The trusted forwarder is not evented at construction
 
-`DocumentEngine.sol:40` / `DocumentEngineOwnable.sol:32` pass `forwarderIrrevocable` to
+`DocumentEngine.sol:39` / `DocumentEngineOwnable.sol:31` pass `forwarderIrrevocable` to
 `ERC2771Context` and emit nothing, so a log-only indexer never sees the value. That matters more than
 usual here because the forwarder can act as any bound subject (`IMPROVEMENT.md` item 5).
 
@@ -209,7 +218,7 @@ read.
 
 ### D-1. The ERC-2771 trio is byte-identical across both deployments — and cannot be shared
 
-`DocumentEngine.sol:137-157` and `DocumentEngineOwnable.sol:73-93` contain `_msgSender`, `_msgData`
+`DocumentEngine.sol:146-165` and `DocumentEngineOwnable.sol:73-92` contain `_msgSender`, `_msgData`
 and `_contextSuffixLength`, **10 code lines each** (NatSpec excluded), byte-for-byte identical
 (`diff` confirms).
 
@@ -451,7 +460,7 @@ something next to a median of 6 — and here the ratio is defensible.
 
 ### H-1. Revoking a role from the default admin succeeds but removes nothing — **documented**
 
-`DocumentEngine.sol:73` overrides `hasRole` so that `DEFAULT_ADMIN_ROLE` implicitly holds every role.
+`DocumentEngine.sol:72` overrides `hasRole` so that `DEFAULT_ADMIN_ROLE` implicitly holds every role.
 The existing NatSpec documented one consequence (the enumeration mismatch). It did not document this
 one, which I verified by running it:
 
