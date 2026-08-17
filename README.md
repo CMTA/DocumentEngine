@@ -76,17 +76,28 @@ token.setDocumentEngine(documentEngine);    // token's document manager
 token.setDocument(bytes32("prospectus"), "ipfs://...", keccak256(bytes(content)));
 ```
 
-![DocumentEngine and CMTAT call sequence](./doc/img/cmtat-integration-sequence.png)
+### Writing a document
+
+![Writing a document through a CMTAT token](./doc/img/cmtat-write-simple.png)
+
+### Reading a document
+
+![Reading a document from a CMTAT token or the engine](./doc/img/cmtat-read-simple.png)
+
+For the full flow — the wiring steps, every revert branch, and the admin path — see
+[the detailed sequence](./doc/DOCUMENTATION.md#integration-with-cmtat) in the documentation.
 
 ## Two things integrators must know
 
-**Read through the subject, not the engine.** The single-argument `getDocument(name)` is
-`msg.sender`-scoped, so a third party calling it on the engine reads *its own* — empty — namespace,
-with no revert. Read through the token, or use the address-scoped `getDocument(subject, name)`.
+**Read through the subject, not the engine.** As the read diagram shows, the single-argument
+`getDocument(name)` is `msg.sender`-scoped, so a third party calling it on the engine reads *its own*
+— empty — namespace, with no revert. Read through the token, or use the address-scoped
+`getDocument(subject, name)`.
 
-**The admin path emits nothing on the subject.** A write sent straight to the engine has no
-execution point in the token, so only the engine's `DocumentUpdatedForSubject` fires. When consumers
-watch the token's address, use the bound-token path. Tracked as `OPEN-2` in
+**The admin path emits nothing on the subject.** A write sent straight to the engine
+(`setDocument(subject, …)`, rather than through the token as above) has no execution point in the
+token, so only the engine's `DocumentUpdatedForSubject` fires. When consumers watch the token's
+address, use the bound-token path. Tracked as `OPEN-2` in
 [`doc/audits/AUDIT_OVERVIEW.md`](./doc/audits/AUDIT_OVERVIEW.md).
 
 ## Deploy

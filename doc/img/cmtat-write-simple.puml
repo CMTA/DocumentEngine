@@ -1,0 +1,33 @@
+@startuml
+title Writing a document through a CMTAT token
+
+skinparam shadowing false
+skinparam sequenceMessageAlign center
+skinparam ParticipantPadding 20
+
+actor "Document\nmanager" as Admin
+participant "CMTAT token" as Token
+participant "DocumentEngine" as Engine
+database "_documents\n[token][name]" as Store
+
+Admin -> Token : setDocument(name, uri, hash)
+activate Token
+
+Token -> Engine : setDocument(name, uri, hash)
+note right : msg.sender = token,\nso the token is the subject
+activate Engine
+
+Engine -> Store : store the document
+Engine --> Token : emit **DocumentUpdatedForSubject**(token, name, ...)
+deactivate Engine
+
+Token --> Admin : emit **DocumentUpdated**(name, ...)
+deactivate Token
+
+note over Token, Engine #EEF5FF
+  Two events, on purpose: the engine names the **subject**
+  (it serves many tokens), the token emits the plain
+  ERC-1643 event on **its own** address.
+end note
+
+@enduml

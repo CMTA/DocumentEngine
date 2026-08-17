@@ -1,0 +1,43 @@
+@startuml
+title Reading a document — two valid routes, one trap
+
+skinparam shadowing false
+skinparam sequenceMessageAlign center
+skinparam ParticipantPadding 20
+
+actor "Consumer" as User
+participant "CMTAT token" as Token
+participant "DocumentEngine" as Engine
+
+group Route 1 — ask the token (standard ERC-1643)
+  User -> Token : getDocument(name)
+  activate Token
+  Token -> Engine : getDocument(name)
+  note right : msg.sender = token
+  activate Engine
+  Engine --> Token : uri, hash, lastModified
+  deactivate Engine
+  Token --> User : uri, hash, lastModified
+  deactivate Token
+end
+
+group Route 2 — ask the engine, naming the subject
+  User -> Engine : getDocument(**token**, name)
+  activate Engine
+  Engine --> User : uri, hash, lastModified
+  deactivate Engine
+end
+
+group #FDEEEE Do not do this
+  User -> Engine : getDocument(name)
+  activate Engine
+  Engine --> User : "", 0x0, 0
+  deactivate Engine
+  note over User, Engine #FDEEEE
+    The single-argument read is scoped to **msg.sender**, so a
+    third party reads its **own** empty namespace. It returns
+    empty values instead of reverting — silent, not an error.
+  end note
+end
+
+@enduml
