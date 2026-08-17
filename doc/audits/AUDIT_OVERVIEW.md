@@ -82,4 +82,4 @@ they were first given, which is the numbering the audit reports cite.
 
 ## Reporting a vulnerability
 
-See the repository's security policy, or contact [admin@cmta.ch](mailto:admin@cmta.ch).
+See [`SECURITY.md`](../../SECURITY.md), or contact [admin@cmta.ch](mailto:admin@cmta.ch).

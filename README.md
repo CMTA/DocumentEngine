@@ -112,6 +112,7 @@ Use a keystore or hardware wallet for real deployments, not a raw private key.
 | Security overview & open items | [`doc/audits/AUDIT_OVERVIEW.md`](./doc/audits/AUDIT_OVERVIEW.md) |
 | Static analysis & code-quality reports | [`doc/audits/tools/`](./doc/audits/tools) |
 | Release history | [`CHANGELOG.md`](./CHANGELOG.md) |
+| Reporting a vulnerability | [`SECURITY.md`](./SECURITY.md) |
 | Diagrams (Surya, PlantUML) | [`doc/surya/`](./doc/surya), [`doc/img/`](./doc/img) |
 
 Current version `0.4.0`, built against CMTAT `v3.3.0-rc3` and OpenZeppelin `v5.7.0` — see the
