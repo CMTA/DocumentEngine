@@ -5,7 +5,7 @@
 
 |  File Name  |  SHA-1 Hash  |
 |-------------|--------------|
-| ./DocumentEngineInvariant.sol | 5c2227d3902c20320c2a74588eebaf8f5b562a33 |
+| ./modules/VersionModule.sol | 50457b3210365f6d56bfb89d8421dd75464409e2 |
 
 
 ### Contracts Description Table
@@ -15,7 +15,9 @@
 |:----------:|:-------------------:|:----------------:|:----------------:|:---------------:|
 |     └      |  **Function Name**  |  **Visibility**  |  **Mutability**  |  **Modifiers**  |
 ||||||
-| **DocumentEngineInvariant** | Implementation |  |||
+| **VersionModule** | Implementation | IERC8303, ERC165 |||
+| └ | version | Public ❗️ |   |NO❗️ |
+| └ | supportsInterface | Public ❗️ |   |NO❗️ |
 
 
 ### Legend

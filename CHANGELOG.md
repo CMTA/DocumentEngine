@@ -61,7 +61,15 @@ for which CMTAT release each version of this engine is built against.
     rc3 are interchangeable for this engine — between them, the whole document surface
     (`draft-IERC1643.sol`, `IDocumentEngine.sol`, `DocumentEngineModule.sol`,
     `DocumentERC1643Module.sol`) changed only its pragma, `^0.8.20` → `^0.8.24`.
-  - Upgrade OpenZeppelin Contracts (and Contracts Upgradeable) `v5.0.2` → [`v5.7.0`](https://github.com/OpenZeppelin/openzeppelin-contracts/releases/tag/v5.7.0)
+  - Upgrade OpenZeppelin Contracts (and Contracts Upgradeable) `v5.0.2` → [`v5.7.0`](https://github.com/OpenZeppelin/openzeppelin-contracts/releases/tag/v5.7.0).
+    `v5.7.0` deprecates `EnumerableSet.at()` in favour of `pos()` (the old name clashes with a
+    keyword scheduled for Solidity); `at()` remains as a forwarding alias, and this engine has no
+    call sites either way. The only exposure is inherited — `AccessControlEnumerable.getRoleMember`
+    switched to `pos()` internally, with no change to its signature, selector or behaviour.
+    Verified: `DocumentEngine`'s runtime code is **byte-identical** across `v5.6.1` and `v5.7.0`
+    (8436 bytes; only the CBOR metadata trailer moves, because the source text of
+    `AccessControlEnumerable.sol` changed), and `DocumentEngineOwnable`'s bytecode is unchanged
+    including metadata.
   - Add [CMTA/RuleEngine](https://github.com/CMTA/RuleEngine) [`v3.0.0-rc5`](https://github.com/CMTA/RuleEngine/releases/tag/v3.0.0-rc5) as a submodule (binding-pattern reference; see [Why not reuse RuleEngine's compliance module?](./README.md#why-not-reuse-ruleengines-erc-3643-compliance-module) — its `ERC3643ComplianceExtendedModule` is not reused)
   - `foundry.lock` now records every submodule by tag; all five entries had gone stale since `v0.3.0`.
 - **Toolchain**: bump Solidity `0.8.26` → `0.8.34` and `evm_version` `cancun` → `prague` to match CMTAT v3 (CMTAT uses `require(cond, CustomError())`, which needs solc ≥ 0.8.27)

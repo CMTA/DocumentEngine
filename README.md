@@ -166,8 +166,8 @@ This engine is a **shared, multi-token** document manager, so — per the ERC-16
 which token contract a change belongs to; they are the responsibility of the
 token contract that exposes ERC-1643 to consumers (it re-emits them when
 delegating). See
-[ERC-1643-proposition.md](./doc/ERCSpecification/ERC-1643-proposition.md) and the
-`IERC1643MultiDocument` extension.
+the [Multi-Subject Document Management draft](./doc/ERCSpecification/erc-draft_multi_document_management.md)
+and the `IERC1643MultiDocument` extension.
 
 ### Integration with CMTAT
 
@@ -261,47 +261,119 @@ through ERC-165 that those endpoints exist here rather than discovering it from 
 
 ## Schema
 
+Generated with Surya — regenerate with the three scripts in [`doc/script`](./doc/script). Diagrams
+for **every** file in `src/`, interfaces included, live under [`doc/surya`](./doc/surya); the ones
+below are the two deployments and the base they share.
+
 ### Inheritance
+
+Both deployments sit on the same two modules — `DocumentEngineBase` (document logic) and
+`TokenBindingModule` (the binding allowlist) — and differ only in the access-control layer.
+
+#### `DocumentEngine` — role-based (`AccessControlEnumerable`)
 
 ![surya_inheritance_DocumentEngine.sol](./doc/surya/surya_inheritance/surya_inheritance_DocumentEngine.sol.png)
 
+#### `DocumentEngineOwnable` — single owner (`Ownable2Step`)
 
+![surya_inheritance_DocumentEngineOwnable.sol](./doc/surya/surya_inheritance/surya_inheritance_DocumentEngineOwnable.sol.png)
 
 ### Graph
 
+#### `DocumentEngineBase` — the shared document logic
+
+![surya_graph_DocumentEngineBase.sol](./doc/surya/surya_graph/surya_graph_DocumentEngineBase.sol.png)
+
+#### `DocumentEngine`
+
 ![surya_graph_DocumentEngine.sol](./doc/surya/surya_graph/surya_graph_DocumentEngine.sol.png)
 
+#### `DocumentEngineOwnable`
 
-
-![surya_graph_DocumentEngineInvariant.sol](./doc/surya/surya_graph/surya_graph_DocumentEngineInvariant.sol.png)
+![surya_graph_DocumentEngineOwnable.sol](./doc/surya/surya_graph/surya_graph_DocumentEngineOwnable.sol.png)
 
 ## Surya Description Report
 
 ### Contracts Description Table
 
-|      Contract      |         Type         |                      Bases                       |                |               |
-| :----------------: | :------------------: | :----------------------------------------------: | :------------: | :-----------: |
-|         └          |  **Function Name**   |                  **Visibility**                  | **Mutability** | **Modifiers** |
-|                    |                      |                                                  |                |               |
-| **DocumentEngine** |    Implementation    | DocumentEngineBase, VersionModule, AccessControlEnumerable, ERC2771Context |                |               |
-|         └          |    <Constructor>     |                     Public ❗️                     |       🛑        |      NO❗️      |
-|         └          |     setDocument      |                     Public ❗️                     |       🛑        |   onlyDocumentManager    |
-|         └          |    removeDocument    |                    External ❗️                    |       🛑        |   onlyDocumentManager    |
-|         └          |     setDocument      |                    External ❗️                    |       🛑        |   onlyBoundToken    |
-|         └          |    removeDocument    |                    External ❗️                    |       🛑        |   onlyBoundToken    |
-|         └          |  batchSetDocuments   |                    External ❗️                    |       🛑        |   onlyDocumentManager    |
-|         └          |  batchSetDocuments   |                    External ❗️                    |       🛑        |   onlyDocumentManager    |
-|         └          | batchRemoveDocuments |                    External ❗️                    |       🛑        |   onlyDocumentManager    |
-|         └          | batchRemoveDocuments |                    External ❗️                    |       🛑        |   onlyDocumentManager    |
-|         └          |     getDocument      |                    External ❗️                    |                |      NO❗️      |
-|         └          |     getDocument      |                    External ❗️                    |                |      NO❗️      |
-|         └          |   getAllDocuments    |                    External ❗️                    |                |      NO❗️      |
-|         └          |   getAllDocuments    |                    External ❗️                    |                |      NO❗️      |
-|         └          |       hasRole        |                     Public ❗️                     |                |      NO❗️      |
-|         └          |     _getDocument     |                    Internal 🔒                    |                |               |
-|         └          | _removeDocumentName  |                    Internal 🔒                    |       🛑        |               |
-|         └          |   _removeDocument    |                    Internal 🔒                    |       🛑        |               |
-|         └          |     _setDocument     |                    Internal 🔒                    |       🛑        |               |
+Per-file reports live in [`doc/surya/surya_report`](./doc/surya/surya_report); the tables below merge
+them. Note that the document functions belong to **`DocumentEngineBase`**, not to either deployment —
+each deployment contributes only its access-control layer and its ERC-2771 context overrides.
+
+|  Contract  |         Type        |       Bases      |                  |                 |
+|:----------:|:-------------------:|:----------------:|:----------------:|:---------------:|
+|     └      |  **Function Name**  |  **Visibility**  |  **Mutability**  |  **Modifiers**  |
+||||||
+| **DocumentEngineBase** | Implementation | IERC1643, IERC1643MultiDocument, DocumentEngineInvariant, Context |||
+| └ | _authorizeDocumentManagement | Internal 🔒 |   | |
+| └ | _authorizeBoundTokenDocumentManagement | Internal 🔒 |   | |
+| └ | setDocument | Public ❗️ | 🛑  | onlyDocumentManager |
+| └ | removeDocument | External ❗️ | 🛑  | onlyDocumentManager |
+| └ | setDocument | External ❗️ | 🛑  | onlyBoundToken |
+| └ | removeDocument | External ❗️ | 🛑  | onlyBoundToken |
+| └ | batchSetDocuments | External ❗️ | 🛑  | onlyDocumentManager |
+| └ | batchSetDocuments | External ❗️ | 🛑  | onlyDocumentManager |
+| └ | batchRemoveDocuments | External ❗️ | 🛑  | onlyDocumentManager |
+| └ | batchRemoveDocuments | External ❗️ | 🛑  | onlyDocumentManager |
+| └ | getDocument | External ❗️ |   |NO❗️ |
+| └ | getDocument | External ❗️ |   |NO❗️ |
+| └ | getAllDocuments | External ❗️ |   |NO❗️ |
+| └ | getAllDocuments | External ❗️ |   |NO❗️ |
+| └ | _getDocument | Internal 🔒 |   | |
+| └ | _removeDocumentName | Internal 🔒 | 🛑  | |
+| └ | _removeDocument | Internal 🔒 | 🛑  | |
+| └ | _setDocument | Internal 🔒 | 🛑  | |
+||||||
+| **DocumentEngine** | Implementation | TokenBindingModule, VersionModule, AccessControlEnumerable, ERC2771Context |||
+| └ | <Constructor> | Public ❗️ | 🛑  | ERC2771Context |
+| └ | _authorizeDocumentManagement | Internal 🔒 |   | |
+| └ | hasRole | Public ❗️ |   |NO❗️ |
+| └ | supportsInterface | Public ❗️ |   |NO❗️ |
+| └ | _msgSender | Internal 🔒 |   | |
+| └ | _msgData | Internal 🔒 |   | |
+| └ | _contextSuffixLength | Internal 🔒 |   | |
+||||||
+| **DocumentEngineOwnable** | Implementation | TokenBindingModule, VersionModule, Ownable2Step, ERC2771Context |||
+| └ | <Constructor> | Public ❗️ | 🛑  | Ownable ERC2771Context |
+| └ | _authorizeDocumentManagement | Internal 🔒 |   | |
+| └ | supportsInterface | Public ❗️ |   |NO❗️ |
+| └ | _msgSender | Internal 🔒 |   | |
+| └ | _msgData | Internal 🔒 |   | |
+| └ | _contextSuffixLength | Internal 🔒 |   | |
+||||||
+| **TokenBindingModule** | Implementation | DocumentEngineBase, ITokenBinding |||
+| └ | bindToken | External ❗️ | 🛑  |NO❗️ |
+| └ | unbindToken | External ❗️ | 🛑  |NO❗️ |
+| └ | _setTokenBinding | Internal 🔒 | 🛑  | |
+| └ | isTokenBound | Public ❗️ |   |NO❗️ |
+| └ | _authorizeBoundTokenDocumentManagement | Internal 🔒 |   | |
+| └ | _checkTokenBound | Internal 🔒 |   | |
+||||||
+| **VersionModule** | Implementation | IERC8303, ERC165 |||
+| └ | version | Public ❗️ |   |NO❗️ |
+| └ | supportsInterface | Public ❗️ |   |NO❗️ |
+||||||
+| **DocumentEngineInvariant** | Implementation |  |||
+
+### Interfaces
+
+|  Contract  |         Type        |       Bases      |                  |                 |
+|:----------:|:-------------------:|:----------------:|:----------------:|:---------------:|
+|     └      |  **Function Name**  |  **Visibility**  |  **Mutability**  |  **Modifiers**  |
+||||||
+| **IERC1643MultiDocument** | Interface |  |||
+| └ | getDocument | External ❗️ |   |NO❗️ |
+| └ | getAllDocuments | External ❗️ |   |NO❗️ |
+| └ | setDocument | External ❗️ | 🛑  |NO❗️ |
+| └ | removeDocument | External ❗️ | 🛑  |NO❗️ |
+||||||
+| **ITokenBinding** | Interface |  |||
+| └ | bindToken | External ❗️ | 🛑  |NO❗️ |
+| └ | unbindToken | External ❗️ | 🛑  |NO❗️ |
+| └ | isTokenBound | External ❗️ |   |NO❗️ |
+||||||
+| **IERC8303** | Interface |  |||
+| └ | version | External ❗️ |   |NO❗️ |
 
 
 ### Legend
@@ -411,7 +483,27 @@ slither . --checklist --filter-paths "node_modules,test,forge-std,CMTAT,openzepp
 
 ### Surya
 
-See [./doc/script](./doc/script)
+Three scripts in [`doc/script`](./doc/script) regenerate the diagrams and reports for every `.sol`
+under `src/`, writing into a scratch `docOut/` at the repo root. **Run them from `doc/script/` and in
+this order** — the graph script creates `docOut/`, and the report script's `mkdir` has no `-p`:
+
+```bash
+(cd doc/script && bash script_surya_graph.sh)
+(cd doc/script && bash script_surya_inheritance.sh)
+(cd doc/script && bash script_surya_report.sh)
+```
+
+Then replace the three directories under [`doc/surya`](./doc/surya) with the fresh output. Requires
+Graphviz (`dot`) — the graph and inheritance scripts pipe through it.
+
+> **Known Surya bug — check for 0-byte PNGs.** `surya graph` parses only the file it is given, so a
+> `super.<fn>()` call into a base declared elsewhere throws
+> `TypeError: Cannot read properties of undefined (reading 'includes')`. Piped into `dot`, that
+> surfaces as a silent **empty PNG**, not an error. Four files here call `super.<fn>()`
+> (`DocumentEngine`, `DocumentEngineOwnable`, `VersionModule`, `TokenBindingModule`), so the guard in
+> `surya/lib/graph.js` — `functionsPerContract[contract] && functionsPerContract[contract].includes(name)`
+> — must be applied before regenerating. It lives in `node_modules` (or the `npx` cache) and is
+> reverted by any reinstall.
 
 ### Foundry
 

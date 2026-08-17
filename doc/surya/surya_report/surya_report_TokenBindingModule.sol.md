@@ -5,7 +5,7 @@
 
 |  File Name  |  SHA-1 Hash  |
 |-------------|--------------|
-| ./DocumentEngineInvariant.sol | 5c2227d3902c20320c2a74588eebaf8f5b562a33 |
+| ./modules/TokenBindingModule.sol | e6198bc6b9cc314809dde5b6d237afb82396f7a2 |
 
 
 ### Contracts Description Table
@@ -15,7 +15,13 @@
 |:----------:|:-------------------:|:----------------:|:----------------:|:---------------:|
 |     └      |  **Function Name**  |  **Visibility**  |  **Mutability**  |  **Modifiers**  |
 ||||||
-| **DocumentEngineInvariant** | Implementation |  |||
+| **TokenBindingModule** | Implementation | DocumentEngineBase, ITokenBinding |||
+| └ | bindToken | External ❗️ | 🛑  |NO❗️ |
+| └ | unbindToken | External ❗️ | 🛑  |NO❗️ |
+| └ | _setTokenBinding | Internal 🔒 | 🛑  | |
+| └ | isTokenBound | Public ❗️ |   |NO❗️ |
+| └ | _authorizeBoundTokenDocumentManagement | Internal 🔒 |   | |
+| └ | _checkTokenBound | Internal 🔒 |   | |
 
 
 ### Legend

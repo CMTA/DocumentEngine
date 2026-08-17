@@ -5,7 +5,7 @@
 
 |  File Name  |  SHA-1 Hash  |
 |-------------|--------------|
-| ./DocumentEngineInvariant.sol | 5c2227d3902c20320c2a74588eebaf8f5b562a33 |
+| ./DocumentEngineOwnable.sol | fd190b2e8e884a3940406385ad7cdd22381304f5 |
 
 
 ### Contracts Description Table
@@ -15,7 +15,13 @@
 |:----------:|:-------------------:|:----------------:|:----------------:|:---------------:|
 |     └      |  **Function Name**  |  **Visibility**  |  **Mutability**  |  **Modifiers**  |
 ||||||
-| **DocumentEngineInvariant** | Implementation |  |||
+| **DocumentEngineOwnable** | Implementation | TokenBindingModule, VersionModule, Ownable2Step, ERC2771Context |||
+| └ | <Constructor> | Public ❗️ | 🛑  | Ownable ERC2771Context |
+| └ | _authorizeDocumentManagement | Internal 🔒 |   | |
+| └ | supportsInterface | Public ❗️ |   |NO❗️ |
+| └ | _msgSender | Internal 🔒 |   | |
+| └ | _msgData | Internal 🔒 |   | |
+| └ | _contextSuffixLength | Internal 🔒 |   | |
 
 
 ### Legend
