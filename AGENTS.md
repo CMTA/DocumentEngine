@@ -162,7 +162,7 @@ Other important files:
 - `README.md` — **short** entry point only: what the engine is, quick start, the two management
   paths, the CMTAT wiring, the two integrator caveats, deploy. Keep it short; new prose belongs in
   the full document.
-- `doc/README.md` — the full documentation (Surya schema, ERC-165 rationale, version
+- `doc/README.md` — the specification / full reference (Surya schema, ERC-165 rationale, version
   compatibility matrix, tooling). This is where the old root README moved.
 - `doc/img/` — PlantUML **sources** (`*.puml`) plus their rendered `*.png`. Five diagrams, split by
   audience: `cmtat-write-simple` / `cmtat-read-simple` are the **short** pair, used in *both*
