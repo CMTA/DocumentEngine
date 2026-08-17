@@ -156,7 +156,10 @@ Other important files:
   `doc/audits/` — the security overview (`AUDIT_OVERVIEW.md`) plus versioned
   static-analysis output under `doc/audits/tools/vX.Y.Z/<tool>/`, each with a
   `*-report.md` (summary table prepended) and a `*-report-feedback.md` triaging
-  every finding. Aderyn was run for `v0.4.0`; Slither has never been run here.
+  every finding. Both Aderyn `0.6.5` (0 High · 6 Low) and Slither `0.11.5`
+  (0 High · 1 Med · 1 Low · 2 Info) were run for `v0.4.0` — nothing to fix in either.
+  Slither's dependency filter must be `lib` (Foundry layout); `--filter-paths` fails
+  open, so an entry matching nothing silently pulls the vendored tree into scope.
 - `IMPROVEMENT.md` — the open items: deviations from the two ERC specifications,
   with severity, effort and a recommendation for each. Update it when an item is
   fixed (move the record to `CHANGELOG.md` and `doc/audits/AUDIT_OVERVIEW.md`)

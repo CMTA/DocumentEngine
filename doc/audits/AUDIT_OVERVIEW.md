@@ -7,7 +7,7 @@
 
 ## In scope
 
-The `src/` tree only — 9 files, 298 nSLOC as of `v0.4.0`:
+The `src/` tree only — 9 files, 307 nSLOC as of `v0.4.0`:
 
 ```
 src/DocumentEngine.sol              src/interfaces/IERC1643MultiDocument.sol
@@ -25,17 +25,31 @@ Out of scope: `lib/` (CMTAT, RuleEngine, OpenZeppelin — audited, or not, upstr
 | Analysis | Version | Report | Triage |
 | --- | --- | --- | --- |
 | Aderyn `0.6.5` | `v0.4.0` | [report](./tools/v0.4.0/aderyn/aderyn-report.md) | [feedback](./tools/v0.4.0/aderyn/aderyn-report-feedback.md) |
-| Slither | — | not run | — |
+| Slither `0.11.5` | `v0.4.0` | [report](./tools/v0.4.0/slither/slither-report.md) | [feedback](./tools/v0.4.0/slither/slither-report-feedback.md) |
 | ERC conformance analysis (AI-assisted) | `v0.4.0` | open items: [`IMPROVEMENT.md`](../../IMPROVEMENT.md) | — |
+
+Both tool runs are against CMTAT `v3.3.0-rc3` and OpenZeppelin `v5.7.0`, with mocks and tests
+excluded.
 
 ## Static-analysis results
 
 | Tool | High | Medium | Low | Info | Anything to fix? |
 | --- | --- | --- | --- | --- | --- |
 | Aderyn `0.6.5` | 0 | — | 6 | 0 | **No.** 4 by design, 1 environment, 1 false positive; 1 of the "by design" instances overlaps a known scalability item (§4.7) |
-| Slither | — | — | — | — | not run for `v0.4.0` |
+| Slither `0.11.5` | 0 | 1 | 1 | 2 | **No.** All 4 are false positives, reducing to two pieces of code: an existence check (`doc.lastModified == 0`) read as a timestamp comparison, and two `_msgData()` overrides read as dead code |
 
 Aderyn reports no Medium or Info categories; it classifies only High and Low.
+
+**Neither tool found anything to fix in `v0.4.0`.** The two agree on the absence of the classic
+classes — no reentrancy, no access-control gap, no uninitialised state, no unchecked external call —
+which is the expected result for a contract that holds no funds and makes no external calls. They
+disagree only on what is worth reporting: Slither's highest result (`incorrect-equality`, Medium) is
+one Aderyn ignores, and Aderyn's loop advisories draw nothing from Slither. Each dismissal was
+verified against the cited line; the `_msgData()` "dead code" was verified by deleting it and
+confirming the compile fails (`Error (6480): Derived contract must override function "_msgData"`).
+
+Note the standing limitation: neither tool can see the specification-level issues that matter most
+for this engine — those are tracked as open items below.
 
 ## Substantive findings fixed in `v0.4.0`
 

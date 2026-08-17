@@ -466,16 +466,23 @@ finding against the source. The security overview is
 | Release | Tool | Result | Report | Triage |
 | ------- | ---- | ------ | ------ | ------ |
 | v0.4.0 | Aderyn `0.6.5` | 0 High · 6 Low — **nothing to fix** | [report](./doc/audits/tools/v0.4.0/aderyn/aderyn-report.md) | [feedback](./doc/audits/tools/v0.4.0/aderyn/aderyn-report-feedback.md) |
-| v0.4.0 | Slither | not run | — | — |
+| v0.4.0 | Slither `0.11.5` | 0 High · 1 Medium · 1 Low · 2 Info — **nothing to fix** | [report](./doc/audits/tools/v0.4.0/slither/slither-report.md) | [feedback](./doc/audits/tools/v0.4.0/slither/slither-report-feedback.md) |
 
 ```bash
 # Aderyn — mocks excluded (this project's mocks live in test/, which Aderyn does not scan)
 aderyn -x mocks --output doc/audits/tools/v0.4.0/aderyn/aderyn-report.md
 
-# Slither
-slither . --checklist --filter-paths "node_modules,test,forge-std,CMTAT,openzeppelin-contracts" \
+# Slither — mocks excluded (they live in test/, removed by the `test` filter)
+slither . --checklist --filter-paths "node_modules,lib,test,forge-std,mocks" \
   > doc/audits/tools/v0.4.0/slither/slither-report.md
 ```
+
+> **Filter on `lib`, not on individual submodule names.** This is a Foundry project, so every
+> dependency lives under `lib/`. `--filter-paths` fails *open* — an entry matching nothing silently
+> widens scope instead of erroring — so naming submodules one by one risks pulling a whole vendored
+> tree into the report. Verify with `grep -c 'lib/\|node_modules/' <report>`, which must return `0`.
+> Slither also writes its checklist to **stdout** and its detector log to **stderr**, and exits
+> non-zero when it finds anything: `exit=255` with a populated report is the normal outcome.
 
 > **Static-analysis output is leads, not findings.** Every dismissal in the feedback files was
 > verified against the cited `file:line`, and neither tool can see the specification-level issues

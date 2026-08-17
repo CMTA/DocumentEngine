@@ -1,4 +1,4 @@
-> **Summary — generated for DocumentEngine `v0.4.0` (CMTAT `v3.3.0-rc2`).**
+> **Summary — generated for DocumentEngine `v0.4.0` (CMTAT `v3.3.0-rc3`, OpenZeppelin `v5.7.0`).**
 >
 > | | |
 > | --- | --- |
@@ -6,19 +6,23 @@
 > | Tool version | `aderyn 0.6.5` |
 > | Scope | `src/` only — 9 files, 307 nSLOC. **Mocks/tests excluded** (this project has no `src/mocks`; its mocks live in `test/`, which Aderyn does not scan). |
 > | Result | **0 High · 6 Low · 0 Info** |
-> | Verdict | **Nothing to fix.** No finding is exploitable. One (L-5 at `DocumentEngineBase.sol:238`) independently corroborates a known gas/scalability item already tracked as [`IMPROVEMENT.md`](../../../../IMPROVEMENT.md) item 4. |
+> | Verdict | **Nothing to fix.** No finding is exploitable. One (L-5 at `DocumentEngineBase.sol:238`) independently corroborates a known gas/scalability item already tracked as `IMPROVEMENT.md` item 4. |
 >
 > | ID | Detector | Sev | Instances | Assessment |
 > | --- | --- | --- | --- | --- |
 > | L-1 | Centralization Risk | Low | 2 | **By design** — a document manager is a privileged operator by definition |
-> | L-2 | Unspecific Solidity Pragma | Low | 9 | **By design** — the caret is deliberate; the deployed compiler is pinned in `foundry.toml`. The `^0.8.20` floor seen by this run has since been raised to `^0.8.24` — see the feedback file |
+> | L-2 | Unspecific Solidity Pragma | Low | 9 | **By design** — the caret is deliberate; the deployed compiler is pinned in `foundry.toml`. Now `^0.8.24`, the true `src/` floor |
 > | L-3 | PUSH0 Opcode | Low | 9 | **Environment** — `evm_version = prague`; only relevant on chains without PUSH0 |
 > | L-4 | Loop Contains `require`/`revert` | Low | 4 | **By design** — batch operations are deliberately all-or-nothing |
-> | L-5 | Costly operations inside loop | Low | 5 | **By design** (4 batch loops) + **1 known item** — `_removeDocumentName` is O(n), see §4.7 |
+> | L-5 | Costly operations inside loop | Low | 5 | **By design** (4 batch loops) + **1 known item** — `_removeDocumentName` is O(n), see `IMPROVEMENT.md` item 4 |
 > | L-6 | Unchecked Return | Low | 1 | **False positive** — `_grantRole` in a constructor on a fresh contract cannot return `false` |
+>
+> Unchanged from the previous `v0.4.0` run (CMTAT `v3.3.0-rc2`, OZ `v5.6.1`): same six detectors,
+> same instance counts, same lines. See the feedback file's Delta section.
 >
 > Full triage, with the reasoning verified against each cited line:
 > [`aderyn-report-feedback.md`](./aderyn-report-feedback.md).
+> Companion Slither run: [`../slither/slither-report.md`](../slither/slither-report.md).
 > Security overview: [`doc/audits/AUDIT_OVERVIEW.md`](../../../AUDIT_OVERVIEW.md).
 
 # Aderyn Analysis Report
@@ -108,55 +112,55 @@ Consider using a specific version of Solidity in your contracts instead of a wid
 - Found in src/DocumentEngine.sol [Line: 2](../../../../../src/DocumentEngine.sol#L2)
 
 	```solidity
-	pragma solidity ^0.8.20;
+	pragma solidity ^0.8.24;
 	```
 
 - Found in src/DocumentEngineBase.sol [Line: 2](../../../../../src/DocumentEngineBase.sol#L2)
 
 	```solidity
-	pragma solidity ^0.8.20;
+	pragma solidity ^0.8.24;
 	```
 
 - Found in src/DocumentEngineInvariant.sol [Line: 2](../../../../../src/DocumentEngineInvariant.sol#L2)
 
 	```solidity
-	pragma solidity ^0.8.20;
+	pragma solidity ^0.8.24;
 	```
 
 - Found in src/DocumentEngineOwnable.sol [Line: 2](../../../../../src/DocumentEngineOwnable.sol#L2)
 
 	```solidity
-	pragma solidity ^0.8.20;
+	pragma solidity ^0.8.24;
 	```
 
 - Found in src/interfaces/IERC1643MultiDocument.sol [Line: 2](../../../../../src/interfaces/IERC1643MultiDocument.sol#L2)
 
 	```solidity
-	pragma solidity ^0.8.20;
+	pragma solidity ^0.8.24;
 	```
 
 - Found in src/interfaces/IERC8303.sol [Line: 2](../../../../../src/interfaces/IERC8303.sol#L2)
 
 	```solidity
-	pragma solidity ^0.8.20;
+	pragma solidity ^0.8.24;
 	```
 
 - Found in src/interfaces/ITokenBinding.sol [Line: 2](../../../../../src/interfaces/ITokenBinding.sol#L2)
 
 	```solidity
-	pragma solidity ^0.8.20;
+	pragma solidity ^0.8.24;
 	```
 
 - Found in src/modules/TokenBindingModule.sol [Line: 2](../../../../../src/modules/TokenBindingModule.sol#L2)
 
 	```solidity
-	pragma solidity ^0.8.20;
+	pragma solidity ^0.8.24;
 	```
 
 - Found in src/modules/VersionModule.sol [Line: 2](../../../../../src/modules/VersionModule.sol#L2)
 
 	```solidity
-	pragma solidity ^0.8.20;
+	pragma solidity ^0.8.24;
 	```
 
 </details>
@@ -173,55 +177,55 @@ Solc compiler version 0.8.20 switches the default target EVM version to Shanghai
 - Found in src/DocumentEngine.sol [Line: 2](../../../../../src/DocumentEngine.sol#L2)
 
 	```solidity
-	pragma solidity ^0.8.20;
+	pragma solidity ^0.8.24;
 	```
 
 - Found in src/DocumentEngineBase.sol [Line: 2](../../../../../src/DocumentEngineBase.sol#L2)
 
 	```solidity
-	pragma solidity ^0.8.20;
+	pragma solidity ^0.8.24;
 	```
 
 - Found in src/DocumentEngineInvariant.sol [Line: 2](../../../../../src/DocumentEngineInvariant.sol#L2)
 
 	```solidity
-	pragma solidity ^0.8.20;
+	pragma solidity ^0.8.24;
 	```
 
 - Found in src/DocumentEngineOwnable.sol [Line: 2](../../../../../src/DocumentEngineOwnable.sol#L2)
 
 	```solidity
-	pragma solidity ^0.8.20;
+	pragma solidity ^0.8.24;
 	```
 
 - Found in src/interfaces/IERC1643MultiDocument.sol [Line: 2](../../../../../src/interfaces/IERC1643MultiDocument.sol#L2)
 
 	```solidity
-	pragma solidity ^0.8.20;
+	pragma solidity ^0.8.24;
 	```
 
 - Found in src/interfaces/IERC8303.sol [Line: 2](../../../../../src/interfaces/IERC8303.sol#L2)
 
 	```solidity
-	pragma solidity ^0.8.20;
+	pragma solidity ^0.8.24;
 	```
 
 - Found in src/interfaces/ITokenBinding.sol [Line: 2](../../../../../src/interfaces/ITokenBinding.sol#L2)
 
 	```solidity
-	pragma solidity ^0.8.20;
+	pragma solidity ^0.8.24;
 	```
 
 - Found in src/modules/TokenBindingModule.sol [Line: 2](../../../../../src/modules/TokenBindingModule.sol#L2)
 
 	```solidity
-	pragma solidity ^0.8.20;
+	pragma solidity ^0.8.24;
 	```
 
 - Found in src/modules/VersionModule.sol [Line: 2](../../../../../src/modules/VersionModule.sol#L2)
 
 	```solidity
-	pragma solidity ^0.8.20;
+	pragma solidity ^0.8.24;
 	```
 
 </details>

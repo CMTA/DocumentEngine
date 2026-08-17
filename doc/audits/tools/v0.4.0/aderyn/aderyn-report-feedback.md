@@ -6,8 +6,9 @@
 | Command | `aderyn -x mocks --output doc/audits/tools/v0.4.0/aderyn/aderyn-report.md` |
 | Tool version | `aderyn 0.6.5` |
 | Scope | `src/` only — 9 files, 307 nSLOC. **Mocks and tests excluded.** This project keeps its mocks (`CMTATDocumentEngineMock`, `OpenDocumentEngine`) inside `test/DocumentEngine.t.sol`, which Aderyn does not scan, so `-x mocks` matched nothing and changed nothing. |
-| Dependency | CMTAT `v3.3.0-rc2` (`35d8940b`) |
+| Dependencies | CMTAT `v3.3.0-rc3` (`658672f1`), OpenZeppelin `v5.7.0` (`cab19933`) |
 | Result | **0 High · 6 Low** |
+| Companion | [`../slither/slither-report.md`](../slither/slither-report.md) — Slither `0.11.5`, 4 results, also nothing to fix |
 
 ## Executive triage
 
@@ -31,7 +32,7 @@ CMTAT upgrade.
 | ID | Detector | Sev | Instances | Disposition | Reason (verified against the cited lines) |
 | --- | --- | --- | --- | --- | --- |
 | L-1 | Centralization Risk | Low | 2 | **By design** | `DocumentEngine.sol:24`, `DocumentEngineOwnable.sol:24`. The whole premise of the contract is that a trusted operator manages documents for a fleet of subjects; `DOCUMENT_MANAGER_ROLE` (and `owner`) are that operator. Documented in the README and analysed in `IMPROVEMENT.md` item 1, which concludes the global role is the correct model for the single-issuer fleet this engine targets. Aderyn cannot express that distinction. |
-| L-2 | Unspecific Solidity Pragma | Low | 9 | **By design** (floor since raised) | Every file uses a caret pragma, intentionally, so the sources stay consumable as a library by projects on a different `0.8.x`; the compiler actually used for the deployed bytecode is pinned to `0.8.34` in `foundry.toml`, and `foundry.lock` pins every dependency. Verified: no file uses a construct that behaves differently across the allowed range. **Update (post-run):** the floor this report saw, `^0.8.20`, over-promised once CMTAT `v3.3.0-rc3` moved `draft-IERC1643.sol` to `^0.8.24` — `0.8.20`–`0.8.23` could not in fact compile the tree (`AccessControlEnumerable.sol` and `EnumerableSet.sol` were already `^0.8.24`). Every file is now `^0.8.24`, which is the true `src/` floor; the full project including the CMTAT-importing tests needs `0.8.27`, because `require(cond, CustomError())` is legacy-pipeline-only from that version on. |
+| L-2 | Unspecific Solidity Pragma | Low | 9 | **By design** | Every file uses a caret pragma, intentionally, so the sources stay consumable as a library by projects on a different `0.8.x`; the compiler actually used for the deployed bytecode is pinned to `0.8.34` in `foundry.toml`, and `foundry.lock` pins every dependency. Verified: no file uses a construct that behaves differently across the allowed range. The floor is now **`^0.8.24`**, raised from `^0.8.20` after the previous run: `^0.8.20` over-promised, because `AccessControlEnumerable.sol` and `EnumerableSet.sol` were already `^0.8.24` and CMTAT `v3.3.0-rc3` moved `draft-IERC1643.sol` there too — no compiler in `0.8.20`–`0.8.23` could build the tree. `0.8.24` is the true `src/` floor; the full project including the CMTAT-importing tests needs `0.8.27`, because `require(cond, CustomError())` is legacy-pipeline-only from that version on. |
 | L-3 | PUSH0 Opcode | Low | 9 | **Environment** | Consequence of the caret pragma plus `evm_version = prague`: the compiler emits `PUSH0`, which is unavailable on chains that have not adopted Shanghai. Not a source defect. A deployer targeting such a chain must lower `evm_version` in `foundry.toml` — but CMTAT v3 itself requires `prague`, so that configuration is out of scope for this engine. |
 | L-4 | Loop Contains `require`/`revert` | Low | 4 | **By design** | `DocumentEngineBase.sol:124, 142, 156, 170` — the four batch loops. The reverts are raised inside `_setDocument` / `_removeDocument` (`ERC1643InvalidName`, `MultiDocumentInvalidSubject`, `ERC1643MissingDocument`). Batch operations are deliberately **all-or-nothing**: a batch containing one bad entry must not half-apply, since partial application would leave the operator unable to tell which documents were written without re-reading every entry. Skipping bad entries instead would silently drop them. |
 | L-5 | Costly operations inside loop | Low | 5 | **By design** ×4, **known item** ×1 | Four instances (`:124, 142, 156, 170`) are storage writes in the batch loops — unavoidable, and the reason the batch functions exist is to amortise the 21 000-gas transaction overhead across those writes. The fifth (`:238`) is `_removeDocumentName`'s linear scan with swap-and-pop; see the triage note above and `IMPROVEMENT.md` item 4. |
@@ -48,13 +49,32 @@ Worth noting explicitly, since it is a null result that is easy to misread as "n
 `TokenBindingModule._setTokenBinding` — which adds a revert and an early return — triggered **no**
 new finding, including no addition to L-4 (`revert` in a loop), because it contains no loop.
 
+## Delta from the previous run (dependency upgrade)
+
+Re-run after the `v0.4.0` dependency bump — CMTAT `v3.3.0-rc2` → `v3.3.0-rc3`, OpenZeppelin
+`v5.6.1` → `v5.7.0`, and the source pragma `^0.8.20` → `^0.8.24`.
+
+**Nothing moved.** The same six detectors fire with the same instance counts (2 / 9 / 9 / 4 / 5 / 1),
+on the same lines, and nSLOC is unchanged at 307 across the same 9 files. The only textual difference
+in the raw report is the pragma quoted under L-2 and L-3, which now reads `^0.8.24`.
+
+Two null results worth recording, because they are easy to misread as "not analysed":
+
+- **The pragma bump did not clear L-2 or L-3.** Aderyn flags the *caret*, not the floor, so raising
+  `^0.8.20` to `^0.8.24` leaves both counts at 9. L-3's own description still names `0.8.20` — that
+  is boilerplate detector text, not a reading of the current source.
+- **The OpenZeppelin `EnumerableSet.at()` → `pos()` deprecation produced no finding.** This engine
+  has no call site of either, and its only exposure is the inherited
+  `AccessControlEnumerable.getRoleMember`, whose behaviour is unchanged.
+
 ## Delta from the previous version
 
-None — this is the **first** static-analysis run recorded for this repository. `doc/audits/` did not
-exist before `v0.4.0`; the `CHANGELOG.md` release checklist referenced `doc/audits/tools` but no
-report had been committed. There is therefore no baseline to diff against, and future runs should
-diff against this one.
+None — `v0.4.0` is the **first** release with static analysis recorded. `doc/audits/` did not exist
+before it. Future runs should diff against this one.
 
-Note for the next run: the `CLAUDE.md` file tree claims a Slither report exists under `doc/`. It does
-not. Slither is installed (`slither --version` resolves) and was **not** run for `v0.4.0` — this
-release re-ran Aderyn only. A Slither run would make the next delta meaningful across both tools.
+**Slither has now been run** (`0.11.5`, 4 results, nothing to fix) — see
+[`../slither/slither-report-feedback.md`](../slither/slither-report-feedback.md). This closes the
+gap flagged here previously, so the next release can diff both tools. The two disagree on what is
+worth reporting: Slither raised an existence-check equality and two required `_msgData()` overrides
+that Aderyn ignored, while Aderyn's loop advisories (L-4, L-5) and `_grantRole` return (L-6) drew
+nothing from Slither. No finding from either tool is real.
