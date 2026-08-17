@@ -31,7 +31,7 @@
 | C-1 | Every event has exactly one emit site | ⬜ nothing to do — verified good | — |
 | C-2 | Trusted forwarder set at construction without an event | ⬜ left as is | `DocumentEngine.sol:40` |
 | D-1 | ERC-2771 trio duplicated byte-for-byte across both deployments | ⬜ left as is — **extraction proven impossible** | `DocumentEngine.sol:137`, `DocumentEngineOwnable.sol:73` |
-| E-1 | `virtual` coverage inconsistent between the two modules | ⚠️ decide — not implemented | `DocumentEngineBase.sol`, `TokenBindingModule.sol` |
+| E-1 | `virtual` coverage inconsistent between the two modules | ✅ fixed — all 12 internal functions now `virtual` | `DocumentEngineBase.sol`, `TokenBindingModule.sol`, both deployments |
 | F-1 | ERC-165 interface IDs — no inherited-selector trap | ⬜ nothing to do — verified correct | `DocumentEngine.sol:115` |
 | G-1 | `DocumentEngineInvariant` comment misattributes `NotBoundToken` | ✅ fixed | `DocumentEngineInvariant.sol` |
 | G-2 | Contracts point at documentation paths that have already moved once | ⚠️ decide — not implemented | 3 sites |
@@ -39,13 +39,12 @@
 | H-1 | A role cannot be revoked from the default admin, but the call succeeds | ✅ documented + regression test | `DocumentEngine.sol:73` |
 | H-2 | Caller-scoped reads return an empty namespace instead of reverting | ⬜ left as is — already documented and tested | `DocumentEngineBase.sol:186` |
 
-Rows: 14. Fixed: 4. Left deliberately: 8. Open decisions: 2.
+Rows: 14. Fixed: 5. Left deliberately: 8. Open decisions: 1.
 
 ## Outstanding
 
 | ID | Item | Why it is still open |
 | --- | --- | --- |
-| E-1 | Make the document-management API and the binding internals `virtual` | Changes the extension surface the project commits to. Free at runtime (measured, 0 gas) but it is a design commitment, so it is the maintainer's call — see the two options in E-1. |
 | G-2 | Remove the `doc/…` pointers baked into contract comments | Two of the three sites *lean* on the doc rather than merely citing it; removing the pointer alone would leave an incomplete warning. Needs a sentence written per site, which is an editorial decision. |
 
 ---
@@ -283,15 +282,47 @@ statically unless actually overridden:
 | `internal` | 885 |
 | `internal virtual` | 885 |
 
-**Verdict: decide.** Two coherent options, either better than today's split:
-1. **Match CMTAT** — mark the `DocumentEngineBase` public API and the `TokenBindingModule` internals
-   `virtual`. Maximum extensibility, zero runtime cost, but it commits the project to a much larger
-   override surface as public API.
-2. **Tighten instead** — drop `virtual` from `bindToken`/`unbindToken`/`isTokenBound` so that only the
-   authorization hooks are overridable, matching what `CLAUDE.md` actually promises.
+**Verdict: implemented — all internal functions are now `virtual`.** The maintainer chose to widen
+the internal surface rather than narrow the public one, which resolves the inconsistency in the
+direction CMTAT takes while leaving the external API commitment unchanged. Twelve functions gained
+the keyword:
 
-Not implemented: this is a commitment about the extension surface, which is the maintainer's call,
-not a reviewer's.
+| contract | now `virtual` |
+| --- | --- |
+| `DocumentEngineBase` | `_removeDocumentName`, `_removeDocument`, `_setDocument`, `_getDocument` |
+| `TokenBindingModule` | `_setTokenBinding`, `_checkTokenBound` |
+| `DocumentEngine` | `_msgSender`, `_msgData`, `_contextSuffixLength` |
+| `DocumentEngineOwnable` | `_msgSender`, `_msgData`, `_contextSuffixLength` |
+
+`virtual` sits in the style-guide keyword position (visibility → mutability → `virtual` → `override`),
+so the style checker still reports 0 `[modifier-order]` violations.
+
+**Runtime cost: zero, and this time proven on the real contracts rather than a synthetic pair.**
+Runtime bytecode before and after, with the CBOR metadata trailer stripped:
+
+| contract | executable code before | after | |
+| --- | --- | --- | --- |
+| `DocumentEngine` | 7457 bytes | 7457 bytes | **byte-identical** |
+| `DocumentEngineOwnable` | 6111 bytes | 6111 bytes | **byte-identical** |
+
+Only the metadata hash moved, because the source text changed. Solidity resolves an unoverridden
+`virtual` internal call statically, so nothing reaches the runtime — consistent with the earlier
+885-vs-885 synthetic measurement, now confirmed against production code.
+
+**The guard.** A convention-only change needs a harness that *compiles*, so
+`OverridingDocumentEngine` (in `DocumentEngine.t.sol`) overrides three of the twelve — one from the
+write path (`_setDocument`), one from the read path (`_getDocument`), one from the authorization path
+(`_checkTokenBound`). Removing `virtual` from any of them breaks the build, verified by doing it:
+
+```
+Error (4334): Trying to override non-virtual function. Did you forget to add "virtual"?
+  --> src/modules/TokenBindingModule.sol:88:5
+```
+
+A compile-only check would not catch a silently shadowed override, so
+`testInternalHooksAreVirtualAndOverridesAreReached` additionally asserts each override is on the real
+call path: the counter increments, the read comes back URI-tagged, and an **unbound** caller passes
+the bound-token gate that would otherwise revert `NotBoundToken`.
 
 ## F. ERC / specification conformance
 

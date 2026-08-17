@@ -259,7 +259,7 @@ abstract contract DocumentEngineBase is IERC1643, IERC1643MultiDocument, Documen
      * @param subject The contract the document belongs to.
      * @param name_ The document name to remove from the list.
      */
-    function _removeDocumentName(address subject, bytes32 name_) internal {
+    function _removeDocumentName(address subject, bytes32 name_) internal virtual {
         bytes32[] storage names = _documentNames[subject];
         uint256 length = names.length;
         for (uint256 i = 0; i < length; ++i) {
@@ -277,7 +277,7 @@ abstract contract DocumentEngineBase is IERC1643, IERC1643MultiDocument, Documen
      * @param subject The contract the document belongs to.
      * @param name_ The document name.
      */
-    function _removeDocument(address subject, bytes32 name_) internal {
+    function _removeDocument(address subject, bytes32 name_) internal virtual {
         Document storage doc = _documents[subject][name_];
         // ERC-1643: reverts when the named document does not exist
         if (doc.lastModified == 0) {
@@ -302,7 +302,7 @@ abstract contract DocumentEngineBase is IERC1643, IERC1643MultiDocument, Documen
      * @param uri_ The document location.
      * @param documentHash_ The hash of the document contents.
      */
-    function _setDocument(address subject, bytes32 name_, string memory uri_, bytes32 documentHash_) internal {
+    function _setDocument(address subject, bytes32 name_, string memory uri_, bytes32 documentHash_) internal virtual {
         // Multi-token guard: `subject` must be a real contract address, never the
         // null namespace. (The bound-token path passes `_msgSender()`, never zero.)
         if (subject == address(0)) {
@@ -354,6 +354,7 @@ abstract contract DocumentEngineBase is IERC1643, IERC1643MultiDocument, Documen
     function _getDocument(address subject, bytes32 name_)
         internal
         view
+        virtual
         returns (string memory uri, bytes32 documentHash, uint256 lastModified)
     {
         Document storage doc = _documents[subject][name_];

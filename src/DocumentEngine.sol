@@ -143,7 +143,7 @@ contract DocumentEngine is TokenBindingModule, VersionModule, AccessControlEnume
      * @return sender The transaction sender, unwrapped from the ERC-2771 calldata suffix when the
      * call came through the trusted forwarder.
      */
-    function _msgSender() internal view override(ERC2771Context, Context) returns (address sender) {
+    function _msgSender() internal view virtual override(ERC2771Context, Context) returns (address sender) {
         return ERC2771Context._msgSender();
     }
 
@@ -152,7 +152,7 @@ contract DocumentEngine is TokenBindingModule, VersionModule, AccessControlEnume
      * @return The calldata, stripped of the ERC-2771 sender suffix when the call came through the
      * trusted forwarder.
      */
-    function _msgData() internal view override(ERC2771Context, Context) returns (bytes calldata) {
+    function _msgData() internal view virtual override(ERC2771Context, Context) returns (bytes calldata) {
         return ERC2771Context._msgData();
     }
 
@@ -160,7 +160,7 @@ contract DocumentEngine is TokenBindingModule, VersionModule, AccessControlEnume
      * @dev This surcharge is not necessary if you do not use the MetaTxModule
      * @return The length of the ERC-2771 calldata suffix holding the sender address.
      */
-    function _contextSuffixLength() internal view override(ERC2771Context, Context) returns (uint256) {
+    function _contextSuffixLength() internal view virtual override(ERC2771Context, Context) returns (uint256) {
         return ERC2771Context._contextSuffixLength();
     }
 }

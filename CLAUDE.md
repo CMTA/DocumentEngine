@@ -70,6 +70,12 @@ addressed by a `bytes32` name.
 - **ERC-2771:** meta-transaction (gasless) support; `_msgSender()` is used everywhere.
 - **Access control:** `DEFAULT_ADMIN_ROLE` implicitly has every role (see the
   `hasRole` override).
+- **Every `internal` function is `virtual`.** Not just the `_authorize*` hooks — the document
+  write/read paths (`_setDocument`, `_removeDocument`, `_removeDocumentName`, `_getDocument`), the
+  binding internals (`_setTokenBinding`, `_checkTokenBound`) and the ERC-2771 context trio are all
+  overridable. It costs nothing at runtime (bytecode is byte-identical with and without the keyword),
+  so **keep new internal functions `virtual`**; `OverridingDocumentEngine` in the test suite fails to
+  compile if one loses it.
 - **Flexible access control (CMTAT / RuleEngine pattern):** restricted functions
   use the `onlyDocumentManager` / `onlyBoundToken` modifiers, which delegate to
   overridable `internal virtual` hooks `_authorizeDocumentManagement()` (per

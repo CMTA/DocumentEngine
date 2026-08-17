@@ -87,6 +87,16 @@ for which CMTAT release each version of this engine is built against.
     Pinned by the new `testRevokingRoleFromDefaultAdminDoesNotRemoveAccess`.
   - **`DocumentEngineInvariant`**: the error-location comment misattributed `NotBoundToken(address)`
     to `ITokenBinding`; it is declared by `TokenBindingModule`.
+  - **All 12 `internal` functions are now `virtual`** (`_setDocument`, `_removeDocument`,
+    `_removeDocumentName`, `_getDocument`, `_setTokenBinding`, `_checkTokenBound`, and the ERC-2771
+    context trio in both deployments), resolving an inconsistency where `TokenBindingModule` exposed
+    its public surface for override while `DocumentEngineBase` exposed nothing but its two abstract
+    hooks. A deployment can now override the document write/read paths and the binding check, matching
+    what CMTAT's equivalent module allows. **Runtime cost is zero:** the executable bytecode of both
+    deployments is byte-identical before and after (7457 / 6111 bytes, metadata trailer excluded).
+    Guarded by `OverridingDocumentEngine` +
+    `testInternalHooksAreVirtualAndOverridesAreReached` — removing `virtual` from any of the three
+    overridden hooks fails the build (`Error (4334): Trying to override non-virtual function`).
 
   Notable non-changes, recorded so they are not re-raised: `unchecked { ++i }` buys **0 gas** on solc
   0.8.34 (measured); `string calldata` on the admin `setDocument` is **49 gas worse** than `memory`

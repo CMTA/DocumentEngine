@@ -41,6 +41,41 @@ contract OpenDocumentEngine is DocumentEngine {
     }
 }
 
+/**
+ * @dev Guard for the `internal virtual` convention (CLAUDE_ANALYSIS.md E-1).
+ *
+ * Overrides three of the internal hooks — one from `DocumentEngineBase`'s write path, one from its
+ * read path, and one from `TokenBindingModule`'s authorization path. Two things are being pinned:
+ * dropping `virtual` from any of them stops this contract compiling, and the assertions in
+ * {DocumentEngineTest-testInternalHooksAreVirtualAndOverridesAreReached} prove each override is
+ * actually reached rather than silently shadowed.
+ */
+contract OverridingDocumentEngine is DocumentEngine {
+    uint256 public setDocumentCalls;
+
+    constructor(address admin_, address forwarder) DocumentEngine(admin_, forwarder) {}
+
+    /// @dev Counts invocations, then defers to the base implementation.
+    function _setDocument(address subject, bytes32 name_, string memory uri_, bytes32 documentHash_) internal override {
+        ++setDocumentCalls;
+        super._setDocument(subject, name_, uri_, documentHash_);
+    }
+
+    /// @dev Tags the URI so a caller can observe that this override ran.
+    function _getDocument(address subject, bytes32 name_)
+        internal
+        view
+        override
+        returns (string memory uri, bytes32 documentHash, uint256 lastModified)
+    {
+        (uri, documentHash, lastModified) = super._getDocument(subject, name_);
+        uri = string.concat("override:", uri);
+    }
+
+    /// @dev Deliberately permissive: every caller passes the bound-token gate.
+    function _checkTokenBound() internal view override {}
+}
+
 contract DocumentEngineTest is Test, DocumentEngineInvariant, AccessControl {
     DocumentEngine public documentEngine;
     address public admin = address(0x1);
@@ -136,6 +171,31 @@ contract DocumentEngineTest is Test, DocumentEngineInvariant, AccessControl {
         // and the admin still passes the authorization gate
         vm.prank(admin);
         documentEngine.setDocument(testContract, documentName, documentURI, documentHash);
+    }
+
+    /**
+     * @dev See {OverridingDocumentEngine}. Compilation alone proves the three hooks are `virtual`;
+     * these assertions prove each override is on the real call path.
+     */
+    function testInternalHooksAreVirtualAndOverridesAreReached() public {
+        OverridingDocumentEngine engine = new OverridingDocumentEngine(admin, AddressZero);
+
+        // _setDocument override reached on the admin write path
+        vm.prank(admin);
+        engine.setDocument(testContract, documentName, documentURI, documentHash);
+        assertEq(engine.setDocumentCalls(), 1, "_setDocument override not reached");
+
+        // _getDocument override reached on the read path
+        (string memory uri,,) = engine.getDocument(testContract, documentName);
+        assertEq(uri, string.concat("override:", documentURI), "_getDocument override not reached");
+
+        // _checkTokenBound override reached: an UNBOUND caller now passes the bound-token gate,
+        // which would otherwise revert NotBoundToken.
+        vm.prank(attacker);
+        engine.setDocument(documentName, documentURI, documentHash);
+        assertEq(engine.setDocumentCalls(), 2, "bound-token path did not run");
+        (string memory ownUri,,) = engine.getDocument(attacker, documentName);
+        assertEq(ownUri, string.concat("override:", documentURI), "_checkTokenBound override not reached");
     }
 
     function testCannotNonAdminRemoveDocument() public {

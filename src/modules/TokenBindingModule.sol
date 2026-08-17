@@ -65,7 +65,7 @@ abstract contract TokenBindingModule is DocumentEngineBase, ITokenBinding {
      * @param token The token whose binding is being set.
      * @param bound The binding state to apply: `true` to bind, `false` to unbind.
      */
-    function _setTokenBinding(address token, bool bound) internal {
+    function _setTokenBinding(address token, bool bound) internal virtual {
         if (token == address(0)) {
             revert TokenBindingInvalidToken();
         }
@@ -85,7 +85,7 @@ abstract contract TokenBindingModule is DocumentEngineBase, ITokenBinding {
     }
 
     /// @dev Reverts {NotBoundToken} if the caller (`_msgSender()`) is not bound.
-    function _checkTokenBound() internal view {
+    function _checkTokenBound() internal view virtual {
         if (!_boundTokens[_msgSender()]) {
             revert NotBoundToken(_msgSender());
         }
