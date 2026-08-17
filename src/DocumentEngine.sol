@@ -1,14 +1,16 @@
 //SPDX-License-Identifier: MPL-2.0
 pragma solidity ^0.8.24;
 
-import "OZ/access/extensions/AccessControlEnumerable.sol";
+import {AccessControl} from "OZ/access/AccessControl.sol";
+import {AccessControlEnumerable} from "OZ/access/extensions/AccessControlEnumerable.sol";
 import {IAccessControl} from "OZ/access/IAccessControl.sol";
+import {Context} from "OZ/utils/Context.sol";
+import {ERC2771Context} from "OZ/metatx/ERC2771Context.sol";
 import {IERC1643} from "CMTAT/interfaces/tokenization/draft-IERC1643.sol";
 import {IERC1643MultiDocument} from "./interfaces/IERC1643MultiDocument.sol";
 import {ITokenBinding} from "./interfaces/ITokenBinding.sol";
-import "OZ/metatx/ERC2771Context.sol";
-import "./modules/TokenBindingModule.sol";
-import "./modules/VersionModule.sol";
+import {TokenBindingModule} from "./modules/TokenBindingModule.sol";
+import {VersionModule} from "./modules/VersionModule.sol";
 
 /**
  * @title DocumentEngine
@@ -22,12 +24,18 @@ import "./modules/VersionModule.sol";
  * the ERC-2771 (gasless) meta-transaction support.
  */
 contract DocumentEngine is TokenBindingModule, VersionModule, AccessControlEnumerable, ERC2771Context {
-    // Role allowed to manage documents on behalf of any smart contract, and to
-    // bind/unbind tokens (admin path). Token binding uses the shared allowlist in
-    // {TokenBindingModule}, not a dedicated role.
+    /**
+     * @notice Role allowed to manage documents on behalf of any smart contract, and to
+     * bind/unbind tokens (admin path).
+     * @dev Token binding uses the shared allowlist in {TokenBindingModule}, not a dedicated role.
+     */
     bytes32 public constant DOCUMENT_MANAGER_ROLE = keccak256("DOCUMENT_MANAGER_ROLE");
 
-    // Constructor to initialize the admin role
+    /**
+     * @notice Deploys the engine and grants `admin` the default admin role.
+     * @param admin address granted `DEFAULT_ADMIN_ROLE`; must not be the null address
+     * @param forwarderIrrevocable address of the ERC-2771 forwarder (gasless support)
+     */
     constructor(address admin, address forwarderIrrevocable) ERC2771Context(forwarderIrrevocable) {
         if (admin == address(0)) {
             revert AdminWithAddressZeroNotAllowed();
@@ -36,18 +44,11 @@ contract DocumentEngine is TokenBindingModule, VersionModule, AccessControlEnume
     }
 
     /*//////////////////////////////////////////////////////////////
-                        ACCESS CONTROL (implementation)
+                        ACCESS CONTROL (public surface)
     //////////////////////////////////////////////////////////////*/
 
     /**
-     * @dev Authorization for the admin document-management path.
-     * The caller must hold `DOCUMENT_MANAGER_ROLE`. Override to customize.
-     */
-    function _authorizeDocumentManagement() internal view virtual override {
-        _checkRole(DOCUMENT_MANAGER_ROLE);
-    }
-
-    /**
+     * @notice Returns whether `account` holds `role`.
      * @dev Returns `true` if `account` has been granted `role`. The default admin
      * (`DEFAULT_ADMIN_ROLE`) is treated as holding **every** role.
      *
@@ -55,6 +56,9 @@ contract DocumentEngine is TokenBindingModule, VersionModule, AccessControlEnume
      * {AccessControlEnumerable} enumeration. `getRoleMember` / `getRoleMemberCount`
      * report only explicit grants, so a `DEFAULT_ADMIN_ROLE` holder satisfies
      * `hasRole(anyRole, admin)` yet does not appear in `getRoleMember(anyRole, ...)`.
+     * @param role The role identifier to check.
+     * @param account The account to check.
+     * @return True when `account` holds `role`, or holds `DEFAULT_ADMIN_ROLE`.
      */
     function hasRole(bytes32 role, address account)
         public
@@ -70,7 +74,12 @@ contract DocumentEngine is TokenBindingModule, VersionModule, AccessControlEnume
         return super.hasRole(role, account);
     }
 
+    /*//////////////////////////////////////////////////////////////
+                           ERC165
+    //////////////////////////////////////////////////////////////*/
+
     /**
+     * @notice Returns whether this contract implements `interfaceId`.
      * @dev ERC-165 discovery: advertises ERC-1643 and its multi-subject extension, the token-binding
      * surface, the version module (ERC-8303) and `AccessControlEnumerable`.
      *
@@ -89,6 +98,9 @@ contract DocumentEngine is TokenBindingModule, VersionModule, AccessControlEnume
      * document consumers at the **subject**, or use the address-scoped `getDocument(subject, name)`.
      *
      * See {IERC165-supportsInterface}.
+     * @param interfaceId The ERC-165 interface identifier to query.
+     * @return True when `interfaceId` is one of the advertised interfaces or is supported by a base
+     * contract.
      */
     function supportsInterface(bytes4 interfaceId)
         public
@@ -102,11 +114,25 @@ contract DocumentEngine is TokenBindingModule, VersionModule, AccessControlEnume
     }
 
     /*//////////////////////////////////////////////////////////////
+                        ACCESS CONTROL (implementation)
+    //////////////////////////////////////////////////////////////*/
+
+    /**
+     * @dev Authorization for the admin document-management path.
+     * The caller must hold `DOCUMENT_MANAGER_ROLE`. Override to customize.
+     */
+    function _authorizeDocumentManagement() internal view virtual override {
+        _checkRole(DOCUMENT_MANAGER_ROLE);
+    }
+
+    /*//////////////////////////////////////////////////////////////
                            ERC2771
     //////////////////////////////////////////////////////////////*/
 
     /**
      * @dev This surcharge is not necessary if you do not use ERC2771
+     * @return sender The transaction sender, unwrapped from the ERC-2771 calldata suffix when the
+     * call came through the trusted forwarder.
      */
     function _msgSender() internal view override(ERC2771Context, Context) returns (address sender) {
         return ERC2771Context._msgSender();
@@ -114,6 +140,8 @@ contract DocumentEngine is TokenBindingModule, VersionModule, AccessControlEnume
 
     /**
      * @dev This surcharge is not necessary if you do not use ERC2771
+     * @return The calldata, stripped of the ERC-2771 sender suffix when the call came through the
+     * trusted forwarder.
      */
     function _msgData() internal view override(ERC2771Context, Context) returns (bytes calldata) {
         return ERC2771Context._msgData();
@@ -121,6 +149,7 @@ contract DocumentEngine is TokenBindingModule, VersionModule, AccessControlEnume
 
     /**
      * @dev This surcharge is not necessary if you do not use the MetaTxModule
+     * @return The length of the ERC-2771 calldata suffix holding the sender address.
      */
     function _contextSuffixLength() internal view override(ERC2771Context, Context) returns (uint256) {
         return ERC2771Context._contextSuffixLength();

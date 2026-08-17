@@ -5,7 +5,7 @@
 
 |  File Name  |  SHA-1 Hash  |
 |-------------|--------------|
-| ./DocumentEngineBase.sol | 30ea1b25c7af9e478f0dbb2b1e984672c10e5a39 |
+| ./DocumentEngineBase.sol | d3de1fa1ff079856dc1cfe0f19ee8206e99a1fb1 |
 
 
 ### Contracts Description Table
@@ -16,9 +16,6 @@
 |     └      |  **Function Name**  |  **Visibility**  |  **Mutability**  |  **Modifiers**  |
 ||||||
 | **DocumentEngineBase** | Implementation | IERC1643, IERC1643MultiDocument, DocumentEngineInvariant, Context |||
-| └ | _authorizeDocumentManagement | Internal 🔒 |   | |
-| └ | _authorizeBoundTokenDocumentManagement | Internal 🔒 |   | |
-| └ | setDocument | Public ❗️ | 🛑  | onlyDocumentManager |
 | └ | removeDocument | External ❗️ | 🛑  | onlyDocumentManager |
 | └ | setDocument | External ❗️ | 🛑  | onlyBoundToken |
 | └ | removeDocument | External ❗️ | 🛑  | onlyBoundToken |
@@ -30,10 +27,13 @@
 | └ | getDocument | External ❗️ |   |NO❗️ |
 | └ | getAllDocuments | External ❗️ |   |NO❗️ |
 | └ | getAllDocuments | External ❗️ |   |NO❗️ |
-| └ | _getDocument | Internal 🔒 |   | |
+| └ | setDocument | Public ❗️ | 🛑  | onlyDocumentManager |
 | └ | _removeDocumentName | Internal 🔒 | 🛑  | |
 | └ | _removeDocument | Internal 🔒 | 🛑  | |
 | └ | _setDocument | Internal 🔒 | 🛑  | |
+| └ | _authorizeDocumentManagement | Internal 🔒 |   | |
+| └ | _authorizeBoundTokenDocumentManagement | Internal 🔒 |   | |
+| └ | _getDocument | Internal 🔒 |   | |
 
 
 ### Legend

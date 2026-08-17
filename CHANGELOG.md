@@ -73,6 +73,15 @@ for which CMTAT release each version of this engine is built against.
   - Add [CMTA/RuleEngine](https://github.com/CMTA/RuleEngine) [`v3.0.0-rc5`](https://github.com/CMTA/RuleEngine/releases/tag/v3.0.0-rc5) as a submodule (binding-pattern reference; see [Why not reuse RuleEngine's compliance module?](./README.md#why-not-reuse-ruleengines-erc-3643-compliance-module) — its `ERC3643ComplianceExtendedModule` is not reused)
   - `foundry.lock` now records every submodule by tag; all five entries had gone stale since `v0.3.0`.
 - **Toolchain**: bump Solidity `0.8.26` → `0.8.34` and `evm_version` `cancun` → `prague` to match CMTAT v3 (CMTAT uses `require(cond, CustomError())`, which needs solc ≥ 0.8.27)
+- **Style pass across `src/` and `script/` — behaviour-preserving.** Brought the sources in line with
+  the Solidity style guide: functions reordered by visibility group (external → public → internal,
+  `view`/`pure` last within each), so the `_authorize*` hooks and the ERC-2771 context overrides now
+  follow the public API instead of preceding it; every brace-less global import replaced by a named
+  one (which required adding the previously implicit `Context` and `AccessControl` imports, since a
+  named import no longer re-exports a dependency's own imports); and NatSpec completed with a
+  `@param` per argument and a `@return` per return value. No signature, visibility, body or storage
+  layout changed — verified by an unchanged per-contract function set, a clean `forge build`, and
+  72/72 tests passing.
 - **Source pragma raised `^0.8.20` → `^0.8.24`** across `src/`, `script/` and `test/`. This is a
   correction, not a new restriction: `^0.8.20` had become an over-promise, advertising a range the
   sources could not actually compile in. OpenZeppelin's `AccessControlEnumerable.sol` and

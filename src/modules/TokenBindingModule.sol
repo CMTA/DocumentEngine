@@ -45,6 +45,13 @@ abstract contract TokenBindingModule is DocumentEngineBase, ITokenBinding {
     }
 
     /**
+     * @inheritdoc ITokenBinding
+     */
+    function isTokenBound(address token) public view virtual override returns (bool) {
+        return _boundTokens[token];
+    }
+
+    /**
      * @dev Shared bind/unbind implementation.
      *
      * Rejects the null address: `address(0)` can never call the engine, so binding it grants
@@ -55,6 +62,8 @@ abstract contract TokenBindingModule is DocumentEngineBase, ITokenBinding {
      * event stream free of no-op entries, so an indexer can treat every {TokenBindingSet} as a real
      * transition rather than having to de-duplicate. The repeated call still succeeds, since the
      * caller's intent — "this token is (not) bound" — already holds.
+     * @param token The token whose binding is being set.
+     * @param bound The binding state to apply: `true` to bind, `false` to unbind.
      */
     function _setTokenBinding(address token, bool bound) internal {
         if (token == address(0)) {
@@ -65,11 +74,6 @@ abstract contract TokenBindingModule is DocumentEngineBase, ITokenBinding {
         }
         _boundTokens[token] = bound;
         emit TokenBindingSet(token, bound);
-    }
-
-    /// @inheritdoc ITokenBinding
-    function isTokenBound(address token) public view virtual override returns (bool) {
-        return _boundTokens[token];
     }
 
     /**

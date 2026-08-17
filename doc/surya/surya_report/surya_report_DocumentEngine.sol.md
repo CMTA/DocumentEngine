@@ -5,7 +5,7 @@
 
 |  File Name  |  SHA-1 Hash  |
 |-------------|--------------|
-| ./DocumentEngine.sol | d031f83714aa8dd23df6cc3fea3071829fcacf82 |
+| ./DocumentEngine.sol | b5712711a9a13e254b60044029edb4b66fc06213 |
 
 
 ### Contracts Description Table
@@ -17,9 +17,9 @@
 ||||||
 | **DocumentEngine** | Implementation | TokenBindingModule, VersionModule, AccessControlEnumerable, ERC2771Context |||
 | └ | <Constructor> | Public ❗️ | 🛑  | ERC2771Context |
-| └ | _authorizeDocumentManagement | Internal 🔒 |   | |
 | └ | hasRole | Public ❗️ |   |NO❗️ |
 | └ | supportsInterface | Public ❗️ |   |NO❗️ |
+| └ | _authorizeDocumentManagement | Internal 🔒 |   | |
 | └ | _msgSender | Internal 🔒 |   | |
 | └ | _msgData | Internal 🔒 |   | |
 | └ | _contextSuffixLength | Internal 🔒 |   | |

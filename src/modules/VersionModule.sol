@@ -28,8 +28,11 @@ abstract contract VersionModule is IERC8303, ERC165 {
     }
 
     /**
+     * @notice Returns whether this contract implements `interfaceId`.
      * @dev Advertises ERC-8303 support (interface id `0x54fd4d50`).
      * See {IERC165-supportsInterface}.
+     * @param interfaceId The ERC-165 interface identifier to query.
+     * @return True when `interfaceId` is ERC-8303 or is supported by a base contract.
      */
     function supportsInterface(bytes4 interfaceId) public view virtual override returns (bool) {
         return interfaceId == type(IERC8303).interfaceId || super.supportsInterface(interfaceId);

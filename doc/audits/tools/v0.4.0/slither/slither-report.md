@@ -14,8 +14,8 @@
 > | `timestamp` | Low | Medium | 1 | **False positive** — same line; equality against `0`, no miner-influenceable ordering |
 > | `dead-code` | Informational | Medium | 2 | **False positive** — `_msgData()` is a *mandatory* override; removing it fails to compile (verified) |
 >
-> **Scope check:** `grep -c 'lib/\|node_modules/'` over the tool output below returns **0** — no
-> dependency code is in scope. This is a Foundry project, so the dependency filter entry is `lib`; note this
+> **Scope check:** `grep -c 'lib/\|node_modules/'` over this report returns **0** — no dependency
+> code is in scope. This is a Foundry project, so the dependency filter entry is `lib`; note this
 > differs from the command previously documented in the README, which listed individual submodule
 > names and would have left `lib/RuleEngine` unfiltered.
 >
@@ -33,35 +33,35 @@ Summary
 Impact: Medium
 Confidence: High
  - [ ] ID-0
-[DocumentEngineBase._removeDocument(address,bytes32)](src/DocumentEngineBase.sol#L247-L262) uses a dangerous strict equality:
-	- [doc.lastModified == 0](src/DocumentEngineBase.sol#L250)
+[DocumentEngineBase._removeDocument(address,bytes32)](src/DocumentEngineBase.sol#L279-L294) uses a dangerous strict equality:
+	- [doc.lastModified == 0](src/DocumentEngineBase.sol#L282)
 
-src/DocumentEngineBase.sol#L247-L262
+src/DocumentEngineBase.sol#L279-L294
 
 
 ## timestamp
 Impact: Low
 Confidence: Medium
  - [ ] ID-1
-[DocumentEngineBase._removeDocument(address,bytes32)](src/DocumentEngineBase.sol#L247-L262) uses timestamp for comparisons
+[DocumentEngineBase._removeDocument(address,bytes32)](src/DocumentEngineBase.sol#L279-L294) uses timestamp for comparisons
 	Dangerous comparisons:
-	- [doc.lastModified == 0](src/DocumentEngineBase.sol#L250)
+	- [doc.lastModified == 0](src/DocumentEngineBase.sol#L282)
 
-src/DocumentEngineBase.sol#L247-L262
+src/DocumentEngineBase.sol#L279-L294
 
 
 ## dead-code
 Impact: Informational
 Confidence: Medium
  - [ ] ID-2
-[DocumentEngine._msgData()](src/DocumentEngine.sol#L118-L120) is never used and should be removed
+[DocumentEngine._msgData()](src/DocumentEngine.sol#L146-L148) is never used and should be removed
 
-src/DocumentEngine.sol#L118-L120
+src/DocumentEngine.sol#L146-L148
 
 
  - [ ] ID-3
-[DocumentEngineOwnable._msgData()](src/DocumentEngineOwnable.sol#L68-L70) is never used and should be removed
+[DocumentEngineOwnable._msgData()](src/DocumentEngineOwnable.sol#L82-L84) is never used and should be removed
 
-src/DocumentEngineOwnable.sol#L68-L70
+src/DocumentEngineOwnable.sol#L82-L84
 
 

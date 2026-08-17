@@ -305,9 +305,6 @@ each deployment contributes only its access-control layer and its ERC-2771 conte
 |     └      |  **Function Name**  |  **Visibility**  |  **Mutability**  |  **Modifiers**  |
 ||||||
 | **DocumentEngineBase** | Implementation | IERC1643, IERC1643MultiDocument, DocumentEngineInvariant, Context |||
-| └ | _authorizeDocumentManagement | Internal 🔒 |   | |
-| └ | _authorizeBoundTokenDocumentManagement | Internal 🔒 |   | |
-| └ | setDocument | Public ❗️ | 🛑  | onlyDocumentManager |
 | └ | removeDocument | External ❗️ | 🛑  | onlyDocumentManager |
 | └ | setDocument | External ❗️ | 🛑  | onlyBoundToken |
 | └ | removeDocument | External ❗️ | 🛑  | onlyBoundToken |
@@ -319,24 +316,27 @@ each deployment contributes only its access-control layer and its ERC-2771 conte
 | └ | getDocument | External ❗️ |   |NO❗️ |
 | └ | getAllDocuments | External ❗️ |   |NO❗️ |
 | └ | getAllDocuments | External ❗️ |   |NO❗️ |
-| └ | _getDocument | Internal 🔒 |   | |
+| └ | setDocument | Public ❗️ | 🛑  | onlyDocumentManager |
 | └ | _removeDocumentName | Internal 🔒 | 🛑  | |
 | └ | _removeDocument | Internal 🔒 | 🛑  | |
 | └ | _setDocument | Internal 🔒 | 🛑  | |
+| └ | _authorizeDocumentManagement | Internal 🔒 |   | |
+| └ | _authorizeBoundTokenDocumentManagement | Internal 🔒 |   | |
+| └ | _getDocument | Internal 🔒 |   | |
 ||||||
 | **DocumentEngine** | Implementation | TokenBindingModule, VersionModule, AccessControlEnumerable, ERC2771Context |||
 | └ | <Constructor> | Public ❗️ | 🛑  | ERC2771Context |
-| └ | _authorizeDocumentManagement | Internal 🔒 |   | |
 | └ | hasRole | Public ❗️ |   |NO❗️ |
 | └ | supportsInterface | Public ❗️ |   |NO❗️ |
+| └ | _authorizeDocumentManagement | Internal 🔒 |   | |
 | └ | _msgSender | Internal 🔒 |   | |
 | └ | _msgData | Internal 🔒 |   | |
 | └ | _contextSuffixLength | Internal 🔒 |   | |
 ||||||
 | **DocumentEngineOwnable** | Implementation | TokenBindingModule, VersionModule, Ownable2Step, ERC2771Context |||
 | └ | <Constructor> | Public ❗️ | 🛑  | Ownable ERC2771Context |
-| └ | _authorizeDocumentManagement | Internal 🔒 |   | |
 | └ | supportsInterface | Public ❗️ |   |NO❗️ |
+| └ | _authorizeDocumentManagement | Internal 🔒 |   | |
 | └ | _msgSender | Internal 🔒 |   | |
 | └ | _msgData | Internal 🔒 |   | |
 | └ | _contextSuffixLength | Internal 🔒 |   | |
@@ -344,8 +344,8 @@ each deployment contributes only its access-control layer and its ERC-2771 conte
 | **TokenBindingModule** | Implementation | DocumentEngineBase, ITokenBinding |||
 | └ | bindToken | External ❗️ | 🛑  |NO❗️ |
 | └ | unbindToken | External ❗️ | 🛑  |NO❗️ |
-| └ | _setTokenBinding | Internal 🔒 | 🛑  | |
 | └ | isTokenBound | Public ❗️ |   |NO❗️ |
+| └ | _setTokenBinding | Internal 🔒 | 🛑  | |
 | └ | _authorizeBoundTokenDocumentManagement | Internal 🔒 |   | |
 | └ | _checkTokenBound | Internal 🔒 |   | |
 ||||||
@@ -362,10 +362,10 @@ each deployment contributes only its access-control layer and its ERC-2771 conte
 |     └      |  **Function Name**  |  **Visibility**  |  **Mutability**  |  **Modifiers**  |
 ||||||
 | **IERC1643MultiDocument** | Interface |  |||
-| └ | getDocument | External ❗️ |   |NO❗️ |
-| └ | getAllDocuments | External ❗️ |   |NO❗️ |
 | └ | setDocument | External ❗️ | 🛑  |NO❗️ |
 | └ | removeDocument | External ❗️ | 🛑  |NO❗️ |
+| └ | getDocument | External ❗️ |   |NO❗️ |
+| └ | getAllDocuments | External ❗️ |   |NO❗️ |
 ||||||
 | **ITokenBinding** | Interface |  |||
 | └ | bindToken | External ❗️ | 🛑  |NO❗️ |

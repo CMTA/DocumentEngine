@@ -1,7 +1,7 @@
 //SPDX-License-Identifier: MPL-2.0
 pragma solidity ^0.8.24;
 
-import "forge-std/Script.sol";
+import {Script, console2} from "forge-std/Script.sol";
 import {DocumentEngine} from "../src/DocumentEngine.sol";
 
 /**
@@ -21,6 +21,10 @@ import {DocumentEngine} from "../src/DocumentEngine.sol";
  * described in the Foundry Key Management documentation (getfoundry.sh).
  */
 contract DeployDocumentEngine is Script {
+    /**
+     * @notice Reads the deployment configuration from the environment and deploys the engine.
+     * @return documentEngine The freshly deployed {DocumentEngine}.
+     */
     function run() external returns (DocumentEngine documentEngine) {
         address admin = vm.envOr("DOCUMENT_ENGINE_ADMIN", msg.sender);
         address forwarder = vm.envOr("DOCUMENT_ENGINE_FORWARDER", address(0));
@@ -33,7 +37,13 @@ contract DeployDocumentEngine is Script {
         console2.log("  version          :", documentEngine.version());
     }
 
-    /// @dev Broadcasted deployment, isolated from env parsing so it can be reused/tested.
+    /**
+     * @notice Deploys the engine with an explicit configuration.
+     * @dev Broadcasted deployment, isolated from env parsing so it can be reused/tested.
+     * @param admin address granted `DEFAULT_ADMIN_ROLE`
+     * @param forwarder ERC-2771 trusted forwarder; `address(0)` disables gasless support
+     * @return documentEngine The freshly deployed {DocumentEngine}.
+     */
     function deploy(address admin, address forwarder) public returns (DocumentEngine documentEngine) {
         vm.startBroadcast();
         documentEngine = new DocumentEngine(admin, forwarder);

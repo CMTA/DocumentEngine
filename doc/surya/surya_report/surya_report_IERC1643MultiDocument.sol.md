@@ -5,7 +5,7 @@
 
 |  File Name  |  SHA-1 Hash  |
 |-------------|--------------|
-| ./interfaces/IERC1643MultiDocument.sol | 1837f12f2b88fb4a93bb0100608e8e380c75582a |
+| ./interfaces/IERC1643MultiDocument.sol | 2ddea154d4764f7f0edb35a85dc8df6db72604e0 |
 
 
 ### Contracts Description Table
@@ -16,10 +16,10 @@
 |     └      |  **Function Name**  |  **Visibility**  |  **Mutability**  |  **Modifiers**  |
 ||||||
 | **IERC1643MultiDocument** | Interface |  |||
-| └ | getDocument | External ❗️ |   |NO❗️ |
-| └ | getAllDocuments | External ❗️ |   |NO❗️ |
 | └ | setDocument | External ❗️ | 🛑  |NO❗️ |
 | └ | removeDocument | External ❗️ | 🛑  |NO❗️ |
+| └ | getDocument | External ❗️ |   |NO❗️ |
+| └ | getAllDocuments | External ❗️ |   |NO❗️ |
 
 
 ### Legend
