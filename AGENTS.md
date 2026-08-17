@@ -168,11 +168,12 @@ Other important files:
   `doc/audits/` — the security overview (`AUDIT_OVERVIEW.md`) plus versioned
   static-analysis output under `doc/audits/tools/vX.Y.Z/<tool>/`, each with a
   `*-report.md` (summary table prepended) and a `*-report-feedback.md` triaging
-  every finding. Both Aderyn `0.6.5` (0 High · 6 Low) and Slither `0.11.5`
+  every finding, plus a `claude/` section holding the AI-assisted code-quality review.
+ Both Aderyn `0.6.5` (0 High · 6 Low) and Slither `0.11.5`
   (0 High · 1 Med · 1 Low · 2 Info) were run for `v0.4.0` — nothing to fix in either.
   Slither's dependency filter must be `lib` (Foundry layout); `--filter-paths` fails
   open, so an entry matching nothing silently pulls the vendored tree into scope.
-  `doc/audits/CLAUDE_ANALYSIS.md` is the code-quality review (not a security audit) — read
+  `doc/audits/tools/v0.4.0/claude/CLAUDE_ANALYSIS.md` is the code-quality review (not a security audit) — read
   its "left as is" rows before proposing an optimisation: `unchecked {++i}` (0 gas on solc
   0.8.34), `string calldata` on the admin `setDocument` (49 gas *worse*), and extracting the
   duplicated ERC-2771 overrides (impossible — C3 linearization) are all measured dead ends.

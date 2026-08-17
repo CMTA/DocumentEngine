@@ -23,6 +23,7 @@
 > Full triage, with the reasoning verified against each cited line:
 > [`aderyn-report-feedback.md`](./aderyn-report-feedback.md).
 > Companion Slither run: [`../slither/slither-report.md`](../slither/slither-report.md).
+> Code-quality review (what neither tool can see): [`../claude/CLAUDE_ANALYSIS.md`](../claude/CLAUDE_ANALYSIS.md).
 > Security overview: [`doc/audits/AUDIT_OVERVIEW.md`](../../../AUDIT_OVERVIEW.md).
 
 # Aderyn Analysis Report

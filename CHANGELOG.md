@@ -73,7 +73,7 @@ for which CMTAT release each version of this engine is built against.
   - Add [CMTA/RuleEngine](https://github.com/CMTA/RuleEngine) [`v3.0.0-rc5`](https://github.com/CMTA/RuleEngine/releases/tag/v3.0.0-rc5) as a submodule (binding-pattern reference; see [Why not reuse RuleEngine's compliance module?](./README.md#why-not-reuse-ruleengines-erc-3643-compliance-module) — its `ERC3643ComplianceExtendedModule` is not reused)
   - `foundry.lock` now records every submodule by tag; all five entries had gone stale since `v0.3.0`.
 - **Toolchain**: bump Solidity `0.8.26` → `0.8.34` and `evm_version` `cancun` → `prague` to match CMTAT v3 (CMTAT uses `require(cond, CustomError())`, which needs solc ≥ 0.8.27)
-- **Code-quality review** (`doc/audits/CLAUDE_ANALYSIS.md`) — 14 findings, none a vulnerability.
+- **Code-quality review** (`doc/audits/tools/v0.4.0/claude/CLAUDE_ANALYSIS.md`) — 14 findings, none a vulnerability.
   Six implemented:
   - **Gas, `_removeDocumentName`**: the `_documentNames[subject]` mapping slot was re-hashed on every
     loop iteration; cached as a storage pointer. Measured **−2200 gas** on a 20-entry full scan.

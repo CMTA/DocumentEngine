@@ -22,6 +22,7 @@
 > Full triage, with the reasoning verified against each cited line:
 > [`slither-report-feedback.md`](./slither-report-feedback.md).
 > Companion Aderyn run: [`../aderyn/aderyn-report.md`](../aderyn/aderyn-report.md).
+> Code-quality review (what neither tool can see): [`../claude/CLAUDE_ANALYSIS.md`](../claude/CLAUDE_ANALYSIS.md).
 > Security overview: [`doc/audits/AUDIT_OVERVIEW.md`](../../../AUDIT_OVERVIEW.md).
 
 **THIS CHECKLIST IS NOT COMPLETE**. Use `--show-ignored-findings` to show all the results.

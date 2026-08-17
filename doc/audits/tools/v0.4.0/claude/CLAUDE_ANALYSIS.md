@@ -17,8 +17,10 @@
 > "revocation" could never have been a durable restriction. Its defect is misleading feedback, not
 > lost containment.
 >
-> For the static-analysis passes see [`AUDIT_OVERVIEW.md`](./AUDIT_OVERVIEW.md); both Aderyn and
-> Slither found nothing to fix. This review covers what those tools structurally cannot see.
+> For the static-analysis passes see [`aderyn-report.md`](../aderyn/aderyn-report.md) and
+> [`slither-report.md`](../slither/slither-report.md); both found nothing to fix, and this review
+> covers what those tools structurally cannot see.
+> Security overview: [`AUDIT_OVERVIEW.md`](../../../AUDIT_OVERVIEW.md).
 
 ## Disposition summary
 
