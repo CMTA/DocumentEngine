@@ -1,6 +1,7 @@
 # DocumentEngine (ERC-1643)
 
-> This project has not been audited yet, please use at your own risk. For any questions, please contact [admin@cmta.ch](mailto:admin@cmta.ch).
+> This project has not been audited yet, please use at your own risk. For any questions, please
+> contact [admin@cmta.ch](mailto:admin@cmta.ch).
 
 A standalone contract that stores **[ERC-1643](https://github.com/ethereum/EIPs/issues/1643)
 documents on-chain on behalf of other contracts** — typically [CMTAT](https://github.com/CMTA/CMTAT)
@@ -90,8 +91,8 @@ For the full flow — the wiring steps, every revert branch, and the admin path 
 ## Two things integrators must know
 
 **Read through the subject, not the engine.** As the read diagram shows, the single-argument
-`getDocument(name)` is `msg.sender`-scoped, so a third party calling it on the engine reads *its own*
-— empty — namespace, with no revert. Read through the token, or use the address-scoped
+`getDocument(name)` is `msg.sender`-scoped, so a third party calling it on the engine reads *its
+own* — empty — namespace, with no revert. Read through the token, or use the address-scoped
 `getDocument(subject, name)`.
 
 **The admin path emits nothing on the subject.** A write sent straight to the engine
@@ -112,8 +113,8 @@ DOCUMENT_ENGINE_OWNER=0x… DOCUMENT_ENGINE_FORWARDER=0x… \
   forge script script/DeployDocumentEngineOwnable.s.sol --rpc-url $RPC_URL --broadcast
 ```
 
-The forwarder enables ERC-2771 gasless calls and is **immutable**; pass `address(0)` to disable.
-Use a keystore or hardware wallet for real deployments, not a raw private key.
+The forwarder enables ERC-2771 gasless calls and is **immutable**; pass `address(0)` to disable. Use
+a keystore or hardware wallet for real deployments, not a raw private key.
 
 ## More
 
@@ -132,4 +133,5 @@ supported only against the CMTAT release it was built for.
 
 ## Intellectual property
 
-The code is copyright (c) Capital Market and Technology Association, 2018-2024, and is released under [Mozilla Public License 2.0](https://github.com/CMTA/CMTAT/blob/master/LICENSE.md).
+The code is copyright (c) Capital Market and Technology Association, 2018-2024, and is released
+under [Mozilla Public License 2.0](https://github.com/CMTA/CMTAT/blob/master/LICENSE.md).
