@@ -11,7 +11,7 @@
 > | ID | Detector | Sev | Instances | Assessment |
 > | --- | --- | --- | --- | --- |
 > | L-1 | Centralization Risk | Low | 2 | **By design** — a document manager is a privileged operator by definition |
-> | L-2 | Unspecific Solidity Pragma | Low | 9 | **By design** — `^0.8.20` is deliberate; the deployed compiler is pinned in `foundry.toml` |
+> | L-2 | Unspecific Solidity Pragma | Low | 9 | **By design** — the caret is deliberate; the deployed compiler is pinned in `foundry.toml`. The `^0.8.20` floor seen by this run has since been raised to `^0.8.24` — see the feedback file |
 > | L-3 | PUSH0 Opcode | Low | 9 | **Environment** — `evm_version = prague`; only relevant on chains without PUSH0 |
 > | L-4 | Loop Contains `require`/`revert` | Low | 4 | **By design** — batch operations are deliberately all-or-nothing |
 > | L-5 | Costly operations inside loop | Low | 5 | **By design** (4 batch loops) + **1 known item** — `_removeDocumentName` is O(n), see §4.7 |

@@ -1,5 +1,5 @@
 //SPDX-License-Identifier: MPL-2.0
-pragma solidity ^0.8.20;
+pragma solidity ^0.8.24;
 
 import {Ownable} from "OZ/access/Ownable.sol";
 import {Ownable2Step} from "OZ/access/Ownable2Step.sol";

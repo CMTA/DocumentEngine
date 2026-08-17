@@ -65,6 +65,14 @@ for which CMTAT release each version of this engine is built against.
   - Add [CMTA/RuleEngine](https://github.com/CMTA/RuleEngine) [`v3.0.0-rc5`](https://github.com/CMTA/RuleEngine/releases/tag/v3.0.0-rc5) as a submodule (binding-pattern reference; see [Why not reuse RuleEngine's compliance module?](./README.md#why-not-reuse-ruleengines-erc-3643-compliance-module) — its `ERC3643ComplianceExtendedModule` is not reused)
   - `foundry.lock` now records every submodule by tag; all five entries had gone stale since `v0.3.0`.
 - **Toolchain**: bump Solidity `0.8.26` → `0.8.34` and `evm_version` `cancun` → `prague` to match CMTAT v3 (CMTAT uses `require(cond, CustomError())`, which needs solc ≥ 0.8.27)
+- **Source pragma raised `^0.8.20` → `^0.8.24`** across `src/`, `script/` and `test/`. This is a
+  correction, not a new restriction: `^0.8.20` had become an over-promise, advertising a range the
+  sources could not actually compile in. OpenZeppelin's `AccessControlEnumerable.sol` and
+  `EnumerableSet.sol` are `^0.8.24`, and CMTAT `v3.3.0-rc3` moved `draft-IERC1643.sol` to `^0.8.24`
+  as well, so every contract in `src/` now transitively requires it — `forge build --use 0.8.23`
+  fails to resolve a compiler. `0.8.24` is the real `src/` floor; the full project including the
+  CMTAT-importing tests needs `0.8.27`, because `require(cond, CustomError())` is restricted to the
+  via-ir pipeline before then. Deployed bytecode is unaffected — the pinned compiler is still `0.8.34`.
 - **`IERC1643` (CMTAT v3) breaking changes**
   - `getDocument` keeps returning `(string uri, bytes32 documentHash, uint256 lastModified)` — the
     flat ERC-1643 ABI — on **both** overloads, `getDocument(bytes32)` and

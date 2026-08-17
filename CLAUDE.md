@@ -140,6 +140,10 @@ change *who* is authorized in a deployment (implement the `_authorize*` hooks).
 Other important files:
 
 - `foundry.toml` — solc `0.8.34`, `evm_version = prague` (required by CMTAT v3).
+  Sources declare `pragma solidity ^0.8.24` — the real `src/` floor, set by OpenZeppelin's
+  `AccessControlEnumerable`/`EnumerableSet` and CMTAT's `draft-IERC1643` since `v3.3.0-rc3`.
+  Building the tests needs `≥ 0.8.27` (CMTAT's `require(cond, CustomError())` is via-ir-only
+  before then). Keep the pragma honest: if a dependency raises its floor, raise ours to match.
 - `remappings.txt` — `CMTAT/`, `RuleEngine/`, `OZ/`, `@openzeppelin/contracts-upgradeable/`.
 - `CHANGELOG.md` — semver history; update on every release (current: `v0.4.0`).
 - `ERC-1643-proposition.md` — proposed optional multi-token events / extension.

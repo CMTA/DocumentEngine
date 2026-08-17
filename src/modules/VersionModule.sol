@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MPL-2.0
-pragma solidity ^0.8.20;
+pragma solidity ^0.8.24;
 
 import {ERC165} from "OZ/utils/introspection/ERC165.sol";
 import {IERC8303} from "../interfaces/IERC8303.sol";

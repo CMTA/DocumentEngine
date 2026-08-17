@@ -361,8 +361,14 @@ Notes on the CMTAT v2 → v3 jump at `v0.4.0`:
 - The `IERC1643` import path moved in CMTAT v3, from
   `CMTAT/interfaces/engine/draft-IERC1643.sol` to `CMTAT/interfaces/tokenization/draft-IERC1643.sol`.
 - Document names became `bytes32` in CMTAT v3 (they were `string` up to v2.5.0-rc0).
-- Solidity `≥ 0.8.27` is required from `v0.4.0` on, because CMTAT v3 uses
-  `require(cond, CustomError())`.
+- Two different Solidity floors apply from `v0.4.0` on, and the sources declare the lower of them:
+  - **`src/` requires `≥ 0.8.24`** — the pragma every file declares. OpenZeppelin's
+    `AccessControlEnumerable.sol` / `EnumerableSet.sol` and, since CMTAT `v3.3.0-rc3`,
+    `draft-IERC1643.sol` are all `^0.8.24`, so no contract here compiles below it.
+  - **Building the full project, tests included, requires `≥ 0.8.27`**, because CMTAT v3 uses
+    `require(cond, CustomError())`, which is restricted to the via-ir pipeline before `0.8.27`.
+
+  This is why the declared pragma is `^0.8.24` while `foundry.toml` pins `0.8.34`.
 
 Exact submodule revisions are pinned in [`foundry.lock`](./foundry.lock).
 
