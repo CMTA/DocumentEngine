@@ -1,7 +1,7 @@
 # IMPROVEMENT — open items
 
 Known deviations, gaps and improvement opportunities in `DocumentEngine`, carried forward as of
-**`v0.4.0`** (CMTAT `v3.3.0-rc2`).
+**`v0.4.0`** (CMTAT `v3.3.0-rc3`).
 
 They come from a clause-by-clause conformance analysis of the implementation against the two
 specifications this engine implements:

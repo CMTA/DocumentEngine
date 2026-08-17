@@ -43,7 +43,7 @@ Reference: [keepachangelog.com/en/1.1.0/](https://keepachangelog.com/en/1.1.0/)
 
 ## v0.4.0
 
-Targets **CMTAT `v3.3.0-rc2`** — see the [compatibility matrix](./README.md#version-compatibility)
+Targets **CMTAT `v3.3.0-rc3`** — see the [compatibility matrix](./README.md#version-compatibility)
 for which CMTAT release each version of this engine is built against.
 
 > **Versioning note.** `getDocument` changes shape relative to `v0.3.0`, which the convention above
@@ -54,20 +54,23 @@ for which CMTAT release each version of this engine is built against.
 ### Changed
 
 - **Dependencies**
-  - Upgrade CMTAT `v2.5.0-rc0` → [`v3.3.0-rc2`](https://github.com/CMTA/CMTAT/releases/tag/v3.3.0-rc2)
-    (`lib/CMTAT` → `35d8940b40943828c5ea407dc6b22d559d92e4ae`). Development passed through
-    `v3.3.0-rc1`; that interim release is **not** compatible with the code as shipped here, because
-    it declares neither the ERC-1643 errors nor the flat `getDocument` return (see below).
-  - Upgrade OpenZeppelin Contracts (and Contracts Upgradeable) `v5.0.2` → `v5.6.1`
-  - Add [CMTA/RuleEngine](https://github.com/CMTA/RuleEngine) `v3.0.0-rc4` as a submodule (binding-pattern reference; see [Why not reuse RuleEngine's compliance module?](./README.md#why-not-reuse-ruleengines-erc-3643-compliance-module) — its `ERC3643ComplianceExtendedModule` is not reused)
+  - Upgrade CMTAT `v2.5.0-rc0` → [`v3.3.0-rc3`](https://github.com/CMTA/CMTAT/releases/tag/v3.3.0-rc3)
+    (`lib/CMTAT` → `658672f190d56d3f61663a7d6d51962b8980df70`). Development passed through
+    `v3.3.0-rc1` and `v3.3.0-rc2`. rc1 is **not** compatible with the code as shipped here, because
+    it declares neither the ERC-1643 errors nor the flat `getDocument` return (see below); rc2 and
+    rc3 are interchangeable for this engine — between them, the whole document surface
+    (`draft-IERC1643.sol`, `IDocumentEngine.sol`, `DocumentEngineModule.sol`,
+    `DocumentERC1643Module.sol`) changed only its pragma, `^0.8.20` → `^0.8.24`.
+  - Upgrade OpenZeppelin Contracts (and Contracts Upgradeable) `v5.0.2` → [`v5.7.0`](https://github.com/OpenZeppelin/openzeppelin-contracts/releases/tag/v5.7.0)
+  - Add [CMTA/RuleEngine](https://github.com/CMTA/RuleEngine) [`v3.0.0-rc5`](https://github.com/CMTA/RuleEngine/releases/tag/v3.0.0-rc5) as a submodule (binding-pattern reference; see [Why not reuse RuleEngine's compliance module?](./README.md#why-not-reuse-ruleengines-erc-3643-compliance-module) — its `ERC3643ComplianceExtendedModule` is not reused)
   - `foundry.lock` now records every submodule by tag; all five entries had gone stale since `v0.3.0`.
 - **Toolchain**: bump Solidity `0.8.26` → `0.8.34` and `evm_version` `cancun` → `prague` to match CMTAT v3 (CMTAT uses `require(cond, CustomError())`, which needs solc ≥ 0.8.27)
 - **`IERC1643` (CMTAT v3) breaking changes**
   - `getDocument` keeps returning `(string uri, bytes32 documentHash, uint256 lastModified)` — the
     flat ERC-1643 ABI — on **both** overloads, `getDocument(bytes32)` and
     `getDocument(address subject, bytes32)`. CMTAT `v3.3.0-rc1` briefly replaced this with a
-    `Document` struct and `v3.3.0-rc2` reverted it; this engine follows rc2, so relative to `v0.3.0`
-    the external shape is unchanged.
+    `Document` struct and `v3.3.0-rc2` reverted it; this engine follows rc2/rc3, so relative to
+    `v0.3.0` the external shape is unchanged.
 
     The distinction is worth recording because it is invisible to interface detection: return types
     are not part of a function signature, so both shapes share the same selectors and the same

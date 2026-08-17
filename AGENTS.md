@@ -57,7 +57,8 @@ addressed by a `bytes32` name.
   (both deployments). The base id is for a **token** checking that the single-argument
   endpoints exist before wiring itself to the engine — it does **not** mean documents
   should be read from the engine's address, since those functions are `_msgSender()`-scoped.
-  Both errors are declared by `IERC1643` itself since CMTAT `v3.3.0-rc2` — do **not**
+  Both errors are declared by `IERC1643` itself since CMTAT `v3.3.0-rc2` (still true in
+  `v3.3.0-rc3`) — do **not**
   re-declare them in `DocumentEngineInvariant` (duplicate declaration = compile error,
   and the multi-subject draft forbids it).
 - **`getDocument` returns flat values**, `(string uri, bytes32 documentHash,
@@ -156,8 +157,8 @@ Other important files:
 
 ## Dependencies (tested versions)
 
-- CMTAT `v3.3.0-rc2`, RuleEngine `v3.0.0-rc4` (binding-pattern reference only; compliance module not reused)
-- OpenZeppelin Contracts / Contracts Upgradeable `v5.6.1`
+- CMTAT `v3.3.0-rc3`, RuleEngine `v3.0.0-rc5` (binding-pattern reference only; compliance module not reused)
+- OpenZeppelin Contracts / Contracts Upgradeable `v5.7.0`
 - Solidity `0.8.34`, Foundry
 
 ## Common commands
