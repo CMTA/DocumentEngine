@@ -70,6 +70,12 @@ addressed by a `bytes32` name.
 - **ERC-2771:** meta-transaction (gasless) support; `_msgSender()` is used everywhere.
 - **Access control:** `DEFAULT_ADMIN_ROLE` implicitly has every role (see the
   `hasRole` override).
+- **No documentation pointers in contract comments.** Never write `See doc/…` or a `.md` path in
+  `src/` — docs move, deployed source does not, and a reader on a block explorer has neither. State
+  the conclusion in the comment instead, and keep it short; the derivation belongs in `doc/` with no
+  cross-reference either way. NatSpec links that resolve inside the source (`{_removeDocument}`) are
+  fine. Exempt: tests/mocks, and citations of audit records by **bare filename + finding ID**
+  (`CLAUDE_ANALYSIS.md (H-1)`) — those are immutable and survive a move.
 - **Every `internal` function is `virtual`.** Not just the `_authorize*` hooks — the document
   write/read paths (`_setDocument`, `_removeDocument`, `_removeDocumentName`, `_getDocument`), the
   binding internals (`_setTokenBinding`, `_checkTokenBound`) and the ERC-2771 context trio are all

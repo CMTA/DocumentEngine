@@ -287,7 +287,7 @@ abstract contract DocumentEngineBase is IERC1643, IERC1643MultiDocument, Documen
         // This engine is a shared, multi-subject manager: per the ERC-1643
         // "Emission Responsibility" rules it emits only the address-carrying
         // extension event (the base `DocumentRemoved` is the token contract's
-        // responsibility). See doc/ERCSpecification.
+        // responsibility).
         emit DocumentRemovedForSubject(subject, name_, doc.uri, doc.documentHash);
 
         delete _documents[subject][name_];
@@ -323,7 +323,7 @@ abstract contract DocumentEngineBase is IERC1643, IERC1643MultiDocument, Documen
         doc.lastModified = block.timestamp;
 
         // Shared, multi-subject manager: emit only the address-carrying extension
-        // event (see {_removeDocument} note and doc/ERCSpecification).
+        // event (see the {_removeDocument} note).
         emit DocumentUpdatedForSubject(subject, name_, uri_, documentHash_);
     }
 

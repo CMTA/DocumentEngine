@@ -74,7 +74,7 @@ for which CMTAT release each version of this engine is built against.
   - `foundry.lock` now records every submodule by tag; all five entries had gone stale since `v0.3.0`.
 - **Toolchain**: bump Solidity `0.8.26` → `0.8.34` and `evm_version` `cancun` → `prague` to match CMTAT v3 (CMTAT uses `require(cond, CustomError())`, which needs solc ≥ 0.8.27)
 - **Code-quality review** (`doc/audits/CLAUDE_ANALYSIS.md`) — 14 findings, none a vulnerability.
-  Four implemented:
+  Six implemented:
   - **Gas, `_removeDocumentName`**: the `_documentNames[subject]` mapping slot was re-hashed on every
     loop iteration; cached as a storage pointer. Measured **−2200 gas** on a 20-entry full scan.
   - **Gas, `_removeDocument`**: the whole `Document` (URI included) was copied to memory to be read
@@ -87,6 +87,14 @@ for which CMTAT release each version of this engine is built against.
     Pinned by the new `testRevokingRoleFromDefaultAdminDoesNotRemoveAccess`.
   - **`DocumentEngineInvariant`**: the error-location comment misattributed `NotBoundToken(address)`
     to `ITokenBinding`; it is declared by `TokenBindingModule`.
+  - **Documentation pointers removed from contract comments.** Three comments referenced
+    `doc/ERCSpecification…`; documentation moves but deployed source does not, and this repo had
+    already renamed that file once (`ERC-1643-proposition.md` → `erc-draft_multi_document_management.md`),
+    leaving a dangling README link behind. Someone reading verified source on an explorer has the
+    comment and not the file. All three pointers are gone and each comment is now **shorter**, not
+    longer — the `IERC1643MultiDocument` header dropped from 10 lines to 9 by replacing an
+    enumeration that gestured at the draft's rationale with the one operative fact: `subject` need
+    not be a token.
   - **All 12 `internal` functions are now `virtual`** (`_setDocument`, `_removeDocument`,
     `_removeDocumentName`, `_getDocument`, `_setTokenBinding`, `_checkTokenBound`, and the ERC-2771
     context trio in both deployments), resolving an inconsistency where `TokenBindingModule` exposed

@@ -8,9 +8,7 @@ pragma solidity ^0.8.24;
  * @dev Declared **independently of `IERC1643`** (it does not inherit it), so a
  * shared management contract can implement the address-scoped surface without
  * being forced to implement the base single-argument functions. `subject` is the
- * address of the contract the documents belong to (typically a token contract,
- * but the reasoning applies to any ERC-721/ERC-1155 token, vault, or other
- * on-chain product). See `doc/ERCSpecification/erc-draft_multi_document_management.md`.
+ * address of the contract the documents belong to — any contract, not only a token.
  */
 interface IERC1643MultiDocument {
     /**

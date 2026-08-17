@@ -34,18 +34,16 @@
 | E-1 | `virtual` coverage inconsistent between the two modules | ✅ fixed — all 12 internal functions now `virtual` | `DocumentEngineBase.sol`, `TokenBindingModule.sol`, both deployments |
 | F-1 | ERC-165 interface IDs — no inherited-selector trap | ⬜ nothing to do — verified correct | `DocumentEngine.sol:115` |
 | G-1 | `DocumentEngineInvariant` comment misattributes `NotBoundToken` | ✅ fixed | `DocumentEngineInvariant.sol` |
-| G-2 | Contracts point at documentation paths that have already moved once | ⚠️ decide — not implemented | 3 sites |
+| G-2 | Contracts point at documentation paths that have already moved once | ✅ fixed — all 3 pointers removed, comments got *shorter* | `DocumentEngineBase.sol`, `IERC1643MultiDocument.sol` |
 | G-3 | NatSpec block-length distribution is healthy | ⬜ nothing to do — measured | — |
 | H-1 | A role cannot be revoked from the default admin, but the call succeeds | ✅ documented + regression test | `DocumentEngine.sol:73` |
 | H-2 | Caller-scoped reads return an empty namespace instead of reverting | ⬜ left as is — already documented and tested | `DocumentEngineBase.sol:186` |
 
-Rows: 14. Fixed: 5. Left deliberately: 8. Open decisions: 1.
+Rows: 14. Fixed: 6. Left deliberately: 8. Open decisions: none.
 
 ## Outstanding
 
-| ID | Item | Why it is still open |
-| --- | --- | --- |
-| G-2 | Remove the `doc/…` pointers baked into contract comments | Two of the three sites *lean* on the doc rather than merely citing it; removing the pointer alone would leave an incomplete warning. Needs a sentence written per site, which is an editorial decision. |
+Nothing. Every finding is either implemented or carries a recorded decision to leave it alone.
 
 ---
 
@@ -396,18 +394,29 @@ pointer to the old name survived that rename as a dangling link until it was fix
 The pointer now baked into `IERC1643MultiDocument.sol` names the *replacement*, which is one rename
 away from the same fate — except that this one would be frozen in verified bytecode.
 
-**Verdict: decide.** The fix is not deletion — it is to move the substance in and drop only the
-pointer. The three sites differ:
-- `DocumentEngineBase.sol:289` — the preceding sentence already states the emission rule in full; the
-  pointer comes out cleanly.
-- `DocumentEngineBase.sol:325` — same, and the `{_removeDocument}` cross-reference is a NatSpec link
-  that resolves within the source, so it stays.
-- `IERC1643MultiDocument.sol:13` — this one *leans* on the document; removing the pointer alone
-  leaves "the reasoning applies to any … on-chain product" with no statement of what the reasoning
-  is. A replacement clause has to be written.
+**Verdict: implemented — all three pointers removed, and every comment came out shorter.**
 
-Not implemented because that third site needs an editorial decision about how much of the draft's
-rationale belongs in the interface.
+The prediction above was that the third site would need a *replacement clause written in*. That
+turned out to be the wrong instinct, and the maintainer's steer — "don't put too many information in
+the code" — is the correction: the sentence the pointer propped up was itself the padding.
+
+| site | before | after |
+| --- | --- | --- |
+| `DocumentEngineBase._removeDocument` | `…is the token contract's responsibility). See doc/ERCSpecification.` | pointer deleted; the preceding sentence already states the emission rule in full |
+| `DocumentEngineBase._setDocument` | `(see {_removeDocument} note and doc/ERCSpecification)` | `(see the {_removeDocument} note)` — the NatSpec link resolves inside the source, so it stays |
+| `IERC1643MultiDocument` header | `…(typically a token contract, but the reasoning applies to any ERC-721/ERC-1155 token, vault, or other on-chain product). See doc/ERCSpecification/erc-draft_multi_document_management.md.` | `…the address of the contract the documents belong to — any contract, not only a token.` |
+
+The third row is the instructive one. The clause enumerating "ERC-721/ERC-1155 token, vault, or other
+on-chain product" was gesturing at a rationale that lived in the draft; the *operative* fact for
+anyone implementing the interface is simply that `subject` need not be a token. Stating that in one
+clause removed the pointer and the enumeration at once — the interface header went from 10 lines
+to 9. Nothing was moved into the docs, because nothing needed to be: the draft
+already carries the derivation, and it is now reachable only by looking for it, which is correct for
+a document that may be renamed again.
+
+Verified: `grep -rn '\.md\|doc/\|docs/' src/` returns nothing. The two remaining hits repo-wide are in
+`test/DocumentEngine.t.sol` and cite this report by bare filename plus a finding ID — the exemption
+argued below, deliberately kept.
 
 Two exemptions deliberately **not** flagged: mocks and tests (never deployed), and citations of audit
 records by bare filename (`CLAUDE_ANALYSIS.md` plus a finding ID) — those are immutable historical
