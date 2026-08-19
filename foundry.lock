@@ -1,0 +1,32 @@
+{
+  "lib/CMTAT": {
+    "tag": {
+      "name": "v3.3.0-rc3",
+      "rev": "658672f190d56d3f61663a7d6d51962b8980df70"
+    }
+  },
+  "lib/RuleEngine": {
+    "tag": {
+      "name": "v3.0.0-rc5",
+      "rev": "ab9def2f19ae71af304127f42d20d9831cad1a2b"
+    }
+  },
+  "lib/forge-std": {
+    "tag": {
+      "name": "v1.7.1",
+      "rev": "f73c73d2018eb6a111f35e4dae7b4f27401e9421"
+    }
+  },
+  "lib/openzeppelin-contracts": {
+    "tag": {
+      "name": "v5.7.0",
+      "rev": "cab19933c33c2ad1d4c7a84864a3601dddfd16f3"
+    }
+  },
+  "lib/openzeppelin-contracts-upgradeable": {
+    "tag": {
+      "name": "v5.7.0",
+      "rev": "14f52c54d3a1eefbda3d4071efba24d3c1e07e8a"
+    }
+  }
+}

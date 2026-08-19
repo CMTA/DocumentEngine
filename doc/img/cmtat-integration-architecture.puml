@@ -1,0 +1,42 @@
+@startuml
+title Topology — one engine, many subjects
+
+skinparam componentStyle rectangle
+skinparam shadowing false
+skinparam defaultTextAlignment center
+skinparam linetype ortho
+skinparam component {
+  BackgroundColor #FDFDFD
+  BorderColor #666666
+}
+skinparam database {
+  BackgroundColor #EEF5FF
+  BorderColor #666666
+}
+
+actor "Document manager" as Operator
+
+component "CMTAT token A" as TokenA
+component "CMTAT token B" as TokenB
+component "**DocumentEngine**" as Engine
+database "documents,\nkeyed by subject" as Store
+
+TokenA --> Engine : setDocument(name, ...)
+TokenB --> Engine : setDocument(name, ...)
+Operator --> Engine : setDocument(**subject**, name, ...)\nbindToken(token)
+Engine --> Store
+
+note right of TokenA
+  **Bound-token path.** The token calls the
+  single-argument ERC-1643 functions; the
+  engine uses msg.sender as the subject, so
+  a token can only touch its own documents.
+end note
+
+note right of Operator
+  **Admin path.** Names the subject
+  explicitly, so one manager can write
+  for any contract in the fleet.
+end note
+
+@enduml

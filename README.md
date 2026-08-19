@@ -1,220 +1,121 @@
-# DocumentEngine  (ERC-1643)
+# DocumentEngine (ERC-1643)
+
+A standalone contract that stores **[ERC-1643](https://github.com/ethereum/EIPs/issues/1643) documents on-chain on behalf of other contracts** — typically [CMTAT](https://github.com/CMTA/CMTAT) tokens. One engine serves a whole fleet: each subject gets its own namespace, keyed by its address, and can never reach another's.
+
+A document is `{ string uri, bytes32 documentHash, uint256 lastModified }`, addressed by a `bytes32` name.
+
+Why use an external engine rather than storing documents in the token:
+
+- keeps the token's bytecode small;
+- lets one operator manage documents for many tokens;
+- documents can be updated without touching the token.
+
+**Specification and full reference: [`doc/README.md`](./doc/README.md).**
 
 > This project has not been audited yet, please use at your own risk. For any questions, please contact [admin@cmta.ch](mailto:admin@cmta.ch).
->
 
-The `DocumentEngine` is an external contract to manage documents through [*ERC-1643*](https://github.com/ethereum/EIPs/issues/1643), a standard proposition to manage document on-chain. This standard is notably used by [ERC-1400](https://github.com/ethereum/eips/issues/1411) from Polymath. 
+## Quick start
 
-The documentEngine is planned to be used by other smart contract,e.g CMTAT token, to store documents on their behalf.
+```bash
+git clone --recurse-submodules https://github.com/CMTA/DocumentEngine
+cd DocumentEngine
+forge build
+forge test
+```
 
-The ERC-1643 defines a document with three attributes:
+Requires [Foundry](https://getfoundry.sh) and Solidity `0.8.34` (`evm_version = prague`). Sources declare `pragma ^0.8.24`; building the tests needs `≥ 0.8.27`.
 
-- A short name (represented as a `bytes32`)
-- A generic URI (represented as a `string`) that could point to a website or other document portal.
-- The hash of the document contents associated with it on-chain.
+## Two ways to manage documents
 
-A smart contract needs only to implement two functions from this standard, available in the interface [IERC1643](./contracts/interfaces/engined/draft-IERC1643.sol) to get the documents from the documentEngine.
+Both are active at once.
+
+**Admin path** — a document manager writes for *any* subject, passing the address explicitly:
 
 ```solidity
-interface IERC1643 {
-function getDocument(bytes32 _name) external view returns (string memory , bytes32, uint256);
-function getAllDocuments() external view returns (bytes32[] memory);
-}
+documentEngine.setDocument(address(token), name, uri, documentHash);
+documentEngine.removeDocument(address(token), name);
 ```
 
-Use an external contract for your smart contract provides two advantages: 
-
-- Reduce code size of your smart contract
-- Allow to manage documents for several different smart contracts
-
-Warning:
-
-Since this engine allows to set documents for several different smart contracts, the functions to set documents take one supplementary arguments than defined in the ERC-1643.
-
-IERC1643
+**Bound-token path** — a *bound* token manages its **own** documents through the standard single-argument ERC-1643 functions (`msg.sender` is the subject):
 
 ```solidity
-function setDocument(bytes32 _name, string _uri, bytes32 _documentHash) external;
+documentEngine.bindToken(address(token));   // once, by the document manager
+// then, called by the token itself:
+documentEngine.setDocument(name, uri, documentHash);
 ```
 
-DocumentEngine
+Binding is a single allowlist shared by both deployments — **not** a role.
+
+## Two deployments
+
+| Contract | Access control | Document management + binding restricted to |
+| --- | --- | --- |
+| `DocumentEngine` | `AccessControlEnumerable` | `DOCUMENT_MANAGER_ROLE` |
+| `DocumentEngineOwnable` | `Ownable2Step` | `owner` |
+
+They share all the logic (`DocumentEngineBase`, `TokenBindingModule`, `VersionModule`) and differ only in *who* is authorized. Authorization goes through an overridable `internal virtual` hook, so a subclass changes who may write without touching the management functions.
+
+## Using it with a CMTAT token
+
+Two independent steps, and it is easy to do only one: `bindToken` on the **engine** authorises the token, `setDocumentEngine` on the **token** tells it where to forward. Bind without wiring and the token has nowhere to send; wire without binding and the forwarded call reverts `NotBoundToken`.
 
 ```solidity
-function setDocument(address smartContract,bytes32 name_,string memory uri_, bytes32 documentHash_)
+documentEngine.bindToken(address(token));   // engine's document manager
+token.setDocumentEngine(documentEngine);    // token's document manager
+
+token.setDocument(bytes32("prospectus"), "ipfs://...", keccak256(bytes(content)));
 ```
 
+### Writing a document
 
+![Writing a document through a CMTAT token](./doc/img/cmtat-write-simple.png)
 
-## Schema
+### Reading a document
 
-### Inheritance
+![Reading a document from a CMTAT token or the engine](./doc/img/cmtat-read-simple.png)
 
-![surya_inheritance_DocumentEngine.sol](./doc/surya/surya_inheritance/surya_inheritance_DocumentEngine.sol.png)
+For the full flow — the wiring steps, every revert branch, and the admin path — see [the detailed sequence](./doc/README.md#integration-with-cmtat) in the documentation.
 
+## Two things integrators must know
 
+**Read through the subject, not the engine.** As the read diagram shows, the single-argument `getDocument(name)` is `msg.sender`-scoped, so a third party calling it on the engine reads *its own* — empty — namespace, with no revert. Read through the token, or use the address-scoped `getDocument(subject, name)`.
 
-### Graph
+**The admin path emits nothing on the subject.** A write sent straight to the engine (`setDocument(subject, …)`, rather than through the token as above) has no execution point in the token, so only the engine's `DocumentUpdatedForSubject` fires. When consumers watch the token's address, use the bound-token path. Tracked as `OPEN-2` in [`doc/audits/AUDIT_OVERVIEW.md`](./doc/audits/AUDIT_OVERVIEW.md).
 
-![surya_graph_DocumentEngine.sol](./doc/surya/surya_graph/surya_graph_DocumentEngine.sol.png)
-
-
-
-![surya_graph_DocumentEngineInvariant.sol](./doc/surya/surya_graph/surya_graph_DocumentEngineInvariant.sol.png)
-
-## Surya Description Report
-
-### Contracts Description Table
-
-|      Contract      |         Type         |                      Bases                       |                |               |
-| :----------------: | :------------------: | :----------------------------------------------: | :------------: | :-----------: |
-|         └          |  **Function Name**   |                  **Visibility**                  | **Mutability** | **Modifiers** |
-|                    |                      |                                                  |                |               |
-| **DocumentEngine** |    Implementation    | IERC1643, DocumentEngineInvariant, AccessControl |                |               |
-|         └          |    <Constructor>     |                     Public ❗️                     |       🛑        |      NO❗️      |
-|         └          |     setDocument      |                     Public ❗️                     |       🛑        |   onlyRole    |
-|         └          |    removeDocument    |                    External ❗️                    |       🛑        |   onlyRole    |
-|         └          |  batchSetDocuments   |                    External ❗️                    |       🛑        |   onlyRole    |
-|         └          |  batchSetDocuments   |                    External ❗️                    |       🛑        |   onlyRole    |
-|         └          | batchRemoveDocuments |                    External ❗️                    |       🛑        |   onlyRole    |
-|         └          | batchRemoveDocuments |                    External ❗️                    |       🛑        |   onlyRole    |
-|         └          |     getDocument      |                    External ❗️                    |                |      NO❗️      |
-|         └          |     getDocument      |                    External ❗️                    |                |      NO❗️      |
-|         └          |   getAllDocuments    |                    External ❗️                    |                |      NO❗️      |
-|         └          |   getAllDocuments    |                    External ❗️                    |                |      NO❗️      |
-|         └          |       hasRole        |                     Public ❗️                     |                |      NO❗️      |
-|         └          |     _getDocument     |                    Internal 🔒                    |                |               |
-|         └          | _removeDocumentName  |                    Internal 🔒                    |       🛑        |               |
-|         └          |   _removeDocument    |                    Internal 🔒                    |       🛑        |               |
-|         └          |     _setDocument     |                    Internal 🔒                    |       🛑        |               |
-
-
-### Legend
-
-| Symbol | Meaning                   |
-| :----: | ------------------------- |
-|   🛑    | Function can modify state |
-|   💵    | Function is payable       |
-
-
-
-## Gasless support (ERC-2771)
-
-The DocumentEngine supports client-side gasless transactions using the [Gas Station Network](https://docs.opengsn.org/#the-problem) (GSN) pattern, the main open standard for transfering fee payment to another account than that of the transaction issuer. The contract uses the OpenZeppelin contract `ERC2771ContextUpgradeable`, which allows a contract to get the original client with `_msgSender()` instead of the fee payer given by `msg.sender` while allowing upgrades on the main contract (see *Deployment via a proxy* above).
-
-At deployment, the parameter  `forwarder` inside the constructor has to be set  with the defined address of the forwarder. Please note that the forwarder can not be changed after deployment.
-
-Please see the OpenGSN [documentation](https://docs.opengsn.org/contracts/#receiving-a-relayed-call) for more details on what is done to support GSN in the contract.
-
-
-
-## Dependencies
-
-The toolchain includes the following components, where the versions are the latest ones that we tested:
-
-- Foundry
-- Solidity 0.8.26 (via solc-js)
-- OpenZeppelin Contracts (submodule) [v5.0.2](https://github.com/OpenZeppelin/openzeppelin-contracts/releases/tag/v5.0.2)
-- Tests
-  - [CMTAT v2.5.0-rc0](https://github.com/CMTA/CMTAT/releases/tag/v2.5.0-rc0)
-  - OpenZeppelin Contracts Upgradeable(submodule) [v5.0.2](https://github.com/OpenZeppelin/openzeppelin-contracts-upgradeable/releases/tag/v5.0.2)
-
-## Tools
-
-### Prettier
+## Deploy
 
 ```bash
-npx prettier --write --plugin=prettier-plugin-solidity 'src/**/*.sol'
+# role-based
+DOCUMENT_ENGINE_ADMIN=0x… DOCUMENT_ENGINE_FORWARDER=0x… \
+  forge script script/DeployDocumentEngine.s.sol --rpc-url $RPC_URL --broadcast
+
+# owner-based
+DOCUMENT_ENGINE_OWNER=0x… DOCUMENT_ENGINE_FORWARDER=0x… \
+  forge script script/DeployDocumentEngineOwnable.s.sol --rpc-url $RPC_URL --broadcast
 ```
 
-### Slither
+The forwarder enables ERC-2771 gasless calls and is **immutable**; pass `address(0)` to disable. Use a keystore or hardware wallet for real deployments, not a raw private key.
 
-```bash
-slither .  --checklist --filter-paths "openzeppelin-contracts|test|CMTAT|forge-std" > slither-report.md
-```
+## More
 
-### Surya
+| | |
+| --- | --- |
+| Specification / full reference | [`doc/README.md`](./doc/README.md) |
+| Security overview & open items | [`doc/audits/AUDIT_OVERVIEW.md`](./doc/audits/AUDIT_OVERVIEW.md) |
+| Static analysis & code-quality reports | [`doc/audits/tools/`](./doc/audits/tools) |
+| Release history | [`CHANGELOG.md`](./CHANGELOG.md) |
+| Reporting a vulnerability | [`SECURITY.md`](./SECURITY.md) |
+| Diagrams (Surya, PlantUML) | [`doc/surya/`](./doc/surya), [`doc/img/`](./doc/img) |
 
-See [./doc/script](./doc/script)
+## Compatibility
 
-### Foundry
+| DocumentEngine | Compatible CMTAT | Tested against |
+| -------------- | ---------------- | -------------- |
+| **v0.4.0** (current) | `v3.3.0-rc2` – `v3.3.0-rc3` | v3.3.0-rc3 |
+| v0.3.0 and earlier | v2.5.0-rc0 | v2.5.0-rc0 |
 
-Foundry is a blazing fast, portable and modular toolkit for Ethereum application development written in Rust.
-
-Foundry consists of:
-
--   **Forge**: Ethereum testing framework (like Truffle, Hardhat and DappTools).
--   **Cast**: Swiss army knife for interacting with EVM smart contracts, sending transactions and getting chain data.
--   **Anvil**: Local Ethereum node, akin to Ganache, Hardhat Network.
--   **Chisel**: Fast, utilitarian, and verbose solidity REPL.
-
-#### Documentation
-
-https://book.getfoundry.sh/
-
-#### Usage
-
-##### Coverage
-
-```bash
-$ forge coverage --report lcov && genhtml lcov.info --branch-coverage --output-dir coverage
-```
-
-##### Gas report
-
-```bash
-$ forge test --gas-report
-```
-
-##### Build
-
-```shell
-$ forge build
-```
-
-##### Test
-
-```shell
-$ forge test
-```
-
-##### Format
-
-```shell
-$ forge fmt
-```
-
-##### Gas Snapshots
-
-```shell
-$ forge snapshot
-```
-
-##### Anvil
-
-```shell
-$ anvil
-```
-
-##### Deploy
-
-```shell
-$ forge script script/Counter.s.sol:CounterScript --rpc-url <your_rpc_url> --private-key <your_private_key>
-```
-
-##### Cast
-
-```shell
-$ cast <subcommand>
-```
-
-##### Help
-
-```shell
-$ forge --help
-$ anvil --help
-$ cast --help
-```
+The range is closed at both ends on purpose. CMTAT's `IERC1643` changed shape inside a single minor line — `getDocument` returns a `Document` struct up to `v3.3.0-rc1` and the three flat values from `v3.3.0-rc2` — so anything below rc2 does not compile, and a newer CMTAT is not assumed compatible until it has been tested. Full detail, including the Solidity and OpenZeppelin columns: [version compatibility](./doc/README.md#version-compatibility).
 
 ## Intellectual property
 
-The code is copyright (c) Capital Market and Technology Association, 2018-2024, and is released under [Mozilla Public License 2.0](https://github.com/CMTA/CMTAT/blob/master/LICENSE.md).
+The code is copyright (c) Capital Market and Technology Association, 2018-2026, and is released under [Mozilla Public License 2.0](https://github.com/CMTA/CMTAT/blob/master/LICENSE.md).

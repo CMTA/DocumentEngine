@@ -1,3 +1,4 @@
 CMTAT/=lib/CMTAT/contracts/
+RuleEngine/=lib/RuleEngine/src/
 OZ/=lib/openzeppelin-contracts/contracts/
 @openzeppelin/contracts-upgradeable/=lib/openzeppelin-contracts-upgradeable/contracts/

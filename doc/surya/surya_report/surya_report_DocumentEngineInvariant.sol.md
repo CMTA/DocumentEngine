@@ -5,7 +5,7 @@
 
 |  File Name  |  SHA-1 Hash  |
 |-------------|--------------|
-| ./DocumentEngineInvariant.sol | [object Promise] |
+| ./DocumentEngineInvariant.sol | c6d759bcf18c530f78db5ec5cebc7ddd7b715ff3 |
 
 
 ### Contracts Description Table
